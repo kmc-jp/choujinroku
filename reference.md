@@ -64,5 +64,5 @@
 |:-:|:-:|:-:|:-:|:-:|:-:|:-:|
 |妖精     |通常弾|通常弾|通常弾|Lv2 弾幕|Lv2 弾幕<br><font color="#f99">回避</font> x 全|Lv3 弾幕|
 |幽霊<br>(怨霊)|通常弾|Lv2 弾幕|Lv2 弾幕<br><font color="#99f">防御</font> x 弾|Lv2 弾幕<br><font color="#f99">回避</font> x 全|Lv3 弾幕|Lv3弾幕<br><font color="#9f9">反撃</font> x 武|
-|妖怪<br>(天狗)|通常弾|Lv2 弾幕|Lv2 弾幕<br><font color="#f99">回避</font> x 全|Lv2 武術<br><font color="#9f9">反撃</font> x 弾|Lv3 弾幕<br><font color="#9f9">反撃</font>  x 武|Lv3 武術<br><font color="#99f">防御</font> x 全|
+|妖怪<br>(天狗)|通常弾|Lv2 弾幕|Lv2 弾幕<br><font color="#f99">回避</font> x 全|Lv2 武術<br><font color="#9f9">反撃</font> x 弾|Lv3 弾幕<br><font color="#9f9">反撃</font> x 武|Lv3 武術<br><font color="#99f">防御</font> x 全|
 |神様     |通常弾|Lv2 弾幕<br><font color="#f99">回避</font> x 全|Lv3 弾幕|Lv3 弾幕<br><font color="#99f">防御</font> x 弾|Lv4 弾幕|Lv4 弾幕<br><font color="#f99">回避</font> ▼ 全|
