@@ -148,7 +148,7 @@ graph  {
   にとり[label="にとり\nA:山の麓\nB:工房"] ;
   にとり -- 河童のリュック[label="A:1",color="blue",fontcolor="blue"];
   にとり --  光学迷彩スーツ[label="A:1",color="blue",fontcolor="blue",style="bold"];
-  にとり -- 品物[label="x4\nB:1"];
+  にとり -- 呪われていない品物[label="x4\nB:1"];
   早苗[label="早苗\n守矢神社"] ;早苗 -- 神社の御札[label="2",style="bold"];
   神奈子[label="神奈子\n守矢神社"] ;神奈子 -- カリスマの秘訣[label="3",style="bold"];
   諏訪子[label="諏訪子\n守矢神社"] ;諏訪子 -- ZUN帽 [label="3",style="bold"];
@@ -203,7 +203,7 @@ graph  {
     shape=box,style="filled,bold,rounded",fillcolor="#ccccff"];
   本,超整理術,同人誌,求聞史紀,エア巻物,カリスマの秘訣,幻想郷の歩き方,スペカ事典,武術指南書,呪法書,文々。新聞,鉄人レシピ,スポ根漫画[
     shape=box,style="filled,bold,rounded",fillcolor="#ffcccc"];
-  呪いのアイテム,品物,舟,流し雛,タミフル,五寸釘,藁人形,茸[
+  呪いのアイテム,呪われていない品物,舟,流し雛,タミフル,五寸釘,藁人形,茸[
     shape=box,style="filled,bold,rounded",fillcolor="#ffffcc"];
 
 
