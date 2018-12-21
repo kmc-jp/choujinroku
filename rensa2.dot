@@ -1,0 +1,131 @@
+// TODO: アイテムの競合図も作りたい
+
+digraph  {
+  layout = "fdp";
+  overlap=false;
+  splines=true;
+  // ratio=0.72;
+  edge [len=0];
+  node [
+    landscape = true,
+    width = 1,
+    height = 1,
+    fontname = "Helvetica",
+    style="filled",
+    fillcolor="#fafafa",
+    // margin = "0,0.1,0,0",
+    // peripheries = 3,
+  ];
+  // ox <- ox
+  近隣マス -> {レティ プリズムリバー 文 はたて};
+
+  // o <- o
+  edge [color="red"]
+  フラン -> {咲夜 パチュリー};
+  星  -> {一輪 村紗};
+  響子 -> {一輪 村紗 ナズーリン}
+  {優曇華院 輝夜 永琳} -> てゐ;
+  パルスィ -> {勇儀 ヤマメ};
+  四季映姫 -> 小町;
+  白蓮 -> マミゾウ;
+  {ミスティア 衣玖} -> プリズムリバー;
+  // ox <- ox
+  edge [color="black"]
+  フラン -> 美鈴;
+  紫 -> {藍 橙};
+  こいし -> {燐 空};
+  主人公 -> 華扇;
+  輝夜 -> 優曇華院;
+  魔理沙 -> {にとり パチュリー アリス};
+  霊夢 -> 萃香;
+  神子 -> {布都 青娥};
+  幽々子 -> 妖夢;
+  天子 -> {空 衣玖};
+  幽香 -> メディスン;
+  白蓮 -> ぬえ;
+  // o <-> o
+  edge [dir="both", color="red"]
+  パチュリー -> 咲夜;
+  燐 -> 空;
+  村紗 -> ナズーリン -> 一輪 -> 村紗;
+  ミスティア -> 響子;
+  妖夢 -> 優曇華院;
+  // ox <-> ox
+  edge [dir="both",color="black"]
+  レミリア -> フラン;
+  ルーミア -> チルノ -> リグル -> ミスティア -> ルーミア -> リグル; チルノ -> ミスティア;
+  さとり -> こいし;
+  早苗 -> 神奈子 -> 諏訪子 -> 早苗;
+  橙 -> 藍;
+  ナズーリン -> 星;
+  慧音 -> 妹紅 ;
+  勇儀 -> 萃香 ;
+  // ox <-> xo
+  edge [dir="both",color="red:blue"]
+  藍 -> マミゾウ -> 藍;
+  // x <- o // みにくいかも
+  edge [dir="arrow",color="blue:red"]
+  {橙 燐} -> ナズーリン;
+  幽々子 -> ミスティア;
+  レベル2以下 -> 慧音;
+  レベル2以下 [label="ルーミア チルノ 橙\nリグル ミスティア 空"];
+  命蓮寺組[label="ナズーリン 白蓮\n星 村紗 一輪\n響子 マミゾウ ぬえ"]
+  命蓮寺組 -> 神子;
+  警察 -> 天子;
+  // 近隣マス -> パルスィ;
+  // {小町 神奈子 早苗} -> 天子;
+  警察 [label="美鈴 紫 永琳\n勇儀 白蓮\n神奈子 小町 早苗"];
+  近隣マス[label="近接マスの他者の\n勝敗に依存"]
+  edge [dir="none"]
+  { 神子 布都 青娥 芳香 } -> 白蓮マミゾウ;
+  edge [dir="arrow"]
+  白蓮マミゾウ -> {白蓮,マミゾウ};
+  妹紅 -> 輝夜;
+  // o <- x
+  edge [dir="arrow",color="red:blue"]
+  幽々子 -> ミスティア;
+  // ox <- ox かつ o <- o かつ (x <- x)! : 従者
+  edge [dir="both",color="black:red"]
+  白蓮 -> {響子 星 村紗 一輪 ナズーリン};
+  さとり -> {燐 空};
+  レミリア -> {パチュリー 咲夜 美鈴};
+  {パチュリー 咲夜} -> 美鈴;
+  永琳 -> 優曇華院;
+  勇儀 -> ヤマメ;
+  青娥 -> 芳香;
+  マミゾウ -> ぬえ;
+  // ox <- ox かつ x <- x かつ (o <- o)! : 不思議な関係
+  edge [dir="both",color="black:blue"]
+  輝夜 -> 永琳;
+
+  // その他の関係
+  edge [dir="none",shape="inv",style=dotted,color="black",penwidth=2]
+  四季映姫 -> 小町;
+  近隣マス -> 衣玖;
+  edge [dir="none",shape="inv",style=dotted,color="#ffaaaa",penwidth=3]
+  主人公 -> {霊夢 魔理沙 早苗 咲夜 妖夢};
+  edge [dir="arrow",color="red"]
+  妹紅 -> 輝夜;
+  edge [dir="arrow",color="blue"]
+  {萃香 勇儀} -> 華扇;
+  {パチュリー にとり} -> アリス;
+  edge [dir="both",color="blue"]
+  優曇華院 -> てゐ ;
+  // edge [dir="arrow",color="blue:red"]
+  // {小町} -> 天子;
+  美鈴,パチュリー,咲夜,レミリア,フラン[ fillcolor="#ff8888" ];
+  ルーミア,チルノ,リグル,ミスティア,レベル2以下 [ fillcolor="#aaaaff" ];
+  さとり,燐,空,こいし[fillcolor="#ffffaa"];
+  神子,布都,青娥,芳香[fillcolor="#ffeecc"];
+  ヤマメ,パルスィ,勇儀[fillcolor="#ffddbb"];
+  ナズーリン,白蓮,星,村紗,一輪,響子,命蓮寺組[fillcolor="#cccccc"];
+  ぬえ,マミゾウ[fillcolor="#e8e8e8"];
+  てゐ,優曇華院,輝夜,永琳[fillcolor="#ccffcc"];
+  霊夢,魔理沙,早苗,咲夜,妖夢[fillcolor="#ffcccc"];
+  橙,藍,紫[fillcolor="#ddccff"];
+  神奈子,諏訪子[fillcolor="#ccffff"];
+  主人公[width=0.1,height=0.1,color="#ffffff",fontcolor="#ff2222",fillcolor="#ffcccc",style="rounded,filled",shape=box];
+  近隣マス[width=0.1,height=0.1,color="#ffffff",fontcolor="#888888",fillcolor="#c0ffee",style="rounded,filled",shape=box];
+  レティ,プリズムリバー,文,はたて,衣玖[fillcolor="#c0ffee",fontcolor="#888888",color="#888888"];
+  白蓮マミゾウ[width=0,height=0,label=""];
+}
