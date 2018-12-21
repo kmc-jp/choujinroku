@@ -4,7 +4,6 @@ digraph  {
   layout = "fdp";
   overlap=false;
   splines=true;
-  // ratio=0.72;
   edge [len=0];
   node [
     landscape = true,
@@ -13,8 +12,6 @@ digraph  {
     fontname = "Helvetica",
     style="filled",
     fillcolor="#fafafa",
-    // margin = "0,0.1,0,0",
-    // peripheries = 3,
   ];
   // ox <- ox
   近隣マス -> {レティ プリズムリバー 文 はたて};
@@ -111,8 +108,6 @@ digraph  {
   {パチュリー にとり} -> アリス;
   edge [dir="both",color="blue"]
   優曇華院 -> てゐ ;
-  // edge [dir="arrow",color="blue:red"]
-  // {小町} -> 天子;
   美鈴,パチュリー,咲夜,レミリア,フラン[ fillcolor="#ff8888" ];
   ルーミア,チルノ,リグル,ミスティア,レベル2以下 [ fillcolor="#aaaaff" ];
   さとり,燐,空,こいし[fillcolor="#ffffaa"];
