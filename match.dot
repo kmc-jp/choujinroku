@@ -1,0 +1,210 @@
+  //\*\*.*?\*\*
+graph  {
+  layout = "neato";
+  overlap=false;
+  splines=false;
+  edge [len=0.0];
+  node [
+    landscape = true,
+    width = 1,
+    height = 1,
+    fontname = "Helvetica",
+    style="filled",
+    fillcolor="#fafafa",
+  ];
+  edge [
+    len=1.8,
+    fontsize="20",
+    // penwidth="2",
+    fontname = "Helvetica",
+    style="dashed",
+  ];
+  // デジカメ--携帯電話--猫車--ミニ八卦炉--PAD--河童のリュック--手作りの人形--ドロワーズ--光学迷彩スーツ--もんぺ--リボン--のびーるアーム;
+  // {メディスン 幽香 妖夢 優曇華院 永琳 妹紅 }-- 蓬莱の薬;
+  // {マミゾウ 勇儀 ヤマメ 萃香 霊夢 幽々子 } -- 銘酒;
+  // {レミリア プリズムリバー 秋姉妹 神奈子 衣玖} -- カリスマの秘訣;
+	// {優曇華院 永琳 青娥 衣玖} --羽衣;
+  // {一輪 美鈴 妖夢} -- 武術指南書;
+  // {ヤマメ リグル 妹紅} -- もんぺ;
+	// {メディスン アリス フラン}-- 手作りの人形;
+  // {小傘 幽香 紫} -- 妖怪の傘;
+  // {早苗 霊夢 芳香 } -- 神社の御札;
+  // {村紗 幽香 妖夢 } -- 船幽霊の柄杓;
+  // {白蓮 パチュリー アリス} -- 呪法書;
+  // {布都 小町 村紗} -- 死神の舟;
+  // {空 魔理沙} -- ミニ八卦炉;
+  // {神子 天子} -- 宝剣;
+  // {魔理沙 慧音} -- スペカ事典;
+  // {ミスティア} -- 鉄人レシピ;
+  // {文 はたて} -- 天狗の腕章;
+  // {咲夜 天子} -- PAD;
+  // {レティ 魔理沙} -- ドロワーズ;
+  // {にとり ぬえ} -- 光学迷彩スーツ;
+  // {橙 慧音} -- 幻想郷の歩き方;
+  // {ルーミア 華扇} -- リボン;
+  // {星 ナズーリン} -- 聖の宝塔;
+  // {文} -- デジカメ;
+  // {はたて} -- 携帯電話;
+  // {燐} -- 猫車;
+  // {諏訪子} -- ZUN帽;
+  // {にとり} -- 河童のリュック;
+  // {華扇} -- のびーるアーム;
+  // {四季映姫} -- 浄玻璃の鏡;
+  // {慧音} -- 求聞史紀;
+  // {白蓮} -- エア巻物;
+
+  // 青色 : 両方必要
+  // 太線 : 敗北アイテムでもある
+  // 赤色 : 条件によって敗北する可能性がある
+  // 数字 : nターン待機
+  // x数字 : その個数所持
+  // vs  : 所持者に戦闘に勝つ
+  // 全知 : + 全員の正体を知る
+  // 全勝 : + 全員に勝利する
+  // 何も書いていないときはさらに特殊な条件
+
+  銘酒;蓬莱の薬;カリスマの秘訣;
+  // 蓬莱の薬;ミニ八卦炉;村紗;
+  // 河童のリュック[label="河童の\nリュック"];
+  // 手作りの人形[label="手作りの\n人形"];
+  // 光学迷彩スーツ[label="光学迷彩\nスーツ"];
+  // のびーるアーム[label="のびーる\nアーム"];
+  // 天狗の腕章[label="天狗の\n腕章"];
+  // 船幽霊の柄杓[label="船幽霊の\n柄杓"];
+  // 神社の御札[label="神社の\n御札"];
+  // カリスマの秘訣[label="カリスマの\n秘訣"];
+  // 幻想郷の歩き方[label="幻想郷の\n歩き方"];
+  // スペカ事典[label="スペカ\n事典"];
+  // 武術指南書[label="武術\n指南書"];
+  // 呪いのアイテム[label="呪いの\nアイテム"];
+
+
+  華扇[label="華扇\n妖怪の山"];華扇 -- {リボン のびーるアーム}[label="1",color="blue",fontcolor="blue"]
+  霊夢[label="霊夢\n博麗神社"];
+  霊夢 -- 神社の御札[label="3" style="bold"];
+  霊夢 -- 銘酒[label="3人"];
+  霊夢 -- 宝物[color="red",fontcolor="red"];
+  魔理沙[label="魔理沙\n魔法の森"];
+  魔理沙 -- {ミニ八卦炉 ドロワーズ}[label="1",color="blue",fontcolor="blue"]
+  魔理沙 -- 茸[color="red",fontcolor="red"]
+  魔理沙 -- {スペカ事典 本 }[label="1",color="blue",fontcolor="blue" style="dotted"];
+  魔理沙 -- 本[color="blue",fontcolor="blue" style="dotted"];
+  魔理沙 -- 宝物[color="red",fontcolor="red"];
+  ルーミア[label="ルーミア\n月夜の森"]; ルーミア -- リボン[label="2\nvs"];
+  美鈴[label="美鈴\n紅魔館入口"]; 美鈴 -- 武術指南書[label="1"];
+  パチュリー -- 本; パチュリー -- 呪法書[label="vs"];
+  咲夜[label="咲夜\n紅魔館"]; 咲夜 -- PAD[label="2",style="bold"];
+  レミリア[label="レミリア\n紅魔館"]; レミリア -- カリスマの秘訣[label="3",style="bold"];
+  フラン[label="フラン\n紅魔館"]; フラン -- 手作りの人形 [label="2"];
+  レティ[label="レティ\n無何有の郷"]; レティ -- ドロワーズ[label="1"];
+  橙[label="橙\nマヨヒガの森"]; 橙 -- 幻想郷の歩き方[label="1"];
+  アリス[label="アリス\n魔法の森"];
+  アリス -- 手作りの人形[label="2"];
+  アリス -- 呪法書[label="vs"];
+  プリズムリバー[label="プリズムリバー\n太陽の畑"];
+  プリズムリバー -- カリスマの秘訣[label="2"];
+  プリズムリバー -- タミフル[label="x3"];
+  妖夢[label="妖夢\n白玉楼"];
+  妖夢 -- 武術指南書[label="全勝"];
+  妖夢 -- {蓬莱の薬 船幽霊の柄杓}[label="1",color="blue",fontcolor="blue"];
+  幽々子[label="幽々子\nA:白玉楼\nB:夜雀の屋台"];
+  幽々子 -- 蓬莱の薬[label="A:1"];
+  幽々子 -- {鉄人レシピ 銘酒}[label="B:1",color="blue",fontcolor="blue"];
+  紫[label="紫\n博麗神社"]; 紫 -- 妖怪の傘[label="3",style="bold"];
+  萃香[label="萃香\n博麗神社"]; 萃香 -- 銘酒[label="2",style="bold"];
+  リグル[label="リグル\n川の畔の草原"]; リグル -- もんぺ[label="1\nvs"];
+  ミスティア[label="リグル\n夜雀の屋台"]; ミスティア -- 鉄人レシピ[label="1"];
+  慧音[label="慧音\nA:人間の里\nB:稗田家"];
+  慧音 -- 求聞史紀[label="B:1"];
+  慧音 -- {幻想郷の歩き方 スペカ事典}[label="A:1",color="blue",fontcolor="blue"];
+  優曇華院[label="優曇華院\nA:永遠亭\nB:人間の里"];
+  優曇華院 -- {蓬莱の薬 羽衣 }[label="A:1",color="blue",fontcolor="blue"];
+  優曇華院 -- 薬[label="B:x3"];
+  永琳[label="永琳\n永遠亭"];
+  永琳 -- {羽衣 蓬莱の薬}[label="1",color="blue",fontcolor="blue"];
+  永琳 -- 薬[label="x4"];
+  輝夜 -- 宝物[label="x5"];
+  輝夜 -- 宝物[color="red"];
+  妹紅[label="妹紅\nA:迷いの竹林\nB:永遠亭"];
+  妹紅 -- {もんぺ  蓬莱の薬}[label="A:2"];
+  妹紅 -- 蓬莱の薬[label="B:1"];
+  妹紅 -- 蓬莱の薬[color="red"];
+  メディスン[label="メディスン\n無名の丘"];
+  メディスン -- 蓬莱の薬[label="1"]
+  メディスン -- 手作りの人形 [label="1\nvs"];
+  幽香[label="幽香\n太陽の畑"];
+  幽香 -- 妖怪の傘[label="2",style="bold"];
+  幽香 -- {蓬莱の薬,船幽霊の柄杓}[label="1",color="blue",fontcolor="blue"];
+  文 -- デジカメ[label="全勝"];
+  はたて -- 携帯電話[label="全勝"];
+  {文 はたて} -- 天狗の腕章[label="全知"];
+  小町[label="小町\n三途の河"];小町 -- 死神の舟[label="2",style="bold"];
+  四季映姫[label="四季映姫\n冥界"] ;四季映姫 -- 浄玻璃の鏡[label="2",style="bold"]
+  秋姉妹[label="秋姉妹\n山の麓"];秋姉妹 -- カリスマの秘訣 [label="1",style="bold"];
+  雛[label="雛\n山の麓"] ;
+  雛 -- 流し雛[label="1"];
+  雛 -- 呪いのアイテム[label="1\nx4"];
+  雛 -- 呪いのアイテム[color="red",fontcolor="red"];
+  にとり[label="にとり\nA:山の麓\nB:工房"] ;
+  にとり -- 河童のリュック[label="A:1",color="blue",fontcolor="blue"];
+  にとり --  光学迷彩スーツ[label="A:1",color="blue",fontcolor="blue",style="bold"];
+  にとり -- 品物[label="x4\nB:1"];
+  早苗[label="早苗\n守矢神社"] ;早苗 -- 神社の御札[label="2",style="bold"];
+  神奈子[label="神奈子\n守矢神社"] ;神奈子 -- カリスマの秘訣[label="3",style="bold"];
+  諏訪子[label="諏訪子\n守矢神社"] ;諏訪子 -- ZUN帽 [label="3",style="bold"];
+  衣玖[label="衣玖\nA:太陽の畑\nB:天界"] ;
+  衣玖 -- 羽衣[label="B:2"];
+  衣玖 -- カリスマの秘訣[label="A:2"];
+  天子[label="天子\nA:博麗神社\nB:天界"] ;
+  天子 -- 宝剣 [label="A:2"];
+  天子 -- 宝剣 [color="red"];
+  天子 -- PAD[label="B:1",color="blue",fontcolor="blue",style="bold"];
+  天子 -- 宝剣[label="B:1",color="blue",fontcolor="blue"];
+  ヤマメ[label="ヤマメ\n地底の旧都"] ;
+  ヤマメ -- もんぺ[label="1"];
+  ヤマメ -- 銘酒[label="3人"];
+  パルスィ -- {藁人形 五寸釘};
+  勇儀[label="勇儀\n地底の旧都"] ;勇儀 -- 銘酒 [label="2",style="bold"];
+  燐 -- 猫車 ;
+  空 -- ミニ八卦炉 [style="bold"];
+  ナズーリン[label="ナズーリン\n春の湊"] ;
+  ナズーリン -- 宝物[label="1\nx4"];
+  ナズーリン -- 聖の宝塔[label="1",style="bold"];
+  小傘[label="小傘\n墓地"] ; 小傘 -- 妖怪の傘 [label="1"];
+  一輪[label="一輪\n命蓮寺"] ;
+  一輪 -- 武術指南書[label="2"];
+  一輪 -- 武術指南書[color="red",fontcolor="red"];
+  村紗[label="村紗\nA:春の湊\nB:水のマス"];
+  村紗 -- {舟,死神の舟}[label="B:vs"];
+  村紗 -- 船幽霊の柄杓[label="A:2",style="bold"]
+  星[label="星\n命蓮寺"] ;
+  星 -- 聖の宝塔 [label="2",style="bold"];
+  星 -- 宝物[label="vs x3"];
+  白蓮[label="白蓮\n命蓮寺"];
+  白蓮 -- 呪法書[label="2"];
+  白蓮 -- エア巻物[label="全勝"];
+  ぬえ[label="ぬえ\n春の湊"] ;ぬえ -- 光学迷彩スーツ [label="2"];
+  芳香[label="芳香\n墓地"] ;
+  芳香 -- 神社の御札[label="1"];
+  芳香 -- {浄玻璃の鏡 聖の宝塔} [color="red",fontcolor="red"];
+  青娥[label="青娥\n大祀廟"] ;青娥 -- 羽衣[label="2",style="bold"];
+  布都[label="布都\n大祀廟"] ;布都 -- {舟,死神の舟}[label="2",style="bold"];
+  神子[label="神子\n大祀廟"] ;神子 -- 宝剣[label="2",style="bold"];
+  マミゾウ[label="マミゾウ\n命蓮寺"] ;マミゾウ -- 銘酒 [label="3人"]
+
+  茸[label="毒茸\n1UP茸\n巨大化茸"];
+
+  // 妖怪の山,博麗神社,魔法の森,月夜の森,霧の湖,冥界,紅魔館入口,紅魔館,図書館,マヨヒガの森,太陽の畑,白玉楼,夜雀の屋台,川の畔の草原,人間の里,稗田家,迷いの竹林,永遠亭,無名の丘,三途の河,彼岸,山の麓,工房,守矢神社,天界,地底の旧都,地霊殿,温泉,灼熱地獄,春の湊,命蓮寺,墓地,大祀廟[
+  //  shape=box,style="filled,rounded",fillcolor="#eeeeee"];
+  // 紅のマス,水のマス,花のマス
+  発明品,デジカメ,携帯電話,猫車,ミニ八卦炉,PAD,河童のリュック,手作りの人形,ドロワーズ,光学迷彩スーツ,もんぺ,リボン,のびーるアーム[
+    shape=box,style="filled,bold,rounded",fillcolor="#ccffcc"];
+  宝物,羽衣,聖の宝塔,銘酒,天狗の腕章,ZUN帽,浄玻璃の鏡,妖怪の傘,蓬莱の薬,死神の舟,船幽霊の柄杓,宝剣,神社の御札[
+    shape=box,style="filled,bold,rounded",fillcolor="#ccccff"];
+  本,超整理術,同人誌,求聞史紀,エア巻物,カリスマの秘訣,幻想郷の歩き方,スペカ事典,武術指南書,呪法書,文々。新聞,鉄人レシピ,スポ根漫画[
+    shape=box,style="filled,bold,rounded",fillcolor="#ffcccc"];
+  呪いのアイテム,品物,舟,流し雛,タミフル,五寸釘,藁人形,茸[
+    shape=box,style="filled,bold,rounded",fillcolor="#ffffcc"];
+
+
+}
