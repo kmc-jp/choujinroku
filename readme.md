@@ -1,8 +1,5 @@
 # 東方超人録
 
-東方超人録の非公式電子化のためのリポジトリです.
-
-
 ## [クイックリファレンス](./doc/quickreference.md)
 ## [FAQ](./doc/faq.md)
 ## [判定表](./doc/reference.md)
