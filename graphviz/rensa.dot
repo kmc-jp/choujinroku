@@ -1,5 +1,6 @@
+#! dot $1 -Tpng -n -O
+
 digraph  {
-  // dot rensa.dot -Tpng -n -O
   layout = "neato";
   node[
     pin=true
