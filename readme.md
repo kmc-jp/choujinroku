@@ -11,5 +11,5 @@
 ### [戦闘時能力](./doc/chara-battle.md)
 ### [特殊能力・仲間](./doc/chara-ability.md)
 ### [耐性](./doc/chara-regist.md)
-![](./doc/rensa.png)
+![](./doc/rensa.svg)
 ![](./doc/match.png)

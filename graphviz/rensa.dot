@@ -7,10 +7,9 @@ digraph  {
     height = 0.5,
     fontname = "Helvetica",
     style="rounded,filled",
-    fillcolor="#fafafa",
+    fillcolor="#f4f4f4",
     shape="box"
   ];
-  美鈴,紫,永琳,勇儀,白蓮,神奈子,小町,早苗[shape="round"];
 
   パルスィ[pos="50,0"];
     萃香[pos="150,0"];
@@ -38,6 +37,7 @@ digraph  {
     アリス[pos="300,180"];
     にとり[pos="400,180"];
     幽々子[pos="500,120"];
+    LV2[pos="575,120",width=0.2,height=0.2,label=""];
     慧音[pos="650,180"];
     妹紅[pos="650,120"];
 
@@ -47,28 +47,30 @@ digraph  {
     ミスティア[pos="475,240"];
     チルノ[pos="625,240"];
 
-  青娥[pos="50,300"];
+  青娥[pos="0,300"];
     村紗[pos="150,300"];
     星[pos="350,300"];
-    衣玖[pos="450,360"];
-    天子[pos="550,360"];
+    衣玖[pos="400,360"];
+    天子[pos="500,360"];
+    LV5[pos="575,360",width=0.2,height=0.2,label=""];
     小町[pos="650,360"];
     四季映姫[pos="650,300"]
     リグル[pos="550,180"];
     プリズムリバー[pos="450,300",label="プリズム\nリバー"];
     ルーミア[pos="550,300"];
 
-
   芳香[pos="0,240"];
-    神子[pos="100,360"]
+    神子[pos="100,345"];
+    神社[pos="120,380",width=0.2,height=0.2,label="",penwidth=0];
+    命蓮寺[pos="80,390",width=0.2,height=0.2,label="",penwidth=0]
     白蓮[pos="200,360"];
     ナズーリン[pos="300,360"];
     燐[pos="450,420"];
     空[pos="550,420"];
 
   布都[pos="0,360"];
-    マミゾウ[pos="200,420"];
-    ぬえ[pos="100,420"];
+    ぬえ[pos="200,420"];
+    マミゾウ[pos="100,420"];
     橙[pos="300,420"];
     さとり[pos="450,480"];
     こいし[pos="550,480"];
@@ -80,9 +82,6 @@ digraph  {
     レティ[pos="0,420"];
     藍[pos="250,480"];
     紫[pos="350,480"];
-
-  // ox <- ox
-  // 近隣マス -> {レティ プリズムリバー 文 はたて};
 
   // o <- o
   edge [color="#ff6666"]
@@ -132,21 +131,11 @@ digraph  {
   // x <- o // みにくいかも
   edge [dir="arrow", arrowhead=onormal,color="#6666ff"];
   {橙 燐} -> ナズーリン;
-  // レベル2以下 -> 慧音;
-  // レベル2以下 [label="ルーミア チルノ 橙\nリグル ミスティア 空"];
-  // 命蓮寺組[label="ナズーリン 白蓮\n星 村紗 一輪\n響子 マミゾウ ぬえ"]
-  小町 -> 天子;
-  // 命蓮寺組 -> 神子;
-  // 警察 -> 天子;
-  // 近隣マス -> パルスィ;
-  // {小町 神奈子 早苗} -> 天子;
-  // 警察 [label="美鈴 紫 永琳\n勇儀 白蓮\n神奈子 小町 早苗"];
-  // 近隣マス[label="近接マスの他者の\n勝敗に依存"]
-  // edge [dir="none"]
-  // { 神子 布都 青娥 芳香 } -> 白蓮マミゾウ;
-  // edge [dir="arrow"]
-  // 白蓮マミゾウ -> {白蓮,マミゾウ};
   妹紅 -> 輝夜;
+  LV2 -> 慧音;
+  LV5 -> 天子;
+  命蓮寺 -> 神子;
+  神社 -> {マミゾウ,白蓮};
   // o <- x
   edge [dir="arrow",color="black"]
   幽々子 -> ミスティア;
@@ -167,7 +156,6 @@ digraph  {
   // その他の関係
   edge [dir="none",shape="inv",style=dotted,color="black",penwidth=2]
   四季映姫 -> 小町;
-  // 近隣マス -> 衣玖;
   edge [dir="none",shape="inv",style=dotted,color="#ffaaaa",penwidth=3]
   主人公 -> {霊夢 魔理沙 早苗 咲夜 妖夢};
   edge [dir="none",color="#ff6666"]
@@ -179,19 +167,15 @@ digraph  {
   優曇華院 -> てゐ;
   edge [dir="both",color="#6666ff"]
   美鈴,パチュリー,咲夜,レミリア,フラン[ fillcolor="#ff8888" ];
-  ルーミア,チルノ,リグル,ミスティア [ fillcolor="#aaaaff" ];
+  ルーミア,チルノ,リグル,ミスティア[ fillcolor="#aaaaff" ];
   さとり,燐,空,こいし[fillcolor="#ffffaa"];
-  神子,布都,青娥,芳香[fillcolor="#ccffff"];
-  ヤマメ,パルスィ,勇儀[fillcolor="#ffddbb"];
-  ナズーリン,白蓮,星,村紗,一輪,響子[fillcolor="#cccccc"];
-  ぬえ,マミゾウ[fillcolor="#e8e8e8"];
+  神社,神子,布都,青娥,芳香[fillcolor="#ffddbb"];
+  LV2,LV5[fillcolor="#ffffff"];
+  命蓮寺,ナズーリン,白蓮,星,村紗,一輪,響子,ぬえ,マミゾウ[fillcolor="#cccccc"];
   てゐ,優曇華院,輝夜,永琳[fillcolor="#ccffcc"];
   霊夢,魔理沙,早苗,咲夜,妖夢[fillcolor="#ffcccc"];
-  橙,藍,紫[fillcolor="#ddccff"];
-  神奈子,諏訪子[fillcolor="#ffeecc"];
   主人公[width=0.1,height=0.1,color="#ffffff",fontcolor="#ff2222",fillcolor="#ffcccc",style="rounded,filled",shape=box];
-  // 近隣マス[width=0.1,height=0.1,color="#ffffff",fontcolor="#888888",fillcolor="#c0ffee",style="rounded,filled",shape=box];
-  // レティ,プリズムリバー,文,はたて,衣玖[fillcolor="#c0ffee",fontcolor="#888888",color="#888888"];
-  // 白蓮マミゾウ[width=0,height=0,label=""];
-
+  レティ,プリズムリバー,文,はたて,衣玖,パルスィ[fillcolor="#c0ffee",fontcolor="#888888",color="#888888"];
+  LV5,天子,美鈴,紫,永琳,勇儀,白蓮,神奈子,小町,早苗[style="bold,filled,rounded"];
+  LV2,慧音,ルーミア,チルノ,橙,リグル,ミスティア,空[style="bold,filled,rounded,dotted",penwidth=1];
 }
