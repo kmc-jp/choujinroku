@@ -12,4 +12,4 @@
 ### [特殊能力・仲間](./doc/chara-ability.md)
 ### [耐性](./doc/chara-regist.md)
 ![](./doc/rensa.svg)
-![](./doc/match.png)
+![](./doc/match.svg)
