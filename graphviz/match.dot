@@ -256,7 +256,7 @@ graph  {
     shape=box,style="filled,bold,rounded",fillcolor="#ccccff"];
   本,超整理術,同人誌,求聞史紀,エア巻物,カリスマの秘訣,幻想郷の歩き方,スペカ事典,武術指南書,呪法書,文々。新聞,スポ根漫画,鉄人レシピ[
     shape=box,style="filled,bold,rounded",fillcolor="#ffcccc"];
-  呪われていない品物,舟,流し雛,タミフル,五寸釘,藁人形,茸[
+  薬,呪われていない品物,舟,流し雛,タミフル,五寸釘,藁人形,茸[
     shape=box,style="filled,bold,rounded",fillcolor="#ffffcc"];
   呪いのアイテム[
     shape=box,style="filled,bold,rounded",fillcolor="#ffffff"]
