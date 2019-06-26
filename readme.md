@@ -1,3 +1,9 @@
+# ディレクトリ構成
+- wiki/ : wiki
+- game/ : 超人録の電子ゲーム版リポジトリ
+
+以下、 game/ について記述
+
 # 開発環境
 - nodejs + typescript + vuejs
 
