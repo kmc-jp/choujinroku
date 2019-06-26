@@ -26,14 +26,17 @@
 import Vue from "vue";
 import Component from "vue-class-component";
 import { GameProxy } from "../gameproxy";
+
+//　かなり巨大なオブジェクトで、これがVue管理下にあるコストは考えたほうがいい
+let gameProxy: GameProxy | null = null;
+
 @Component({})
 export default class App extends Vue {
-  gameProxy: GameProxy = new GameProxy([0, 1, 2]); // WARN:　かなり巨大なオブジェクトで、これがVue管理下にあるコストは考えたほうがいい
   command = "";
   output = "";
   getHelp(): string {
     return `# help
-    play 0 2 1: (今あるゲームを終了させて)新しい3人ゲームを開始. idに対応するキャラクタが選ばれる。
+    play 0 2 1: 新しい3人ゲームを開始. idに対応するキャラクタが選ばれる。
     show available characters: 現在実装されているキャラクター一覧を表示
     show : status map options を全て表示
       show status : 全員の状態を表示
@@ -41,6 +44,7 @@ export default class App extends Vue {
       show options: 全員の現在の選択肢を表示
     <空のコマンド> : 全員がランダムに選択肢を選んで次の状態へ
     3 4: 3pの選択肢のうち4番を選ぶ
+    auto : 永遠にランダム選択肢を選び続ける
     `.replace(/\n    /g, "\n");
   }
   parseCommand(command: string): [boolean, string] {
@@ -51,40 +55,41 @@ export default class App extends Vue {
     let c = command.split(" ");
     if (c[0] === "help") return [true, this.getHelp()];
     if (c[0] === "play") {
-      let gameProxy = new GameProxy(c.slice(1).map(x => parseInt(x)));
-      if (!gameProxy.getIsValid())
-        return [false, "ゲームを開始できなかった..."];
-      this.gameProxy = gameProxy;
-      return [
-        true,
-        "新たなゲームを開始しました！ \n" + this.gameProxy.showAll()
-      ];
+      if (gameProxy != null)
+        return [false, "既にゲームは開始されている！(リロードしてね)"];
+      let tmp = GameProxy.tryToStart(c.slice(1).map(x => parseInt(x)));
+      if (tmp === null) return [false, "ゲームを開始できなかった..."];
+      gameProxy = tmp;
+      return [true, "新たなゲームを開始しました！ \n" + gameProxy.showAll()];
     }
     if (command === "show available characters") {
       return [true, GameProxy.getAvailableCharacters()];
     }
-    if (this.gameProxy === null) return [false, "まだゲームが始まっていない"];
+    if (gameProxy === null) return [false, "まだゲームが始まっていない"];
     if (command === "show") {
-      if (c[1] === "status") return [true, this.gameProxy.showStatus()];
-      if (c[1] === "map") return [true, this.gameProxy.showMap()];
-      if (c[1] === "choices") return [true, this.gameProxy.showChoices()];
-      return [true, this.gameProxy.showAll()];
+      if (c[1] === "status") return [true, gameProxy.showStatus()];
+      if (c[1] === "map") return [true, gameProxy.showMap()];
+      if (c[1] === "choices") return [true, gameProxy.showChoices()];
+      return [true, gameProxy.showAll()];
+    }
+    if (command === "auto") {
+      let f = () => {
+        this.command = "";
+        this.onChangeCommand();
+        requestAnimationFrame(f);
+      };
+      f();
+      return [true, "auto loop"];
     }
     if (command === "") {
-      return [
-        true,
-        this.gameProxy.decideAll() + "\n" + this.gameProxy.showAll()
-      ];
+      return [true, gameProxy.decideAll() + "\n" + gameProxy.showAll()];
     }
     let n = parseInt(command[0]) - 1;
-    if (0 <= n && n < this.gameProxy.getPlayerNumber()) {
+    if (0 <= n && n < gameProxy.getPlayerNumber()) {
       let m = parseInt(c[1]);
-      if (m < 0 || m >= this.gameProxy.getChoices(n).length)
+      if (m < 0 || m >= gameProxy.getChoices(n).length)
         return [false, "そんな選択肢は無い"];
-      return [
-        true,
-        this.gameProxy.decide(n, m) + "\n" + this.gameProxy.showAll()
-      ];
+      return [true, gameProxy.decide(n, m) + "\n" + gameProxy.showAll()];
     }
     return [false, "そんなコマンドはない"];
   }

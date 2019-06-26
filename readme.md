@@ -9,6 +9,7 @@
 
 # 環境構築
 ```sh
+cd dist
 npm install
 npm run watch &
 cd dist && php -S localhost:8008 &

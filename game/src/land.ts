@@ -2,7 +2,6 @@ type LandData = {
   id: number;
   name: string;
 }
-const unknownLand: LandData = { id: -1, name: "???" }
 const landDatus: LandData[] = [
   { id: 0, name: "博麗神社" },
   { id: 1, name: "魔法の森" },
@@ -45,12 +44,8 @@ const landDatus: LandData[] = [
 export class Land implements LandData {
   id: number;
   name: string;
-  isValid: boolean;
   constructor(id: number) {
-    let data: LandData;
-    this.isValid = 0 <= id && id < landDatus.length;
-    if (this.isValid) data = landDatus[id];
-    else data = unknownLand;
+    let data = landDatus[id];
     this.id = data.id;
     this.name = data.name;
   }

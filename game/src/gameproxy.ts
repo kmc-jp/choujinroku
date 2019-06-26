@@ -3,34 +3,45 @@ import { characterDatus } from "./character";
 import { Choice } from "./choice";
 export class GameProxy {
   private game: Game;
-  constructor(ids: number[]) {
-    this.game = new Game(ids);
+  private constructor(game: Game) {
+    this.game = game;
+  }
+  static tryToStart(ids: number[]): GameProxy | null {
+    let game = Game.tryToStartGame(ids);
+    if (game === null) return null;
+    return new GameProxy(game);
   }
   // Proxy
   decideAll(): string {
     // 全員がランダムに(1Pから順に)選択肢を選ぶ
-    for (let i = 0; i < this.game.players.length; i++) {
-      if (this.game.choices[i].length === 0) continue;
-      return this.decide(i, Math.floor(Math.random() * this.game.choices[i].length));
+    for (let player of this.game.players) {
+      if (player.choices.length === 0) continue;
+      return this.decide(player.id, Math.floor(Math.random() * player.choices.length));
     }
     return "選ぶものが無かった";
   }
-  decide(playerIndex: number, choiceIndex: number): string {
-    let choice = this.game.choices[playerIndex][choiceIndex];
-    this.game.choices[playerIndex] = [];
+  decide(playerId: number, choiceId: number): string {
+    let player = this.game.players[playerId];
+    let choice = player.choices[choiceId];
+    player.choices = [];
     choice.invoke();
-    return `${this.game.players[playerIndex].name} : ${choice}を選択`
+    while (this.game.players.every(x => x.choices.length === 0)) {
+      let f = this.game.actionStack.pop();
+      if (f) f();
+      else break;
+    }
+    return `${this.game.players[playerId].name} : ${choice}を選択`
   }
   showStatus(): string {
-    return this.game.players.map(x => `${x}`).join("\n");
+    return `TURN: ${this.game.turn}\nSTACK:${this.game.actionStack.length}\n ` + this.game.players.map(x => `${x}`).join("\n");
   }
   showMap(): string {
     let out: string[] = [];
-    this.game.players.forEach(x => { if (this.game.isOutOfLand(x.currentLandPos)) out.push(x.name) })
+    this.game.players.forEach(x => { if (this.game.isOutOfLand(x.currentPos)) out.push(x.name) })
     let result = `盤外:${out.join(",")}\n`;
     for (let y = 0; y < 6; y++) {
       for (let x = 0; x < 6; x++) {
-        let heres = this.game.players.filter(p => p.currentLandPos.x === x && p.currentLandPos.y === y)
+        let heres = this.game.players.filter(p => p.currentPos.x === x && p.currentPos.y === y)
           .map(p => `${p.name}`).join(",")
         if (heres !== "") heres = `(${heres})`
         result += `[${this.game.map[x][y]}${heres}] `
@@ -39,12 +50,11 @@ export class GameProxy {
     }
     return result;
   }
-  getIsValid(): boolean { return this.game.isValid; }
   getPlayerNumber(): number { return this.game.players.length; }
-  getChoices(i: number): Choice[] { return this.game.choices[i]; }
+  getChoices(i: number): Choice[] { return this.game.players[i].choices; }
   showChoices(): string {
-    return this.game.choices.map((x, i) => `${this.game.players[i].name}:\n${
-      "[ " + x.map((x, i) => `${i}:${x}`).join("\n  ") + " ]"
+    return this.game.players.map(x => `${x.name}:\n${
+      "[ " + x.choices.map((x, i) => `${i}:${x}`).join("\n  ") + " ]"
       }`).join("\n");
   }
   showAll(): string {

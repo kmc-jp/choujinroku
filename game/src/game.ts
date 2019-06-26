@@ -2,59 +2,157 @@ import { Character, characterDatus } from "./character";
 import { Player, PlayerAction } from "./player";
 import { Choice, ChoiceType } from "./choice";
 import { Land } from "./land";
+import { ItemCategoryDict, Item, getItemsData, ItemCategory, ItemData } from "./item";
 import * as _ from "underscore";
 
 // 現在はブラウザで動いているが、サーバーで動いてもいい感じになってほしい気持ちで書く
 export class Game {
-  players: Player[] = [];
-  isValid: boolean = false;
-  map: Land[][] = [];
-  leftLands: Land[] = [];
-  choices: Choice[][] = [];
-  constructor(ids: number[]) {
-    if (ids.length <= 1) return; // 一人プレイは不可能
-    if (ids.length !== _.uniq(ids).length) return; // 同じキャラは不可能
-    if (ids.some(x => x < 0 || x >= characterDatus.length)) return;
+  players: Player[];
+  map: (Land | null)[][];
+  itemsOnMap: (ItemData | null)[][];
+  leftLands: Land[];
+  leftItems: ItemCategoryDict<ItemData>;
+  actionStack: (() => any)[];
+  turn: number;
+  static tryToStartGame(ids: number[]): Game | null {
+    if (ids.length <= 1) return null; // 一人プレイは不可能
+    if (ids.length !== _.uniq(ids).length) return null; // 同じキャラは不可能
+    if (ids.some(x => x < 0 || x >= characterDatus.length)) return null; // 変なキャラは不可能
+    return new Game(ids);
+  }
+  private constructor(ids: number[]) {
     this.players = ids.map((x, i) => new Player(x, `${i + 1}P`, i));
-    this.map = _.range(6).map(() => _.range(6).map(() => new Land(-1)));
-    this.choices = _.range(this.players.length).map(() => []);
+    this.map = _.range(6).map(() => _.range(6).map(() => null));
     this.leftLands = _.shuffle(_.range(36).map(i => new Land(i)));
-    this.isValid = true;
+    this.turn = 0;
+    this.actionStack = [];
+    this.leftItems = getItemsData();
+    this.itemsOnMap = this.placeItemsOnMap();
     this.askFirstPlace(0);
+  }
+  placeItemsOnMap(): (ItemData | null)[][] {
+    let keys: ItemCategory[] = ["本", "発明品", "宝物", "品物"];
+    keys.forEach(x => this.leftItems[x] = _.shuffle(this.leftItems[x]));
+    let items = [
+      ...this.leftItems["本"].splice(-2),
+      ...this.leftItems["発明品"].splice(-2),
+      ...this.leftItems["宝物"].splice(-2),
+      ...this.leftItems["品物"].splice(-10),
+    ];
+    items = _.shuffle(items);
+    let i = 0;
+    let result: (Item | null)[][] = _.range(6).map(x => _.range(6).map(y => {
+      if (x === 0 || y === 0 || x === 5 || y === 5) return null;
+      return items[i++];
+    }));
+    return result;
   }
   isOutOfLand(p: { x: number, y: number }): boolean {
     return p.x < 0 || p.x >= 6 || p.y < 0 || p.y >= 6;
   }
-  finishPlayerTurn(playerIndex: number) {
-    let player = this.players[playerIndex];
-    player.actions = [];
-    let next = (playerIndex + 1) % this.players.length;
+  dice(): number { return 1 + Math.floor(Math.random() * 6); }
+  twoDice() { return [this.dice(), this.dice()] }
+  win(playerId: number, targetId: number) {
+    this.players[playerId].won.add(targetId);
+  }
+  watch(playerId: number, targetId: number) {
+    this.players[playerId].watched.add(targetId);
+  }
+  getPlayersAt(pos: { x: number, y: number }): Player[] {
+    return this.players
+      .filter(x => x.currentPos.x === pos.x && x.currentPos.y === pos.y);
+  }
+  doAfterFinishedPlayerTurn(playerId: number) {
+    // 「手番終了後」の能力を処理
+    let next = (playerId + 1) % this.players.length;
     this.askPlayerTurn(next);
   }
-  askPlayerTurn(playerIndex: number) {
-    let player = this.players[playerIndex];
-    this.choices[playerIndex] = [
-      new Choice("待機", {}, x => {
-        player.actions.push("待機");
-        this.finishPlayerTurn(playerIndex);
-      })
-    ];
-    let moveTag: PlayerAction = player.actions.includes("移動1") ? "移動2" : "移動1";
-    // WARN 同一の選択肢を生むかも
-    let nextTos = [{ x: -1, y: 0 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: 0, y: 1 }].map(x => ({
-      x: x.x + player.currentLandPos.x, y: x.y + player.currentLandPos.y
-    })).filter(x => !this.isOutOfLand(x))
-    this.choices[playerIndex].push(...nextTos.map(p =>
-      new Choice(moveTag, { x: p.x, y: p.y }, x => {
-        player.actions.push(moveTag);
-        this.openRandomLand(+x.x, +x.y);
-        player.currentLandPos = { x: +x.x, y: +x.y };
-        if (player.actions.length < 2) this.askPlayerTurn(playerIndex);
-        else this.finishPlayerTurn(playerIndex);
-      }))
-    );
+  finishPlayerTurn(playerId: number) {
+    this.actionStack.push(() => {
+      for (let p of this.players) {
+        p.actions = [];
+        p.isAbleToAction = true;
+      }
+      let player = this.players[playerId];
+      let sames = this.getPlayersAt(player.currentPos);
+      if (!this.isOutOfLand(player.currentPos) && sames.length <= 1) {
+        this.doAfterFinishedPlayerTurn(playerId);
+        return;
+      }
+      // 同じマスにいるキャラクターとのお見合い判定
+      let dices = new Map<number, number>();
+      sames.forEach(p => {
+        let dice = this.dice();
+        p.choices = [new Choice("お見合い:ダイス確定", { dice: dice }, x => {
+          dices.set(p.id, dice);
+          if (dices.size < sames.length) return;
+          // 予めスタックに積んでおく
+          this.doAfterFinishedPlayerTurn(playerId);
+          for (let p of sames) {
+            sames.filter(x => x.id !== p.id)
+              .filter(x => dices.get(x.id) === dices.get(p.id))
+              .forEach(x => this.watch(p.id, x.id));
+          }
+        })];
+      });
+    });
   }
-  askFirstPlace(playerIndex: number) {
+
+  askPlayerTurn(playerId: number) {
+    this.actionStack.push(() => {
+      this.turn++;
+      let player = this.players[playerId];
+      if (!player.isAbleToAction || player.actions.length >= 2) {
+        this.finishPlayerTurn(playerId);
+        return;
+      }
+      let moveTag: PlayerAction = player.actions.includes("移動1") ? "移動2" : "移動1";
+      // WARN 同一の選択肢を生むかも
+      let nextTos = [{ x: -1, y: 0 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: 0, y: 1 }].map(x => ({
+        x: x.x + player.currentPos.x, y: x.y + player.currentPos.y
+      })).filter(x => !this.isOutOfLand(x));
+      let versus = this.getPlayersAt(player.currentPos).filter(x => x.id !== player.id);
+      if (player.actions.includes("戦闘")) versus = [];
+      player.choices = [
+        new Choice("待機", {}, x => {
+          player.actions.push("待機");
+          this.finishPlayerTurn(playerId);
+        }),
+        ...nextTos.map(p =>
+          new Choice(moveTag, { x: p.x, y: p.y }, x => {
+            player.actions.push(moveTag);
+            this.openRandomLand(+x.x, +x.y);
+            player.currentPos = { x: +x.x, y: +x.y };
+            this.askPlayerTurn(playerId);
+          })),
+        ...versus.map(p =>
+          new Choice("戦闘", { target: p.name }, x => {
+            player.actions.push("戦闘");
+            // 予めセット
+            this.askPlayerTurn(playerId);
+            this.startBattle(playerId, p.id);
+          }))
+      ];
+    });
+  }
+
+  startBattle(playerId: number, targetId: number) {
+    this.actionStack.push(() => {
+      let player = this.players[playerId];
+      let target = this.players[targetId];
+      player.choices = [
+        new Choice("戦闘勝利", {}, x => {
+          this.win(playerId, targetId);
+        }),
+        new Choice("戦闘敗北", {}, x => {
+          this.win(targetId, playerId);
+        }),
+        new Choice("戦闘は何も起きなかった", {}, x => {
+        }),
+      ];
+    });
+  }
+  askFirstPlace(playerId: number) {
     // 初期配置選択肢
     // 1Pから開始位置(x:[0,5],y:[0,5])を選んでもらう
     let xys: { x: number, y: number }[] = [];
@@ -62,21 +160,21 @@ export class Game {
     for (let x = 0; x < 6; x++) xys.push({ x: x, y: 5 });
     for (let y = 1; y < 5; y++) xys.push({ x: 0, y: y });
     for (let y = 1; y < 5; y++) xys.push({ x: 5, y: y });
-    this.choices[playerIndex] = xys.map(x => new Choice("初期配置位置", x, x => {
-      this.players[playerIndex].currentLandPos = { x: +x.x, y: +x.y };
-      if (playerIndex < this.players.length - 1) {
-        this.askFirstPlace(playerIndex + 1);
+    this.players[playerId].choices = xys.map(x => new Choice("初期配置位置", x, x => {
+      this.players[playerId].currentPos = { x: +x.x, y: +x.y };
+      if (playerId < this.players.length - 1) {
+        this.askFirstPlace(playerId + 1);
         return;
       }
       for (let player of this.players) {
-        this.openRandomLand(player.currentLandPos.x, player.currentLandPos.y);
+        this.openRandomLand(player.currentPos.x, player.currentPos.y);
       }
       // 1Pからターンを開始
       this.askPlayerTurn(0);
     }));
   }
   openRandomLand(x: number, y: number): boolean {
-    if (this.map[x][y].isValid) return false; // 既に存在している
+    if (this.map[x][y] !== null) return false; // 既に存在している
     let land = this.leftLands[this.leftLands.length - 1];
     this.leftLands.pop();
     this.map[x][y] = land;
