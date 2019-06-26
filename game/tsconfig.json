@@ -6,6 +6,11 @@
         "module": "es2015",
         "moduleResolution": "node",
         "target": "es5",
+        "lib": [
+            "es2015",
+            "DOM",
+            "dom.iterable"
+        ],
         "experimentalDecorators": true
     },
     "include": [
