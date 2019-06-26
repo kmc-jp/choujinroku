@@ -52,7 +52,8 @@ export default class App extends Vue {
     if (c[0] === "help") return [true, this.getHelp()];
     if (c[0] === "play") {
       let gameProxy = new GameProxy(c.slice(1).map(x => parseInt(x)));
-      if (!gameProxy.isValid) return [false, "ゲームを開始できなかった..."];
+      if (!gameProxy.getIsValid())
+        return [false, "ゲームを開始できなかった..."];
       this.gameProxy = gameProxy;
       return [
         true,
@@ -76,9 +77,9 @@ export default class App extends Vue {
       ];
     }
     let n = parseInt(command[0]) - 1;
-    if (0 <= n && n < this.gameProxy.players.length) {
+    if (0 <= n && n < this.gameProxy.getPlayerNumber()) {
       let m = parseInt(c[1]);
-      if (m < 0 || m >= this.gameProxy.choices[n].length)
+      if (m < 0 || m >= this.gameProxy.getChoices(n).length)
         return [false, "そんな選択肢は無い"];
       return [
         true,
