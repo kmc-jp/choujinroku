@@ -25,11 +25,7 @@ export class GameProxy {
     let choice = player.choices[choiceId];
     player.choices = [];
     choice.invoke();
-    while (this.game.players.every(x => x.choices.length === 0)) {
-      let f = this.game.actionStack.pop();
-      if (f) f();
-      else break;
-    }
+    this.game.consumeActionStackSafety();
     return `${this.game.players[playerId].name} : ${choice}を選択`
   }
   showStatus(): string {

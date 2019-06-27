@@ -5,6 +5,10 @@ import { Land } from "./land";
 import { ItemCategoryDict, Item, getItemsData, ItemCategory, ItemData } from "./item";
 import * as _ from "underscore";
 
+// このデコレーターがついたものは、Stackが全て空になった後に実行される。
+// 選択肢が「~のときに...」とどんどんスタックに積まれていくので、
+// 殆ど全ての行動が全員の異常行動が終了してからでないと実行できない。
+// つまり通常と逆のロジックで記述していく
 function reserveAction(target: Game, propertyKey: string, descriptor: PropertyDescriptor) {
   let original = descriptor.value;
   descriptor.value = function (this: Game, ...args: any[]) {
@@ -36,7 +40,8 @@ export class Game {
     this.actionStack = [];
     this.leftItems = getItemsData();
     this.itemsOnMap = this.placeItemsOnMap();
-    this.askFirstPlace(0);
+    this.reserveAskFirstPlace(this.players[0]);
+    this.consumeActionStackSafety();
   }
   placeItemsOnMap(): (ItemData | null)[][] {
     let keys: ItemCategory[] = ["本", "発明品", "宝物", "品物"];
@@ -55,32 +60,15 @@ export class Game {
     }));
     return result;
   }
-  askFirstPlace(playerId: number) {
-    // 初期配置選択肢
-    // 1Pから開始位置(x:[0,5],y:[0,5])を選んでもらう
-    let xys: { x: number, y: number }[] = [];
-    for (let x = 0; x < 6; x++) xys.push({ x: x, y: 0 });
-    for (let x = 0; x < 6; x++) xys.push({ x: x, y: 5 });
-    for (let y = 1; y < 5; y++) xys.push({ x: 0, y: y });
-    for (let y = 1; y < 5; y++) xys.push({ x: 5, y: y });
-    this.players[playerId].choices = xys.map(x => new Choice("初期配置位置", x, x => {
-      this.players[playerId].currentPos = { x: +x.x, y: +x.y };
-      if (playerId < this.players.length - 1) {
-        this.askFirstPlace(playerId + 1);
-        return;
-      }
-      // 1Pからターンを開始
-      this.askPlayerTurn(0);
-      for (let player of this.players) {
-        this.openRandomLand(player.currentPos.x, player.currentPos.y);
-      }
-    }));
+  consumeActionStackSafety() {
+    while (this.players.every(x => x.choices.length === 0)) {
+      let f = this.actionStack.pop();
+      if (f) f();
+      else break;
+    }
   }
   isOutOfLand(p: { x: number, y: number }): boolean {
     return p.x < 0 || p.x >= 6 || p.y < 0 || p.y >= 6;
-  }
-  reserve(f: () => any) {
-    this.actionStack.push(f);
   }
   dice(): number { return 1 + Math.floor(Math.random() * 6); }
   twoDice() { return [this.dice(), this.dice()] }
@@ -89,27 +77,51 @@ export class Game {
     return this.players
       .filter(x => x.currentPos.x === pos.x && x.currentPos.y === pos.y);
   }
-  win(playerId: number, targetId: number) {
-    this.players[playerId].won.add(targetId);
-  }
-  watch(playerId: number, targetId: number) {
-    this.players[playerId].watched.add(targetId);
-  }
-  doAfterFinishedPlayerTurn(playerId: number) {
-    // 「手番終了後」の能力を処理
-    let next = (playerId + 1) % this.players.length;
-    this.askPlayerTurn(next);
+
+  @reserveAction
+  reserveAskFirstPlace(player: Player) {
+    // 初期配置選択肢
+    // 1Pから開始位置(x:[0,5],y:[0,5])を選んでもらう
+    let xys: { x: number, y: number }[] = [];
+    for (let x = 0; x < 6; x++) xys.push({ x: x, y: 0 });
+    for (let x = 0; x < 6; x++) xys.push({ x: x, y: 5 });
+    for (let y = 1; y < 5; y++) xys.push({ x: 0, y: y });
+    for (let y = 1; y < 5; y++) xys.push({ x: 5, y: y });
+    player.choices = xys.map(x => new Choice("初期配置位置", x, x => {
+      player.currentPos = { x: +x.x, y: +x.y };
+      if (player.id < this.players.length - 1) {
+        this.reserveAskFirstPlace(this.players[player.id + 1]);
+        return;
+      }
+      // 1Pからターンを開始
+      this.reserveAskPlayerTurn(this.players[0]);
+      for (let player of this.players)
+        this.reserveOpenRandomLand(player.currentPos);
+    }));
   }
   @reserveAction
-  finishPlayerTurn(playerId: number) {
+  reserveWin(player: Player, target: Player) {
+    player.won.add(target.id);
+  }
+  @reserveAction
+  reserveWatch(player: Player, target: Player) {
+    player.watched.add(target.id);
+  }
+  @reserveAction
+  reserveDoAfterFinishedPlayerTurn(player: Player) {
+    // 「手番終了後」の能力を処理
+    let nextId = (player.id + 1) % this.players.length;
+    this.reserveAskPlayerTurn(this.players[nextId]);
+  }
+  @reserveAction
+  reservefinishPlayerTurn(player: Player) {
     for (let p of this.players) {
       p.actions = [];
       p.isAbleToAction = true;
     }
-    let player = this.players[playerId];
     let sames = this.getPlayersAt(player.currentPos);
     if (!this.isOutOfLand(player.currentPos) && sames.length <= 1) {
-      this.doAfterFinishedPlayerTurn(playerId);
+      this.reserveDoAfterFinishedPlayerTurn(player);
       return;
     }
     // 同じマスにいるキャラクターとのお見合い判定
@@ -119,22 +131,20 @@ export class Game {
       p.choices = [new Choice("お見合い:ダイス確定", { dice: dice }, x => {
         dices.set(p.id, dice);
         if (dices.size < sames.length) return;
-        // 予めスタックに積んでおく
-        this.doAfterFinishedPlayerTurn(playerId);
+        this.reserveDoAfterFinishedPlayerTurn(player);
         for (let p of sames) {
           sames.filter(x => x.id !== p.id)
             .filter(x => dices.get(x.id) === dices.get(p.id))
-            .forEach(x => this.watch(p.id, x.id));
+            .forEach(x => this.reserveWatch(p, x));
         }
       })];
     });
   }
   @reserveAction
-  askPlayerTurn(playerId: number) {
+  reserveAskPlayerTurn(player: Player) {
     this.turn++;
-    let player = this.players[playerId];
     if (!player.isAbleToAction || player.actions.length >= 2) {
-      this.finishPlayerTurn(playerId);
+      this.reservefinishPlayerTurn(player);
       return;
     }
     if (this.isOutOfLand(player.currentPos)) {
@@ -153,21 +163,22 @@ export class Game {
     player.choices = [
       new Choice("待機", {}, x => {
         player.actions.push("待機");
-        this.finishPlayerTurn(playerId);
+        this.reservefinishPlayerTurn(player);
       }),
       ...nextTos.map(p =>
         new Choice(moveTag, { x: p.x, y: p.y }, x => {
           player.actions.push(moveTag);
-          this.askPlayerTurn(playerId);
-          this.openRandomLand(+x.x, +x.y);
-          player.currentPos = { x: +x.x, y: +x.y };
+          let pos = { x: +x.x, y: +x.y };
+          this.reserveAskPlayerTurn(player);
+          this.reserveOpenRandomLand(pos);
+          player.currentPos = pos;
         })),
       ...versus.map(p =>
         new Choice("戦闘", { target: p.name }, x => {
           player.actions.push("戦闘");
           // 予めセット
-          this.askPlayerTurn(playerId);
-          this.startBattle(playerId, p.id);
+          this.reserveAskPlayerTurn(player);
+          this.reserveStartBattle(player, p);
         })),
       ...(itemOnMap === null ? [] : [
         new Choice("アイテムを拾う", {}, _ => {
@@ -175,34 +186,32 @@ export class Game {
           let { x, y } = player.currentPos;
           if (itemOnMap === null) return console.assert(itemOnMap !== null);// そんなことはないはず
           this.itemsOnMap[x][y] = null;
-          this.askPlayerTurn(playerId);
-          this.gainItem(playerId, new Item(itemOnMap));
+          this.reserveAskPlayerTurn(player);
+          this.reserveGainItem(player, new Item(itemOnMap));
         })])
     ];
   }
   @reserveAction
-  gainItem(playerId: number, item: Item) {
-    let player = this.players[playerId];
+  reserveGainItem(player: Player, item: Item) {
     player.items.push(item);
     // TODO:とりあえず無限に持てる
   }
   @reserveAction
-  startBattle(playerId: number, targetId: number) {
-    let player = this.players[playerId];
-    let target = this.players[targetId];
+  reserveStartBattle(player: Player, target: Player) {
     player.choices = [
       new Choice("戦闘勝利", {}, x => {
-        this.win(playerId, targetId);
+        this.reserveWin(player, target);
       }),
       new Choice("戦闘敗北", {}, x => {
-        this.win(targetId, playerId);
+        this.reserveWin(target, player);
       }),
       new Choice("戦闘は何も起きなかった", {}, x => {
       }),
     ];
   }
   @reserveAction
-  openRandomLand(x: number, y: number) {
+  reserveOpenRandomLand(pos: { x: number, y: number }) {
+    let { x, y } = pos;
     // 開いた(開いた瞬間選択肢が出るかもしれない)
     if (this.map[x][y] !== null) return; // 既に存在している
     let land = this.leftLands[this.leftLands.length - 1];
