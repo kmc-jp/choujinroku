@@ -44,7 +44,9 @@ export class GameProxy {
         let heres = this.game.players.filter(p => p.currentPos.x === x && p.currentPos.y === y)
           .map(p => `${p.name}`).join(",")
         if (heres !== "") heres = `(${heres})`
-        result += `[${this.game.map[x][y]}${heres}] `
+        let item = this.game.itemsOnMap[x][y];
+        let map = this.game.map[x][y];
+        result += `[${map === null ? "" : map}${heres}${item === null ? "" : "(" + item.name + ")"}] `
       }
       result += "\n"
     }

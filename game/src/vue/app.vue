@@ -52,6 +52,9 @@ export default class App extends Vue {
       .toLowerCase()
       .replace(/\s\s/g, " ")
       .trim();
+    if (command === "" && gameProxy === null) {
+      command = "play 0 1 2";
+    }
     let c = command.split(" ");
     if (c[0] === "help") return [true, this.getHelp()];
     if (c[0] === "play") {

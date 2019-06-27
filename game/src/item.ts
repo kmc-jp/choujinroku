@@ -80,12 +80,10 @@ export class Item implements ItemData {
   name: string;
   category: ItemCategory;
 
-  constructor(category: ItemCategory, id: number) {
-    let data = items[category][id];
+  constructor(data: ItemData) {
     this.id = data.id;
     this.name = data.name;
     this.category = data.category;
-    console.assert(this.id === id);
   }
 }
 

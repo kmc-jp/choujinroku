@@ -1,5 +1,5 @@
 import { Character } from "./character";
-export type PlayerAction = "移動1" | "待機" | "移動2" | "戦闘"
+export type PlayerAction = "移動1" | "待機" | "移動2" | "戦闘" | "アイテム"
 import { Choice } from "./choice";
 import { Item } from "./item";
 
@@ -35,6 +35,7 @@ export class Player {
   x: ${this.currentPos.x}  y:${this.currentPos.y}
   キャラ: ${this.chara}
   勝利済み: ${this.won}
-  正体確認: ${this.watched}`;
+  正体確認: ${this.watched}
+  アイテム: {${this.items.map(x => x.name).join(",")}}`;
   }
 }
