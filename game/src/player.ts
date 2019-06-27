@@ -47,7 +47,7 @@ export class Player {
   character: Character;
   isAbleToAction: boolean; // 戦闘敗北などでターン続行不可能になった
   actions: PlayerAction[] = [];
-  private privatePos = { x: -1, y: -1 }; // 現在地(盤外:{-1,-1})
+  private mPos = { x: -1, y: -1 }; // 現在地(盤外:{-1,-1})
   id: number;
   watched: Set<number>; // 正体確認している？
   won: Set<number>  // 勝利している？
@@ -66,11 +66,11 @@ export class Player {
     this.items = [];
     this.choices = [];
   }
-  get pos() { return this.privatePos; }
+  get pos() { return this.mPos; }
   set pos(value: { x: number, y: number }) {
-    if (value.x !== this.privatePos.x || value.y !== this.privatePos.y)
+    if (value.x !== this.mPos.x || value.y !== this.mPos.y)
       this.waitCount = 0;
-    this.privatePos = value;
+    this.mPos = value;
   }
   isAbleToGetSomething(): boolean {
     return !this.actions.includes("移動2");

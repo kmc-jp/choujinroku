@@ -21,10 +21,8 @@ function jouhari(this: Item, game: Game, player: Player): Choice<any>[] {
     .map(other => new Choice(`${other.name}に${this.name}を使用`, {}, () => {
       player.choices = game.getDiceChoices(player, this.name,
         dice => {
-          game.byPhase(
-            () => { if (dice.dice <= player.character.level) game.watch(player, other); },
-            () => game.askPlayerTurn(player)
-          );
+          if (dice.dice <= player.character.level) game.watch(player, other);
+          game.processPlayerTurn(player);
         })
     }));
 }

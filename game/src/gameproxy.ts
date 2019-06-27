@@ -32,6 +32,7 @@ export class GameProxy {
     return `
     TURN: ${this.game.turn}
     ACTIONSTACK:${this.game.actionStack.length}
+    TEMPACTIONS:${this.game.temporaryActionStack.length}
     残り宝物:[${this.game.leftItems["宝物"].map(x => x.name).join(",")}]
     残り発明品:[${this.game.leftItems["発明品"].map(x => x.name).join(",")}]
     残り本:[${this.game.leftItems["本"].map(x => x.name).join(",")}]
