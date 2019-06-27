@@ -1,13 +1,11 @@
 export type ChoiceType = { [key: string]: number | string };
-// export type ChoiceTag = "初期配置位置" | "移動1"
-export class Choice {
+export class Choice<T extends ChoiceType> {
   tag: string;
-  elem: ChoiceType;
-  private callback: (x: ChoiceType) => any;
-  constructor(tag: string, elem: ChoiceType, callback: (x: ChoiceType) => any) {
+  elem: T;
+  callback: (x: T) => any;
+  constructor(tag: string, elem: T, callback: (x: T) => any) {
     this.tag = tag;
     this.elem = elem;
-    this.elem.tag = tag;
     this.callback = callback;
   }
   invoke() { this.callback(this.elem); }

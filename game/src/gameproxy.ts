@@ -1,6 +1,8 @@
 import { Game } from "./game";
-import { characterDatus } from "./character";
+import { getAllCharacters } from "./character";
 import { Choice } from "./choice";
+import { toString } from "./util";
+
 export class GameProxy {
   private game: Game;
   private constructor(game: Game) {
@@ -47,14 +49,14 @@ export class GameProxy {
         if (heres !== "") heres = `(${heres})`
         let item = this.game.itemsOnMap[x][y];
         let map = this.game.map[x][y];
-        result += `[${map === null ? "" : map}${heres}${item === null ? "" : "(" + item.name + ")"}] `
+        result += `[${map === null ? "" : map.name}${heres}${item === null ? "" : "(" + item.name + ")"}] `
       }
       result += "\n"
     }
     return result;
   }
   getPlayerNumber(): number { return this.game.players.length; }
-  getChoices(i: number): Choice[] { return this.game.players[i].choices; }
+  getChoices(i: number): Choice<any>[] { return this.game.players[i].choices; }
   showChoices(): string {
     return this.game.players.map(x => `${x.name}:\n${
       "[ " + x.choices.map((x, i) => `${i}:${x}`).join("\n  ") + " ]"
@@ -63,6 +65,6 @@ export class GameProxy {
   showAll(): string {
     return `# status\n${this.showStatus()}\n# map\n${this.showMap()}\n# choice\n${this.showChoices()}`;
   }
-  static getAvailableCharacters(): string { return characterDatus.map(x => `${x}`).join("\n"); }
+  static getAvailableCharacters(): string { return getAllCharacters().map(x => `${toString(x)}`).join("\n"); }
 
 }

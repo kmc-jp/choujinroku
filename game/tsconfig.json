@@ -7,9 +7,9 @@
         "moduleResolution": "node",
         "target": "es5",
         "lib": [
-            "DOM",
+            "dom",
             "dom.iterable",
-            "es7"
+            "es7",
         ],
         "experimentalDecorators": true
     },
