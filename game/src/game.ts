@@ -93,8 +93,8 @@ export class Game {
         this.reserveAskFirstPlace(this.players[player.id + 1]);
         return;
       }
-      // 1Pからターンを開始
       this.reserveAskPlayerTurn(this.players[0]);
+      // 1Pからターンを開始
       for (let player of this.players)
         this.reserveOpenRandomLand(player.currentPos);
     }));
@@ -169,9 +169,9 @@ export class Game {
         new Choice(moveTag, { x: p.x, y: p.y }, x => {
           player.actions.push(moveTag);
           let pos = { x: +x.x, y: +x.y };
+          player.currentPos = pos;
           this.reserveAskPlayerTurn(player);
           this.reserveOpenRandomLand(pos);
-          player.currentPos = pos;
         })),
       ...versus.map(p =>
         new Choice("戦闘", { target: p.name }, x => {
