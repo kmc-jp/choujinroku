@@ -23,21 +23,26 @@ export class GameProxy {
   decide(playerId: number, choiceId: number): string {
     let player = this.game.players[playerId];
     let choice = player.choices[choiceId];
-    player.choices = [];
-    choice.invoke();
-    this.game.consumeActionStackSafety();
-    return `${this.game.players[playerId].name} : ${choice}を選択`
+    this.game.decide(playerId, choiceId);
+    return `${player.name} : ${choice}を選択`
   }
   showStatus(): string {
-    return `TURN: ${this.game.turn}\nSTACK:${this.game.actionStack.length}\n ` + this.game.players.map(x => `${x}`).join("\n");
+    return `
+    TURN: ${this.game.turn}
+    ACTIONSTACK:${this.game.actionStack.length}
+    残り宝物:[${this.game.leftItems["宝物"].map(x => x.name).join(",")}]
+    残り発明品:[${this.game.leftItems["発明品"].map(x => x.name).join(",")}]
+    残り本:[${this.game.leftItems["本"].map(x => x.name).join(",")}]
+    残り品物:[${this.game.leftItems["品物"].map(x => x.name).join(",")}]
+    `.replace(/\n    /g, "\n") + this.game.players.map(x => `${x}`).join("\n");
   }
   showMap(): string {
     let out: string[] = [];
-    this.game.players.forEach(x => { if (this.game.isOutOfLand(x.currentPos)) out.push(x.name) })
+    this.game.players.forEach(x => { if (this.game.isOutOfLand(x.pos)) out.push(x.name) })
     let result = `盤外:${out.join(",")}\n`;
     for (let y = 0; y < 6; y++) {
       for (let x = 0; x < 6; x++) {
-        let heres = this.game.players.filter(p => p.currentPos.x === x && p.currentPos.y === y)
+        let heres = this.game.players.filter(p => p.pos.x === x && p.pos.y === y)
           .map(p => `${p.name}`).join(",")
         if (heres !== "") heres = `(${heres})`
         let item = this.game.itemsOnMap[x][y];
