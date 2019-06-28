@@ -38,6 +38,10 @@ export class GameProxy {
     残り品物:[${this.game.leftItems["品物"].map(x => x.name).join(",")}]
     `.replace(/\n    /g, "\n") + this.game.players.map(x => `${x}`).join("\n");
   }
+  showPlayer(playerId: number): string {
+    if (playerId < 0 || playerId >= this.game.players.length) return "不正なプレイヤー番号です"
+    return this.game.players[playerId].toString();
+  }
   showMap(): string {
     let out: string[] = [];
     this.game.players.forEach(x => { if (x.pos.isOutOfLand()) out.push(x.name) })
@@ -56,7 +60,11 @@ export class GameProxy {
     return result;
   }
   getPlayerNumber(): number { return this.game.players.length; }
-  getChoices(i: number): Choice<any>[] { return this.game.players[i].choices; }
+  getChoices(): string[][] {
+    return this.game.players.map(player => {
+      return player.choices.map(x => `${x}`)
+    })
+  }
   showChoices(): string {
     return this.game.players.map(x => `${x.name}:\n${
       "[ " + x.choices.map((x, i) => `${i}:${x}`).join("\n  ") + " ]"

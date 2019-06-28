@@ -1,5 +1,5 @@
 <template lang="pug">
-  div
+  div(style="margin:0.72em;")
     nav.navbar.is-dark.is-fixed-top(role="navigation" aria-label="main navigation")
       .navbar-brand
         .navbar-item
@@ -9,17 +9,50 @@
             .control
               a.button.is-dark(href="https://github.com/Muratam/")
                 .icon: i.fab.fa-github
-    .section
-      .content
-        .field
-          input.input(
-              v-model="command"
-              type="text"
-              placeholder="input your command here!! (write 'help' and press enter)"
-              @keyup.enter="onChangeCommand"
-              )
-        .field
-          pre {{output}}
+    //- 選択肢の表示ボタン(全員の選択肢) : オーバーレイ形式
+    //- 1,2,3Pの詳細ボタン
+    //- その他の情報の表示ボタン
+    //- 地図の表示ボタン
+    //- オートボタン
+    //- ランダム選択ボタン
+    .field.is-grouped
+      .control(style="margin-top:0.5em;")
+        input.switch#showChoice(type="checkbox" checked="checked" @change="toglleShowChoices")
+        label(for="showChoice") 選択肢表示
+      .control(style="margin-top:0.5em;")
+        input.switch#useAuto(type="checkbox" @change="toggleAutoMode")
+        label(for="useAuto") オート進行
+      .control
+        a.button.is-light(@click="choiceRandom")
+          p ランダム
+      .control
+        input.input(
+          v-model="command"
+          type="text"
+          size="8"
+          placeholder="0 1 2 3"
+          @keyup.enter="onChangeCommand"
+          )
+    .field.is-grouped
+      .control
+        a.button.is-light(@click="showMap")
+          .icon: i.fas.fa-image
+          p ゲーム画面
+      .control(v-for="i in playerNumber")
+        a.button.is-light(@click="showPlayer(i-1)")
+          .icon: i.fas.fa-user
+          p {{i}}P
+      .control
+        a.button.is-light(@click="showStatus")
+          .icon: i.fas.fa-cog
+          p その他
+    .field
+      pre {{output}}
+    .field(v-for="choice,i in choices")
+      .control
+        a.button.is-light(@click="decide(i)")
+          .icon: i.fas.fa-question
+          p  {{choice}}
 </template>
 
 <script lang="ts">
@@ -34,77 +67,76 @@ let gameProxy: GameProxy | null = null;
 export default class App extends Vue {
   command = "";
   output = "";
-  getHelp(): string {
-    return `# help
-    play 0 2 1: 新しい3人ゲームを開始. idに対応するキャラクタが選ばれる。
-    show available characters: 現在実装されているキャラクター一覧を表示
-    show : status map options を全て表示
-      show status : 全員の状態を表示
-      show map : 現在のマップを表示
-      show options: 全員の現在の選択肢を表示
-    <空のコマンド> : 全員がランダムに選択肢を選んで次の状態へ
-    3 4: 3pの選択肢のうち4番を選ぶ
-    auto : 永遠にランダム選択肢を選び続ける
-    `.replace(/\n    /g, "\n");
+  choices: string[] = [];
+  toPlayerId: number[] = [];
+  toChoiceId: number[] = [];
+  playerNumber = 0;
+  isShowChoices = true;
+  autoMode = false;
+  showMap() {
+    this.output = gameProxy ? gameProxy.showMap() : "ゲーム未開始";
   }
-  parseCommand(command: string): [boolean, string] {
-    command = command
-      .toLowerCase()
-      .replace(/\s\s/g, " ")
-      .trim();
-    if (command === "" && gameProxy === null) {
-      command = "play 0 1 2";
-    }
+  showChoice() {
+    if (!gameProxy || !this.isShowChoices) return (this.choices = []);
+    let choiceMat = gameProxy.getChoices();
+    let choices: string[] = [];
+    let toPlayerId: number[] = [];
+    let toChoiceId: number[] = [];
+    choiceMat.forEach((cm, i) => {
+      cm.forEach((c, j) => {
+        choices.push(`${i + 1}P: ${c}`);
+        toPlayerId.push(i);
+        toChoiceId.push(j);
+      });
+    });
+    this.choices = choices;
+    this.toPlayerId = toPlayerId;
+    this.toChoiceId = toChoiceId;
+  }
+  decide(i: number) {
+    if (!gameProxy) return;
+    gameProxy.decide(this.toPlayerId[i], this.toChoiceId[i]);
+    this.update();
+  }
+  showStatus() {
+    this.output = gameProxy ? gameProxy.showStatus() : "ゲーム未開始";
+  }
+  showPlayer(n: number) {
+    this.output = gameProxy ? gameProxy.showPlayer(n) : "ゲーム未開始";
+  }
+  toglleShowChoices() {
+    this.isShowChoices = !this.isShowChoices;
+    this.showChoice();
+  }
+  toggleAutoMode() {
+    this.autoMode = !this.autoMode;
+  }
+  update() {
+    this.showMap();
+    this.showChoice();
+  }
+  choiceRandom() {
+    if (!gameProxy) return;
+    gameProxy.decideAll();
+    this.update();
+  }
+  mounted() {
+    let f = () => {
+      if (this.autoMode) this.choiceRandom();
+      requestAnimationFrame(f);
+    };
+    f();
+    this.onChangeCommand();
+  }
+  onChangeCommand() {
+    let command = this.command.replace(/\s\s/g, " ").trim();
+    if (command === "" && gameProxy === null) command = "0 1 2";
     let c = command.split(" ");
-    if (c[0] === "help") return [true, this.getHelp()];
-    if (c[0] === "play") {
-      if (gameProxy != null)
-        return [false, "既にゲームは開始されている！(リロードしてね)"];
-      let tmp = GameProxy.tryToStart(c.slice(1).map(x => parseInt(x)));
-      if (tmp === null) return [false, "ゲームを開始できなかった..."];
-      gameProxy = tmp;
-      return [true, "新たなゲームを開始しました！ \n" + gameProxy.showAll()];
-    }
-    if (command === "show available characters") {
-      return [true, GameProxy.getAvailableCharacters()];
-    }
-    if (gameProxy === null) return [false, "まだゲームが始まっていない"];
-    if (command === "show") {
-      if (c[1] === "status") return [true, gameProxy.showStatus()];
-      if (c[1] === "map") return [true, gameProxy.showMap()];
-      if (c[1] === "choices") return [true, gameProxy.showChoices()];
-      return [true, gameProxy.showAll()];
-    }
-    if (command === "auto") {
-      let f = () => {
-        this.command = "";
-        this.onChangeCommand();
-        requestAnimationFrame(f);
-      };
-      f();
-      return [true, "auto loop"];
-    }
-    if (command === "") {
-      return [true, gameProxy.decideAll() + "\n" + gameProxy.showAll()];
-    }
-    let n = parseInt(command[0]) - 1;
-    if (0 <= n && n < gameProxy.getPlayerNumber()) {
-      let m = parseInt(c[1]);
-      if (m < 0 || m >= gameProxy.getChoices(n).length)
-        return [false, "そんな選択肢は無い"];
-      return [true, gameProxy.decide(n, m) + "\n" + gameProxy.showAll()];
-    }
-    return [false, "そんなコマンドはない"];
-  }
-  onChangeCommand(): void {
-    let command = this.command;
-    let [success, parsed] = this.parseCommand(command);
-    if (!success) {
-      this.output = `${parsed}\n(${this.command})\n\n` + this.getHelp();
-    } else {
-      this.output = parsed;
-    }
-    this.command = "";
+    let tmp = GameProxy.tryToStart(c.map(x => parseInt(x)));
+    if (tmp === null) return (this.output = "ゲームを開始できなかった...");
+    gameProxy = tmp;
+    this.playerNumber = gameProxy.getPlayerNumber();
+    this.update();
   }
 }
 </script>
