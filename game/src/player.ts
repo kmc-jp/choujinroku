@@ -1,16 +1,10 @@
 import { Character } from "./character";
 export type PlayerAction = "移動1" | "待機" | "移動2" | "戦闘" | "アイテム"
-import { Choice } from "./choice";
+import { Choice, Attribute, Hook } from "./choice";
 import { Item } from "./item";
 import { toString } from "./util";
-import { LandName } from "./land";
-export type Ailment =
-  "幻覚" | "残機減少" | "呪い" | "能力低下" | "迷い"
-  | "満身創痍" | "毒茸" | "飲み過ぎ" | "食あたり"
-export type Factor =
-  "地形効果" | "特殊能力" | "アイテム"
-export type Attribute = Ailment | Factor | LandName
-
+import * as _ from "underscore";
+import { Game } from "./game";
 function setToArray<T>(set: Set<T>): T[] {
   let result: T[] = [];
   set.forEach(w => { result.push(w); });
@@ -44,7 +38,7 @@ export class WithAttribute {
 
 export class Player {
   name: string;
-  character: Character;
+  private character: Character;
   isAbleToAction: boolean; // 戦闘敗北などでターン続行不可能になった
   actions: PlayerAction[] = [];
   private mPos = { x: -1, y: -1 }; // 現在地(盤外:{-1,-1})
@@ -56,7 +50,9 @@ export class Player {
   bomb: number = 2;
   life: number = 3; //残機
   waitCount: number = 0;
-  constructor(character: Character, name: string, id: number) {
+  game: Game;
+  constructor(game: Game, character: Character, name: string, id: number) {
+    this.game = game;
     this.character = character;
     this.name = name;
     this.id = id;
@@ -66,6 +62,8 @@ export class Player {
     this.items = [];
     this.choices = [];
   }
+  // レベルが上昇してるかもしれない...
+  get level() { return this.character.level; }
   get pos() { return this.mPos; }
   set pos(value: { x: number, y: number }) {
     if (value.x !== this.mPos.x || value.y !== this.mPos.y)
@@ -79,13 +77,27 @@ export class Player {
     return new WithAttribute(this, ...args);
   }
   checkWithAttributes(choices: Choice<any>[], attrs: Attribute[]): Choice<any>[] {
-    // 何もしない
-    return choices;
+    // キャラとアイテムのHookを確認
+    attrs = _.uniq(attrs);
+    let result: Choice<any>[] = [];
+    let applyHook = (hook: Hook) => {
+      // force
+      for (let when of hook.when) {
+        if (typeof (when) === "string") {
+          if (!attrs.includes(when)) return;
+        } else {
+          for (let w of when) if (!attrs.includes(w)) return;
+        }
+        result.push(...hook.choices.bind(this.game)(this));
+      }
+    }
+    for (let choice of choices) result.push(choice);
+    for (let item of this.items) {
+      for (let hook of item.hooks) applyHook(hook);
+    }
+    for (let hook of this.character.hooks) applyHook(hook);
+    return result;
   }
-  // withAttributes(choices: Choice<any>[], ...args: (Factor | Ailment | LandName)[]): Choice<any>[] {
-  //   // 誰も絶対に無効化できない(できるなら選択肢を返せば良い)
-  //   return []
-  // }
   get watchedArray(): number[] { return setToArray(this.watched); }
   get wonArray(): number[] { return setToArray(this.won); }
   toString(): string {

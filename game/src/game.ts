@@ -7,12 +7,20 @@ import * as _ from "underscore";
 
 // アイテム / キャラ効果 / 地形効果 / 仲間 / 勝利条件 / 戦闘
 type AnyAction = (() => any);
-type Pos = { x: number, y: number }
-function ask(target: Game, propertyKey: string, descriptor: PropertyDescriptor) {
+export type Pos = { x: number, y: number }
+export type TwoDice = Pos;
+function phase(target: Game, propertyKey: string, descriptor: PropertyDescriptor) {
   let original = descriptor.value;
   descriptor.value = function (this: Game, ...args: any[]) {
     this.temporaryActionStack.push(() => original.bind(this)(...args));
   }
+  // @phase の付いた関数はそのまま一度スタックに退避される。
+  // 割り込みが発生して、その全てが終了したのちに実行される。
+  // ローカルな処理を順序に沿って行いたい時は game.phase 関数でくるむ。
+  // phase の中では選択肢はその中で作成されたものだけになることが保証される。
+  // よって player.choices を独立に考えて好きにいじってよい。たいていいじる。
+  // いじらないと player.choices は空になっている。
+  // いじらなくてもよいが,その場合は特にプレイヤーへの選択肢/messageナシに処理が進むことを意味する。
 }
 
 // 現在はブラウザで動いているが、サーバーで動いてもいい感じになってほしい気持ちで書く
@@ -34,8 +42,8 @@ export class Game {
   }
   private constructor(ids: number[]) {
     this.leftCharacters = getAllCharacters();
-    this.players = ids.map((x, i) => new Player(this.leftCharacters[x], `${i + 1}P`, i));
-    this.leftCharacters = this.leftCharacters.filter(x => this.players.every(y => x.id !== y.character.id));
+    this.players = ids.map((x, i) => new Player(this, this.leftCharacters[x], `${i + 1}P`, i));
+    this.leftCharacters = this.leftCharacters.filter(x => ids.every(y => x.id !== y));
     this.map = _.range(6).map(() => _.range(6).map(() => null));
     this.leftLands = _.shuffle(getLands());
     this.leftItems = getItemsData();
@@ -109,7 +117,7 @@ export class Game {
     let dice = this.dice();
     return [new Choice(tag + ":ダイス(1D)確定", { dice: dice }, action)];
   }
-  getTwoDiceChoices(player: Player, tag: string, action: (x: Pos) => any): Choice<Pos>[] {
+  getTwoDiceChoices(player: Player, tag: string, action: (x: TwoDice) => any): Choice<Pos>[] {
     let [x, y] = this.twoDice();
     return [new Choice(tag + ":ダイス(2D)確定", { x, y }, action)];
   }
@@ -125,12 +133,12 @@ export class Game {
         let map = this.map[p.x][p.y];
         if (map === null) return;
         let attrs = player.with(map.name, "地形効果");
-        player.choices = attrs.wrap(map.whenEnter.bind(map)(this, player, attrs));
+        player.choices = map.whenEnter.bind(map)(this, player, attrs);
       })
       this.processPlayerTurn(player)
     }));
   }
-  @ask decideFirstPlace(player: Player) {
+  @phase decideFirstPlace(player: Player) {
     // 1Pから開始位置(x:[0,5],y:[0,5])を選んでもらう
     // 初期配置選択肢
     player.choices = this.getOutSides().map(x => new Choice("初期配置位置", x, x => {
@@ -143,7 +151,7 @@ export class Game {
       this.processPlayerTurn(this.players[0]);
     }));
   }
-  @ask win(player: Player, target: Player) {
+  @phase win(player: Player, target: Player) {
     player.won.add(target.id);
     target.isAbleToAction = false;
     player.choices = [
@@ -164,33 +172,33 @@ export class Game {
       })
     ];
   }
-  @ask kick(player: Player, target: Player) {
+  @phase kick(player: Player, target: Player) {
     if (player.pos.x !== target.pos.x || player.pos.y !== target.pos.y) return;
     player.choices = this.getNextTo(player.pos)
       .filter(x => this.map[x.x][x.y] !== null)
-      .map(x => new Choice("キックする", {}, () => {
+      .map(pos => new Choice("キックする", pos, () => {
         // 移動はするがそこの地形の効果は発動しない
-        if (this.map[x.x][x.y] !== null) target.pos = x;
+        if (this.map[pos.x][pos.y] !== null) target.pos = pos;
       }));
     player.choices.push(new Choice("キックはしない", {}, () => { }))
   }
-  @ask watch(player: Player, target: Player) {
+  @phase watch(player: Player, target: Player) {
     player.watched.add(target.id);
   }
-  @ask forgetWin(player: Player, target: Player) {
+  @phase forgetWin(player: Player, target: Player) {
     player.won.delete(target.id);
   }
-  @ask forgetWatch(player: Player, target: Player) {
+  @phase forgetWatch(player: Player, target: Player) {
     player.watched.delete(target.id)
   }
   // 手番
-  @ask doAfterFinishedPlayerTurn(player: Player) {
+  @phase doAfterFinishedPlayerTurn(player: Player) {
     // 「手番終了後」の能力を処理
     let nextId = (player.id + 1) % this.players.length;
     this.processPlayerTurn(this.players[nextId]);
   }
 
-  @ask finishPlayerTurn(player: Player) {
+  @phase finishPlayerTurn(player: Player) {
     for (let p of this.players) {
       p.actions = [];
       p.isAbleToAction = true;
@@ -215,7 +223,7 @@ export class Game {
       });
     });
   }
-  @ask processPlayerTurn(player: Player) {
+  @phase processPlayerTurn(player: Player) {
     this.turn++;
     if (!player.isAbleToAction || player.actions.length >= 2) {
       this.finishPlayerTurn(player);
@@ -277,7 +285,7 @@ export class Game {
     }
   }
   // アイテム
-  @ask gainItem(player: Player, item: Item) {
+  @phase gainItem(player: Player, item: Item) {
     player.items.push(item);
     // とりあえず5つまでしか持てないことにする
     if (player.items.length < 6) return;
@@ -287,22 +295,22 @@ export class Game {
       ));
   }
   // 捨てる(呪いのアイテムは捨てられない！)
-  @ask discardItem(player: Player, item: Item) {
+  @phase discardItem(player: Player, item: Item) {
     player.items = player.items.filter(x => x.id !== item.id);
     this.leftItems[item.category].push(item);
   }
   // 落とす
-  @ask dropItem(player: Player, item: Item) {
+  @phase dropItem(player: Player, item: Item) {
     // とりあえずね
     this.discardItem(player, item);
   }
   // 奪う
-  @ask stealItem(player: Player, target: Player, item: Item) {
+  @phase stealItem(player: Player, target: Player, item: Item) {
     target.items = target.items.filter(x => x.id !== item.id);
     this.gainItem(player, item);
   }
   // 戦闘
-  @ask startBattle(player: Player, target: Player) {
+  @phase startBattle(player: Player, target: Player) {
     player.choices = [
       new Choice("戦闘勝利", {}, () => {
         this.win(player, target);
@@ -314,7 +322,7 @@ export class Game {
     ];
   }
   // 残機が減った
-  @ask damaged(player: Player, damage: number = 1) {
+  @phase damaged(player: Player, damage: number = 1) {
     player.life -= damage;
     player.isAbleToAction = false;
     player.pos = { x: -1, y: -1 };
@@ -326,13 +334,13 @@ export class Game {
     player.choices = [message(`${damage}ダメージを受けた`)];
   }
   // ゲーム終了判定
-  @ask gameEnd() {
+  @phase gameEnd() {
     this.actionStack = [];
     for (let p of this.players) p.choices = [];
     alert("ゲームは正常に終了しました");
   }
   // マップ
-  @ask openRandomLand(pos: Pos) {
+  @phase openRandomLand(pos: Pos) {
     let { x, y } = pos;
     // 開いた(開いた瞬間選択肢が出るかもしれない)
     if (this.map[x][y] !== null) return; // 既に存在している

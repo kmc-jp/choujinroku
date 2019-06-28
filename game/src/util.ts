@@ -1,5 +1,6 @@
 export function toString(obj: any): string {
   if (typeof (obj) !== "object") {
+    if (typeof (obj) === "function") return "";
     return `${obj}`;
   }
   let result: string[] = []

@@ -1,9 +1,7 @@
-import { CharaName } from "./character";
-import { Game } from "./game";
-import { Player, Attribute, WithAttribute } from "./player";
-import { Choice } from "./choice";
+import { Game, TwoDice } from "./game";
+import { Player, WithAttribute } from "./player";
+import { Choice, message, nop } from "./choice";
 import * as _ from "underscore";
-
 export type LandName = "博麗神社" | "魔法の森" | "月夜の森" | "霧の湖"
 export type Land = {
   id: number;
@@ -12,49 +10,85 @@ export type Land = {
   whenEnter: (this: Land, game: Game, player: Player, attrs: WithAttribute) => Choice<any>[];
   whenExit: (this: Land, game: Game, player: Player, attrs: WithAttribute) => Choice<any>[];
 }
-function nopWithText(text: string): Choice<{}>[] {
-  return [new Choice(text, {}, () => { })];
-}
-function nop(): Choice<any>[] { return [] }
-function getFromStudio(game: Game, player: Player): Choice<any>[] {
+function 工房判定(game: Game, player: Player): Choice<any>[] {
   // 工房判定
-  return nopWithText("工房判定は何も手に入らなかった...")
+  return [message("工房判定は未実装だった...")]
+}
+function happenEvent(game: Game, player: Player): Choice<any>[] {
+  return [message("イベント表は未実装だった！ ")];
+}
+function happenAccident(game: Game, player: Player): Choice<any>[] {
+  return [message("アクシデント表は未実装だった！ ")];
+}
+function happenTrap(game: Game, player: Player): Choice<any>[] {
+  return [message("トラップ表は未実装だった！ ")];
 }
 function getGoods(game: Game, player: Player): Choice<any>[] {
-  if (!player.isAbleToGetSomething) return nopWithText("品物は得られ無かった...");
-  return nopWithText("品物は得られなかった...");
+  if (!player.isAbleToGetSomething) return [message("品物は得られ無かった...")];
+  return [message("品物を得るのは未実装だった...")];
 }
-function hakurei1D(this: Land, game: Game, player: Player, attrs: WithAttribute): Choice<any>[] {
-  // 被弾だがおおよそ無効化できるので属性は付与しなければならない...
-  return game.getDiceChoices(player, `${this.name}:入ったら1D`, d => {
-    let dice = d.dice;
-    if (dice === 1) attrs.choices = getFromStudio(game, player);
-    else if (dice <= 3) attrs.choices = getGoods(game, player);
-    else if (dice <= 5) attrs.choices = nopWithText("外の世界の品物を発見したが使い途が判らず捨てた");
-    else {
-      let text = "宴会で飲みすぎて前後不覚になり戦闘履歴が無作為に一人分初期化される";
-      attrs = attrs.with("飲み過ぎ");
-      attrs.choices = new Choice(text, {}, () => {
-        let w = player.wonArray;
-        if (w.length <= 0) {
-          attrs.choices = nopWithText("初期化される戦闘履歴が無かった...");
-          return;
-        }
-        let target = game.players[_.shuffle<number>(w)[0]];
-        attrs.choices = new Choice(
-          `飲みすぎて${target.name}の戦闘履歴が初期化された`,
-          {}, () => game.forgetWin(player, target));
-      });
-    }
+function wrap1D(callback: (this: Game, dice: number, player: Player, attrs: WithAttribute) => any) {
+  return function (this: Land, game: Game, player: Player, attrs: WithAttribute): Choice<any>[] {
+    return attrs.wrap(game.getDiceChoices(player, `${this.name}:1D`, d => {
+      callback.bind(game)(d.dice, player, attrs);
+    }));
+  }
+}
+function wrap2D(callback: (this: Game, dice: TwoDice, player: Player, attrs: WithAttribute) => any) {
+  return function (this: Land, game: Game, player: Player, attrs: WithAttribute): Choice<any>[] {
+    return attrs.wrap(game.getTwoDiceChoices(player, `${this.name}:1D`, d => {
+      callback.bind(game)(d, player, attrs);
+    }));
+  }
+}
+// 属性の付与を忘れずに！
+function 博麗神社1D(this: Game, dice: number, player: Player, attrs: WithAttribute) {
+  if (dice === 1) attrs.choices = 工房判定(this, player);
+  else if (dice <= 3) attrs.choices = getGoods(this, player);
+  else if (dice <= 5) attrs.choices = [message("外の世界の品物を発見したが使い途が判らず捨てた")];
+  else {
+    let text = "宴会で飲みすぎて前後不覚になり戦闘履歴が無作為に一人分初期化される";
+    attrs = attrs.with("飲み過ぎ");
+    attrs.choices = new Choice(text, {}, () => {
+      let w = player.wonArray;
+      if (w.length <= 0) {
+        attrs.choices = [message("初期化される戦闘履歴が無かった...")];
+        return;
+      }
+      let target = this.players[_.shuffle<number>(w)[0]];
+      attrs.choices = new Choice(
+        `飲みすぎて${target.name}の戦闘履歴が初期化された`,
+        {}, () => this.forgetWin(player, target));
+    });
+  }
+}
+function 魔法の森2D(this: Game, dice: TwoDice, player: Player, attrs: WithAttribute) {
+  if (dice.x !== dice.y) return;
+  attrs.with("毒茸", "残機減少").choices = new Choice("うっかり毒茸を食べてしまい残機減少", {}, () => {
+    this.damaged(player);
   });
 }
+function 月夜の森1D(this: Game, dice: number, player: Player, attrs: WithAttribute) {
+  if (dice <= player.level) return;
+  attrs.choices = new Choice("妖怪に攻撃されたけど未実装だった！", {}, () => { })
+}
+// 属性の付与を忘れずに！
+function 霧の湖1D(this: Game, dice: number, player: Player, attrs: WithAttribute) {
+  if (dice === 1) attrs.choices = new Choice("大妖精が仲間に成りかけたが未実装だった！", {}, () => { });
+  else if (dice === 2) attrs.choices = getGoods(this, player);
+  else if (dice === 3) attrs.choices = happenEvent(this, player);
+  else if (dice === 4) attrs.choices = happenAccident(this, player);
+  else if (dice === 5) attrs.with("幻覚", "手番休み", "妖精").choices = [message("妖精に悪戯されたけど未実装だった！ ")];
+  else if (dice === 6) attrs.choices = [message("妖精に攻撃されたけど未実装だった！ ")];
+}
+
 
 export function getLands(): Land[] {
   let tmp: Partial<Land>[] = [
-    { name: "博麗神社", nextTo: [], whenEnter: hakurei1D, },
-    { name: "魔法の森", nextTo: [], },
-    { name: "月夜の森", nextTo: [], },
-    { name: "霧の湖", nextTo: [], },
+    { name: "博麗神社", nextTo: [], whenEnter: wrap1D(博麗神社1D), },
+    { name: "魔法の森", nextTo: [], whenEnter: wrap2D(魔法の森2D) },
+    { name: "月夜の森", nextTo: [], whenEnter: wrap1D(月夜の森1D) },
+    { name: "霧の湖", nextTo: [], whenEnter: wrap1D(霧の湖1D) },
     { name: "霧の湖", nextTo: [], },
     { name: "霧の湖", nextTo: [], },
     { name: "霧の湖", nextTo: [], },
