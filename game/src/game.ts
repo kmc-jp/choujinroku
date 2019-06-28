@@ -140,7 +140,7 @@ export class Game {
   }
   getTwoDiceChoices(player: Player, tag: string, action: (x: TwoDice) => any): Choice<TwoDice>[] {
     let rolled = twoDice();
-    return [new Choice(tag + `ダイス確定(${rolled.a}+${rolled.b}=${rolled.a + rolled.b})`, rolled, action)];
+    return [new Choice(tag + `ダイス確定(${rolled.a},${rolled.b})`, rolled, action)];
   }
   drawACard(player: Player) {
     // 山札からカードを1枚引く

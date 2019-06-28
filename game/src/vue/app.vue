@@ -33,20 +33,23 @@
           .icon: i.fas.fa-image
           p ゲーム画面
       .control(v-for="i in playerNumber")
-        a.button.is-light(@click="showPlayer(i-1)")
+        a.button.is-light(@click="showPlayer(i-1)" v-bind:style="getColor(i-1)")
           .icon: i.fas.fa-user
           p {{i}}P
       .control
-        a.button.is-light(@click="showStatus")
+        a.button.is-light(@click="showLog")
           .icon: i.fas.fa-history
           p ログ
     .field
       pre {{output}}
     .field(v-for="choice,i in choices")
       .control
-        a.button.is-light(@click="decide(i)")
+        a.button.is-light(@click="decide(i)" v-bind:style="getColor(toPlayerId[i])")
           .icon: i.fas.fa-question
-          p  {{choice}}
+          p {{choice}}
+    .field
+      pre(style="max-height:20em")
+        p(v-for="l in log" v-bind:style="parseLogToColor(l)") {{l}}
 </template>
 
 <script lang="ts">
@@ -57,13 +60,16 @@ import { GameProxy } from "../gameproxy";
 //　かなり巨大なオブジェクトで、これがVue管理下にあるコストは考えたほうがいい
 let gameProxy: GameProxy | null = null;
 
+type InfoType = "Log" | "PlayerInfo";
 @Component({})
 export default class App extends Vue {
   command = "";
   output = "";
+  infoType: InfoType = "Log";
   choices: string[] = [];
   toPlayerId: number[] = [];
   toChoiceId: number[] = [];
+  log: string[] = [];
   playerNumber = 0;
   isShowChoices = true;
   autoMode = false;
@@ -92,8 +98,9 @@ export default class App extends Vue {
     gameProxy.decide(this.toPlayerId[i], this.toChoiceId[i]);
     this.update();
   }
-  showStatus() {
-    this.output = gameProxy ? gameProxy.showLog() : "ゲーム未開始";
+  showLog() {
+    if (!gameProxy) return;
+    this.log = gameProxy.getLog();
   }
   showPlayer(n: number) {
     this.output = gameProxy ? gameProxy.showPlayer(n) : "ゲーム未開始";
@@ -108,6 +115,7 @@ export default class App extends Vue {
   update() {
     this.showMap();
     this.showChoice();
+    this.showLog();
   }
   choiceRandom() {
     if (!gameProxy) return;
@@ -121,6 +129,13 @@ export default class App extends Vue {
     };
     f();
     this.onChangeCommand();
+  }
+  parseLogToColor(l: String): string {
+    return this.getColor(+l.split("P")[0] - 1);
+  }
+  getColor(i: number): string {
+    if (this.playerNumber <= 0) return ``;
+    return `color:hsl(${Math.floor((i * 360) / this.playerNumber)},100%,32%)`;
   }
   onChangeCommand() {
     let command = this.command.replace(/\s\s/g, " ").trim();
