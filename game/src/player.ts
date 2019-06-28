@@ -1,6 +1,7 @@
 import { Character } from "./character";
 export type PlayerActionTag = "移動1" | "待機" | "移動2" | "戦闘" | "アイテム" | "特殊能力の使用"
-import { Choice, Attribute, ResistanceHook } from "./choice";
+import { Choice } from "./choice";
+import { Attribute, AttributeHook, WithAttribute } from "./hook";
 import { Item } from "./item";
 import { toString } from "./util";
 import * as _ from "underscore";
@@ -17,25 +18,6 @@ Set.prototype.toString = function () {
   let result = "{";
   this.forEach(x => result += x + ",");
   return result + "}";
-}
-
-export class WithAttribute {
-  player: Player;
-  attrs: Attribute[];
-  constructor(player: Player, ...attributes: Attribute[]) {
-    this.player = player;
-    this.attrs = attributes;
-  }
-  set choices(value: Choice<any> | Choice<any>[]) {
-    this.player.choices = this.wrap(value);
-  }
-  wrap(value: Choice<any> | Choice<any>[]): Choice<any>[] {
-    if (!(value instanceof Array)) value = [value];
-    return this.player.checkResistanceHooks(value, this.attrs);
-  }
-  with(...attributes: Attribute[]): WithAttribute {
-    return new WithAttribute(this.player, ...this.attrs.concat(attributes));
-  }
 }
 
 export class Player {
@@ -110,12 +92,13 @@ export class Player {
     if (this.pos.isOutOfLand()) return null;
     return this.game.map[this.pos.x][this.pos.y];
   }
-  checkResistanceHooks(choices: Choice<any>[], attrs: Attribute[]): Choice<any>[] {
+  checkAttributeHooks(choices: Choice<any>[], attrs: Attribute[]): Choice<any>[] {
+    // TODO: ダイスロールに成功したら、が未実装
     // キャラとアイテムのHookを確認
     attrs = _.uniq(attrs);
     let result: Choice<any>[] = [];
     let forced: Choice<any>[] = [];
-    let applyHook = (hook: ResistanceHook) => {
+    let applyHook = (hook: AttributeHook) => {
       for (let when of hook.when) {
         if (typeof (when) === "string") {
           if (!attrs.includes(when)) return;
@@ -127,16 +110,16 @@ export class Player {
         else result.push(...choices);
       }
     }
-    let applyHooks = (hooks: ResistanceHook[]) => {
+    let applyHooks = (hooks: AttributeHook[]) => {
       for (let hook of hooks) applyHook(hook);
     }
     for (let choice of choices) result.push(choice);
     // アイテム / キャラ / 地形 のフックを確認
-    for (let item of this.items) applyHooks(item.resistanceHooks);
-    applyHooks(this.character.resistanceHooks)
+    for (let item of this.items) applyHooks(item.attributeHooks);
+    applyHooks(this.character.attributeHooks)
     if (!this.pos.isOutOfLand()) {
       let map = this.game.map[this.pos.x][this.pos.y];
-      if (map !== null) applyHooks(map.resistanceHooks);
+      if (map !== null) applyHooks(map.attributeHooks);
     }
     if (forced.length > 0) return forced;
     return result;

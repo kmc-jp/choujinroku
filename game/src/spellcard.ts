@@ -1,5 +1,6 @@
 import { CharaName } from "./character";
-import { Attribute } from "./choice";
+import { } from "./choice";
+import { Attribute } from "./hook";
 import * as _ from "underscore";
 export type SpellCardColor = "R" | "B" | "Y" | "G" | "P" | "W"
 export type SpellCardType = "弾幕" | "武術" | "回避" | "防御" | "戦闘補助" | "特殊"

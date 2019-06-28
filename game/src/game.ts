@@ -1,15 +1,16 @@
 import { Character, getAllCharacters } from "./character";
 import { Player, PlayerActionTag } from "./player";
-import { Choice, message, UnaryFun, FieldAction } from "./choice";
+import { Choice, message, UnaryFun } from "./choice";
+import { FieldAction } from "./fieldaction";
 import { Land, getLands } from "./land";
 import { ItemCategoryDict, Item, getItemsData, ItemCategory } from "./item";
 import * as _ from "underscore";
 import { Pos, PosType } from "./pos";
 import { SpellCard, getAllSpellCards } from "./spellcard";
+import { TwoDice, dice, twoDice } from "./hook";
 
 // アイテム / キャラ効果 / 地形効果 / 仲間 / 勝利条件 / 戦闘
 type AnyAction = (() => any);
-export type TwoDice = PosType;
 
 // デコレータ
 function phase(target: Game, propertyKey: string, descriptor: PropertyDescriptor) {
@@ -120,15 +121,11 @@ export class Game {
   getPlayersNextTo(pos: Pos): Player[] {
     return this.players.filter(x => 1 === Math.abs(x.pos.x - pos.x) + Math.abs(x.pos.y - pos.y))
   }
-  dice(): number { return 1 + Math.floor(Math.random() * 6); }
   getDiceChoices(player: Player, tag: string, action: (x: { dice: number }) => any): Choice<{ dice: number }>[] {
-    let dice = this.dice();
-    return [new Choice(tag + ":ダイス(1D)確定", { dice: dice }, action)];
+    return [new Choice(tag + ":ダイス(1D)確定", { dice: dice() }, action)];
   }
-  twoDice() { return [this.dice(), this.dice()] }
   getTwoDiceChoices(player: Player, tag: string, action: (x: TwoDice) => any): Choice<TwoDice>[] {
-    let [x, y] = this.twoDice();
-    return [new Choice(tag + ":ダイス(2D)確定", { x, y }, action)];
+    return [new Choice(tag + ":ダイス(2D)確定", twoDice(), action)];
   }
   pickACard(player: Player) {
     // 山札からカードを1枚引く

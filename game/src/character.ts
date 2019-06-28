@@ -1,6 +1,8 @@
-import { ResistanceHook, message, Choice, Attribute, SpecificActionHook, invalidate, FieldAction } from "./choice";
+import { message, Choice } from "./choice";
+import { AttributeHook, Attribute, SpecificActionHook, invalidate } from "./hook"
 import { Game } from "./game";
 import { Player } from "./player";
+import { FieldAction } from "./fieldaction";
 
 export type CharaName = "霊夢" | "魔理沙" | "ルーミア" | "アリス" | "チルノ" | "パチュリー" | "幽々子"
 export type RaceName = "人間" | "種族不明"
@@ -13,9 +15,10 @@ type CharacterBase = {
   mental: number; // 精神力
   role: RoleName;
   race?: RaceName;
-  resistanceHooks?: ResistanceHook[]; // 耐性 (飲みすぎて休み、みたいに悪化の可能性もある)
+  attributeHooks?: AttributeHook[]; //
   fieldActions?: FieldAction[]; //　特殊能力の使用
   specificAdditionalActions?: SpecificActionHook[]; // 追加で*先に*行える特殊能力
+  specificActions?: SpecificActionHook[]; // フックした時に他の選択肢を上書きして行われる能力
   id?: number;
 }
 export type Character = Required<CharacterBase>;
@@ -35,24 +38,21 @@ export function getAllCharacters(): Character[] {
     mental: 7,
     race: "人間",
     role: "主人公",
-    resistanceHooks: [
+    attributeHooks: [
       invalidate(["能力低下"], p => p.items.some(x => x.name === "銘酒")),
       {
         when: ["残機減少", ["地形破壊", "落とし穴", "大ナマズ"]],
-        choices(player: Player) {
-          return this.getDiceChoices(player, "空を飛んで残機減少無効化", d => {
-            if (d.dice <= player.level) return [message("残機減少無効化成功！ ")];
-            return [new Choice("残機減少無効化失敗", {}, () => { this.damaged(player); })]
-          });
-        }
-      }]
+        needDice: { type: "1D", success(p: Player, d: number) { return d <= p.level; } },
+        choices() { return [message("空を飛んで回避した！ ")]; }
+      }
+    ]
   }, {
     name: "魔理沙",
     fullname: "霧雨魔理沙",
     role: "主人公",
     level: 4,
     mental: 7,
-    resistanceHooks: [invalidate(["毒茸"])]
+    attributeHooks: [invalidate(["毒茸"])]
   }, {
     name: "ルーミア",
     fullname: "ルーミア",
@@ -65,16 +65,10 @@ export function getAllCharacters(): Character[] {
     role: "野次馬",
     level: 1,
     mental: 9,
-    resistanceHooks: [
+    attributeHooks: [
       invalidate([["残機減少", "地形破壊"]]),
       invalidate(["妖精"]),
-      {
-        when: ["呪い", "能力低下"],
-        choices(p: Player, a?: Attribute[]): Choice<any>[] {
-          if (!a || a.includes("地形効果")) return [];
-          return [message("キャラクターの効果で無効にした！ ")];
-        }
-      }
+      invalidate(["呪い", "能力低下"], (_, a) => !a.includes("地形効果")),
     ]
   }, {
     name: "幽々子",
@@ -82,14 +76,14 @@ export function getAllCharacters(): Character[] {
     role: "野次馬",
     level: 5,
     mental: 6,
-    resistanceHooks: [
+    attributeHooks: [
       invalidate(["呪い", "能力低下"]),
       {
         force: true,
         when: ["毒茸", "食あたり", "飲み過ぎ"],
         choices(this: Game, player: Player) {
           return this.getTwoDiceChoices(player, "大食い亡霊", dice => {
-            let success = dice.x + dice.y <= player.level
+            let success = dice.a + dice.b <= player.level
             if (!success) return [message("大食いをした！ ")]
             player.heal();
             return [message("大食いをして残機が1増えた！ ")]
@@ -107,9 +101,10 @@ export function getAllCharacters(): Character[] {
     mental: x.mental,
     role: x.role,
     race: x.race || "種族不明",
-    resistanceHooks: x.resistanceHooks || [],
+    attributeHooks: x.attributeHooks || [],
     fieldActions: x.fieldActions || [],
     specificAdditionalActions: x.specificAdditionalActions || [],
+    specificActions: x.specificActions || [],
   }));
   return result;
 }

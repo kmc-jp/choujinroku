@@ -1,8 +1,10 @@
-import { Game, TwoDice } from "./game";
-import { Player, WithAttribute } from "./player";
-import { Choice, message, nop, ResistanceHook, Attribute, invalidate } from "./choice";
+import { Game } from "./game";
+import { Player } from "./player";
+import { Choice, message, nop } from "./choice";
+import { AttributeHook, Attribute, invalidate, WithAttribute, TwoDice } from "./hook";
 import * as _ from "underscore";
 import { CharaName } from "./character";
+
 export type LandName = "博麗神社" | "魔法の森" | "月夜の森" | "霧の湖" | "温泉"
 export type LandAttribute = "花マス" | "森マス" | "水マス"
 export type Land = Required<LandBase>
@@ -15,7 +17,7 @@ type LandBase = {
   id?: number;
   name: LandName;
   nextTo: LandName[];
-  resistanceHooks?: ResistanceHook[];
+  attributeHooks?: AttributeHook[];
   landAttributes?: LandAttribute[];
   ignores?: CharaName[]; // 「上記効果無効」のキャラリスト
   powerUp?: PowerUp;
@@ -75,7 +77,7 @@ function 博麗神社1D(this: Game, dice: number, player: Player, attrs: WithAtt
   }
 }
 function 魔法の森2D(this: Game, dice: TwoDice, player: Player, attrs: WithAttribute) {
-  if (dice.x !== dice.y) return;
+  if (dice.a !== dice.b) return;
   attrs.with("毒茸", "残機減少").choices = new Choice("うっかり毒茸を食べてしまい残機減少", {}, () => {
     this.damaged(player);
   });
@@ -105,7 +107,7 @@ export function getLands(): Land[] {
       landAttributes: ["花マス"],
       whenEnter: wrap1D(博麗神社1D),
       powerUp: { addOneCard: ["霊夢"] },
-      resistanceHooks: [invalidate(["能力低下"], p => p.race === "人間")]
+      attributeHooks: [invalidate(["能力低下"], p => p.race === "人間")]
     },
     {
       name: "魔法の森",
@@ -114,7 +116,7 @@ export function getLands(): Land[] {
       powerUp: { addOneCard: ["魔理沙", "アリス"] },
       nextTo: [],
       whenEnter: wrap2D(魔法の森2D),
-      resistanceHooks: [invalidate(["幻覚"], p => p.characterName === "魔理沙")]
+      attributeHooks: [invalidate(["幻覚"], p => p.characterName === "魔理沙")]
     },
     {
       name: "月夜の森",
@@ -189,7 +191,7 @@ export function getLands(): Land[] {
       nextTo: x.nextTo || [],
       whenEnter: x.whenEnter || nop,
       whenExit: x.whenExit || nop,
-      resistanceHooks: x.resistanceHooks || [],
+      attributeHooks: x.attributeHooks || [],
       powerUp: x.powerUp || {},
     }
   });

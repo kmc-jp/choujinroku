@@ -1,6 +1,9 @@
 import { Player } from "./player";
 import { Game } from "./game";
-import { Choice, FieldAction, ResistanceHook, invalidate } from "./choice";
+import { Choice } from "./choice";
+import { FieldAction } from "./fieldaction";
+import { AttributeHook, invalidate, SpecificActionHook } from "./hook"
+import * as FA from "./fieldaction";
 
 export type ItemCategory = "本" | "品物" | "宝物" | "発明品"
 export type ItemName = "浄玻璃の鏡" | "銘酒" | "聖の宝塔" | "巨大化茸" | "リボン" | "呪法書"
@@ -10,8 +13,10 @@ export type Item = Required<ItemBase>
 type ItemBase = {
   name: ItemName;
   isCurse?: boolean; // 呪いのアイテムは捨てられない
-  fieldActions?: FieldAction[];
-  resistanceHooks?: ResistanceHook[]
+  fieldActions?: FieldAction[]; // 手番を消費して行う行動
+  attributeHooks?: AttributeHook[] // その属性を帯びた攻撃に対するHook
+  specificAdditionalActions?: SpecificActionHook[]; // 追加で*先に*行える特殊能力
+  specificActions?: SpecificActionHook[]; // フックした時に他の選択肢を上書きして行われる能力
   id?: number; // 自動で埋まる
   category?: ItemCategory;// 自動で埋まる
 }
@@ -21,25 +26,11 @@ export function getItemsData(): ItemCategoryDict {
     "宝物": [
       {
         name: "浄玻璃の鏡",
-        fieldActions: [
-          function (this: Game, player: Player): Choice<any>[] {
-            // 1D <= レベルで縦横で隣接したマスの他者1人の正体がわかる
-            let name = "浄玻璃の鏡"
-            return this.getPlayersNextTo(player.pos)
-              .filter(x => !player.watched.has(x.id))
-              .map(other => new Choice(`${other.name}に${name}を使用`, {}, () => {
-                player.choices = this.getDiceChoices(player, name,
-                  dice => {
-                    if (dice.dice <= player.level) this.watch(player, other);
-                    this.doFieldAction(player);
-                  })
-              }));
-          }
-        ]
+        fieldActions: [FA.jouhariFieldAction]
       },
       {
         name: "聖の宝塔",
-        resistanceHooks: [invalidate(["迷い"])]
+        attributeHooks: [invalidate(["迷い"])]
       },
       { name: "浄玻璃の鏡" },
       { name: "浄玻璃の鏡" },
@@ -115,7 +106,9 @@ export function getItemsData(): ItemCategoryDict {
         category: category,
         isCurse: item.isCurse || false,
         fieldActions: item.fieldActions || [],
-        resistanceHooks: item.resistanceHooks || []
+        attributeHooks: item.attributeHooks || [],
+        specificActions: item.specificActions || [],
+        specificAdditionalActions: item.specificAdditionalActions || [],
       })
     }
   }
