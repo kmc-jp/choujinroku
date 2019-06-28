@@ -53,7 +53,7 @@ export class GameProxy {
         if (heres !== "") heres = `(${heres})`
         let item = this.game.itemsOnMap[x][y];
         let map = this.game.map[x][y];
-        result += `[${map === null ? "" : map.name}${heres}${item === null ? "" : "(" + item.name + ")"}] `
+        result += `[${map === null ? "" : map.name}${heres}${item === null ? "" : "!"}] `
       }
       result += "\n"
     }

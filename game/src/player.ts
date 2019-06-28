@@ -137,13 +137,18 @@ export class Player {
   }
   get watchedArray(): number[] { return setToArray(this.watched); }
   get wonArray(): number[] { return setToArray(this.won); }
+  parceCharacter(): string {
+    let chara = this.character;
+    return `${chara.name}:${chara.level},${chara.mental}(${chara.role})`;
+  }
   toString(): string {
+    let land = this.currentLand
     return `${this.name}:
-  x: ${this.pos.x} ,y:${this.pos.y}
-  ボム: ${this.bomb} , 残機: ${this.life} , 待機: ${this.waitCount}
-  キャラ: ${toString(this.character)}
-  勝利済み: ${this.won}
-  正体確認: ${this.watched}
-  アイテム: {${this.items.map(x => x.name).join(",")}}`;
+  ${this.parceCharacter()}
+  x:${this.pos.x},y:${this.pos.y}(${land ? land.name : "盤外"})
+  ボム:${this.bomb} ,残機:${this.life} ,待機:${this.waitCount}
+  勝利済み:${this.won}
+  正体確認:${this.watched}
+  アイテム:{${this.items.map(x => x.name).join(",")}}`;
   }
 }

@@ -45,7 +45,7 @@
       .control
         a.button.is-light(@click="showStatus")
           .icon: i.fas.fa-cog
-          p その他
+          p デバッグ
     .field
       pre {{output}}
     .field(v-for="choice,i in choices")
@@ -99,7 +99,7 @@ export default class App extends Vue {
     this.update();
   }
   showStatus() {
-    this.output = gameProxy ? gameProxy.showStatus() : "ゲーム未開始";
+    this.output = gameProxy ? gameProxy.showAll() : "ゲーム未開始";
   }
   showPlayer(n: number) {
     this.output = gameProxy ? gameProxy.showPlayer(n) : "ゲーム未開始";
