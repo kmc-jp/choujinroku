@@ -38,7 +38,7 @@ export class WithAttribute {
 
 export class Player {
   name: string;
-  private character: Character;
+  private character: Character; // レベル+1などがありうるので外部から直接参照できないように
   isAbleToAction: boolean; // 戦闘敗北などでターン続行不可能になった
   actions: PlayerAction[] = [];
   private mPos = { x: -1, y: -1 }; // 現在地(盤外:{-1,-1})
@@ -62,13 +62,37 @@ export class Player {
     this.items = [];
     this.choices = [];
   }
-  // レベルが上昇してるかもしれない...
-  get level() { return this.character.level; }
+
+  get characterName() { return this.character.name; }
+  get level() {
+    let result = this.character.level
+    let land = this.currentLand;
+    if (!land) return result;
+    let up = land.powerUp.levelUp;
+    if (!up || up.every(x => x !== this.characterName)) return result;
+    return result + 1;
+  }
+  get mental() {
+    let result = this.character.mental;
+    let land = this.currentLand;
+    if (!land) return result;
+    let up = land.powerUp.mentalUp;
+    if (!up || up.every(x => x !== this.characterName)) return result;
+    return result + 1;
+  }
   get pos() { return this.mPos; }
+  get race() { return this.character.race; }
   set pos(value: { x: number, y: number }) {
     if (value.x !== this.mPos.x || value.y !== this.mPos.y)
       this.waitCount = 0;
     this.mPos = value;
+  }
+  get bombAction() {
+    if (this.bomb === 0) return [];
+    return this.character.bombAction;
+  }
+  heal() {
+    if (this.isAbleToGetSomething) this.life = Math.min(5, this.life + 1);
   }
   isAbleToGetSomething(): boolean {
     return !this.actions.includes("移動2");
@@ -76,26 +100,39 @@ export class Player {
   with(...args: Attribute[]): WithAttribute {
     return new WithAttribute(this, ...args);
   }
+  private get currentLand() {
+    if (this.game.isOutOfLand(this.pos)) return null;
+    return this.game.map[this.pos.x][this.pos.y];
+  }
   checkWithAttributes(choices: Choice<any>[], attrs: Attribute[]): Choice<any>[] {
     // キャラとアイテムのHookを確認
     attrs = _.uniq(attrs);
     let result: Choice<any>[] = [];
+    let forced: Choice<any>[] = [];
     let applyHook = (hook: Hook) => {
-      // force
       for (let when of hook.when) {
         if (typeof (when) === "string") {
           if (!attrs.includes(when)) return;
         } else {
           for (let w of when) if (!attrs.includes(w)) return;
         }
-        result.push(...hook.choices.bind(this.game)(this));
+        let choices = hook.choices.bind(this.game)(this, attrs);
+        if (hook.force) forced.push(...choices);
+        else result.push(...choices);
       }
     }
-    for (let choice of choices) result.push(choice);
-    for (let item of this.items) {
-      for (let hook of item.hooks) applyHook(hook);
+    let applyHooks = (hooks: Hook[]) => {
+      for (let hook of hooks) applyHook(hook);
     }
-    for (let hook of this.character.hooks) applyHook(hook);
+    for (let choice of choices) result.push(choice);
+    // アイテム / キャラ / 地形 のフックを確認
+    for (let item of this.items) applyHooks(item.hooks);
+    applyHooks(this.character.hooks)
+    if (!this.game.isOutOfLand(this.pos)) {
+      let map = this.game.map[this.pos.x][this.pos.y];
+      if (map !== null) applyHooks(map.hooks);
+    }
+    if (forced.length > 0) return forced;
     return result;
   }
   get watchedArray(): number[] { return setToArray(this.watched); }

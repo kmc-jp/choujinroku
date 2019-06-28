@@ -86,8 +86,6 @@ export class Game {
       this.temporaryActionStack = [];
     }
   }
-  dice(): number { return 1 + Math.floor(Math.random() * 6); }
-  twoDice() { return [this.dice(), this.dice()] }
   getPlayersAt(pos: Pos): Player[] {
     if (this.isOutOfLand(pos)) return [];
     return this.players
@@ -113,10 +111,12 @@ export class Game {
     for (let y = 1; y < 5; y++) result.push({ x: 5, y: y });
     return result;
   }
+  private dice(): number { return 1 + Math.floor(Math.random() * 6); }
   getDiceChoices(player: Player, tag: string, action: (x: { dice: number }) => any): Choice<{ dice: number }>[] {
     let dice = this.dice();
     return [new Choice(tag + ":ダイス(1D)確定", { dice: dice }, action)];
   }
+  private twoDice() { return [this.dice(), this.dice()] }
   getTwoDiceChoices(player: Player, tag: string, action: (x: TwoDice) => any): Choice<Pos>[] {
     let [x, y] = this.twoDice();
     return [new Choice(tag + ":ダイス(2D)確定", { x, y }, action)];
@@ -282,6 +282,11 @@ export class Game {
         }
         player.choices.push(...choices);
       }
+    }
+    // B自
+    if (player.bombAction.length > 0) {
+      let choiceMat = player.bombAction.map(x => x.bind(this)(player));
+      for (let choices of choiceMat) player.choices.push(...choices);
     }
   }
   // アイテム

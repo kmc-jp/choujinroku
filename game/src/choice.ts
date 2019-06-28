@@ -39,5 +39,5 @@ export type Attribute = Ailment | Factor | LandName
 export type Hook = {
   force?: boolean, // 選択肢を選ぶのを強制する
   when: (Attribute | Attribute[])[],
-  choices: (this: Game, player: Player) => Choice<any>[]
+  choices: (this: Game, player: Player, attributes?: Attribute[]) => Choice<any>[]
 }

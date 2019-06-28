@@ -1,12 +1,23 @@
 import { Game, TwoDice } from "./game";
 import { Player, WithAttribute } from "./player";
-import { Choice, message, nop } from "./choice";
+import { Choice, message, nop, Hook, Attribute } from "./choice";
 import * as _ from "underscore";
-export type LandName = "博麗神社" | "魔法の森" | "月夜の森" | "霧の湖"
+import { CharaName } from "./character";
+export type LandName = "博麗神社" | "魔法の森" | "月夜の森" | "霧の湖" | "温泉"
+export type LandAttribute = "花マス" | "森マス" | "水マス"
+export type PowerUp = {
+  addOneCard?: CharaName[];
+  levelUp?: CharaName[];
+  mentalUp?: CharaName[];
+}
 export type Land = {
   id: number;
   name: LandName;
   nextTo: LandName[];
+  hooks: Hook[];
+  ignores: CharaName[]; // 「上記効果無効」のキャラリスト
+  landAttributes: LandAttribute[];
+  powerUp: PowerUp;
   whenEnter: (this: Land, game: Game, player: Player, attrs: WithAttribute) => Choice<any>[];
   whenExit: (this: Land, game: Game, player: Player, attrs: WithAttribute) => Choice<any>[];
 }
@@ -74,7 +85,9 @@ function 月夜の森1D(this: Game, dice: number, player: Player, attrs: WithAtt
 }
 // 属性の付与を忘れずに！
 function 霧の湖1D(this: Game, dice: number, player: Player, attrs: WithAttribute) {
-  if (dice === 1) attrs.choices = new Choice("大妖精が仲間に成りかけたが未実装だった！", {}, () => { });
+  if (player.characterName === "チルノ") dice = 1;
+  if (dice >= 5 && player.characterName === "パチュリー") attrs.choices = [message("5,6の出目は無視します")];
+  else if (dice === 1) attrs.choices = new Choice("大妖精が仲間に成りかけたが未実装だった！", {}, () => { });
   else if (dice === 2) attrs.choices = getGoods(this, player);
   else if (dice === 3) attrs.choices = happenEvent(this, player);
   else if (dice === 4) attrs.choices = happenAccident(this, player);
@@ -82,13 +95,49 @@ function 霧の湖1D(this: Game, dice: number, player: Player, attrs: WithAttrib
   else if (dice === 6) attrs.choices = [message("妖精に攻撃されたけど未実装だった！ ")];
 }
 
+function invalidate(attrs: (Attribute | Attribute[])[], when: (p: Player) => boolean): Hook {
+  return {
+    when: attrs,
+    choices(player: Player) {
+      if (!when(player)) return [];
+      return [message(attrs.join("/") + "を今居る地形の効果で無効にする！")];
+    }
+  }
+}
 
 export function getLands(): Land[] {
   let tmp: Partial<Land>[] = [
-    { name: "博麗神社", nextTo: [], whenEnter: wrap1D(博麗神社1D), },
-    { name: "魔法の森", nextTo: [], whenEnter: wrap2D(魔法の森2D) },
-    { name: "月夜の森", nextTo: [], whenEnter: wrap1D(月夜の森1D) },
-    { name: "霧の湖", nextTo: [], whenEnter: wrap1D(霧の湖1D) },
+    {
+      name: "博麗神社",
+      nextTo: ["温泉"],
+      landAttributes: ["花マス"],
+      whenEnter: wrap1D(博麗神社1D),
+      powerUp: { addOneCard: ["霊夢"] },
+      hooks: [invalidate(["能力低下"], p => p.race === "人間")]
+    },
+    {
+      name: "魔法の森",
+      landAttributes: ["森マス"],
+      ignores: ["魔理沙", "アリス"],
+      powerUp: { addOneCard: ["魔理沙", "アリス"] },
+      nextTo: [],
+      whenEnter: wrap2D(魔法の森2D),
+      hooks: [invalidate(["幻覚"], p => p.characterName === "魔理沙")]
+    },
+    {
+      name: "月夜の森",
+      landAttributes: ["森マス"],
+      ignores: ["ルーミア"],
+      nextTo: [],
+      whenEnter: wrap1D(月夜の森1D)
+    },
+    {
+      name: "霧の湖",
+      landAttributes: ["水マス"],
+      powerUp: { addOneCard: ["チルノ"] },
+      nextTo: [],
+      whenEnter: wrap1D(霧の湖1D)
+    },
     { name: "霧の湖", nextTo: [], },
     { name: "霧の湖", nextTo: [], },
     { name: "霧の湖", nextTo: [], },
@@ -123,12 +172,33 @@ export function getLands(): Land[] {
     { name: "霧の湖", nextTo: [], },
   ];
   return tmp.map((x, i) => {
+    x.ignores = x.ignores || []
+    if (x.ignores.length > 0) {
+      if (x.whenEnter) {
+        let original = x.whenEnter;
+        x.whenEnter = function (this: Land, game: Game, player: Player, attrs: WithAttribute): Choice<any>[] {
+          if ((x.ignores || []).some(y => y === player.characterName)) return [];
+          return original.bind(this)(game, player, attrs);
+        }
+      }
+      if (x.whenExit) {
+        let original = x.whenExit;
+        x.whenExit = function (this: Land, game: Game, player: Player, attrs: WithAttribute): Choice<any>[] {
+          if ((x.ignores || []).some(y => y === player.characterName)) return [];
+          return original.bind(this)(game, player, attrs);
+        }
+      }
+    }
     return {
       id: i,
+      ignores: x.ignores || [],
+      landAttributes: x.landAttributes || [],
       name: x.name || "霧の湖",
       nextTo: x.nextTo || [],
       whenEnter: x.whenEnter || nop,
-      whenExit: x.whenExit || nop
+      whenExit: x.whenExit || nop,
+      hooks: x.hooks || [],
+      powerUp: x.powerUp || {},
     }
   });
 }
