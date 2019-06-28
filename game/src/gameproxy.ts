@@ -70,6 +70,13 @@ export class GameProxy {
       "[ " + x.choices.map((x, i) => `${i}:${x}`).join("\n  ") + " ]"
       }`).join("\n");
   }
+  showLog(): string {
+    let result = "";
+    for (let i = this.game.choiceLog.length - 1; i >= 0; i--) {
+      result += this.game.choiceLog[i] + "\n"
+    }
+    return result;
+  }
   showAll(): string {
     return `# status\n${this.showStatus()}\n# map\n${this.showMap()}\n# choice\n${this.showChoices()}`;
   }

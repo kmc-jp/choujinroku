@@ -9,12 +9,6 @@
             .control
               a.button.is-dark(href="https://github.com/Muratam/")
                 .icon: i.fab.fa-github
-    //- 選択肢の表示ボタン(全員の選択肢) : オーバーレイ形式
-    //- 1,2,3Pの詳細ボタン
-    //- その他の情報の表示ボタン
-    //- 地図の表示ボタン
-    //- オートボタン
-    //- ランダム選択ボタン
     .field.is-grouped
       .control(style="margin-top:0.5em;")
         input.switch#showChoice(type="checkbox" checked="checked" @change="toglleShowChoices")
@@ -44,8 +38,8 @@
           p {{i}}P
       .control
         a.button.is-light(@click="showStatus")
-          .icon: i.fas.fa-cog
-          p デバッグ
+          .icon: i.fas.fa-history
+          p ログ
     .field
       pre {{output}}
     .field(v-for="choice,i in choices")
@@ -99,7 +93,7 @@ export default class App extends Vue {
     this.update();
   }
   showStatus() {
-    this.output = gameProxy ? gameProxy.showAll() : "ゲーム未開始";
+    this.output = gameProxy ? gameProxy.showLog() : "ゲーム未開始";
   }
   showPlayer(n: number) {
     this.output = gameProxy ? gameProxy.showPlayer(n) : "ゲーム未開始";

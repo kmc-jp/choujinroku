@@ -147,8 +147,8 @@ export class Player {
   ${this.parceCharacter()}
   x:${this.pos.x},y:${this.pos.y}(${land ? land.name : "盤外"})
   ボム:${this.bomb} ,残機:${this.life} ,待機:${this.waitCount}
-  勝利済み:${this.won}
-  正体確認:${this.watched}
+  勝利済み:${this.wonArray.map(x => this.game.players[x].name).join(",")}
+  正体確認:${this.watchedArray.map(x => this.game.players[x].name).join(",")}
   アイテム:{${this.items.map(x => x.name).join(",")}}`;
   }
 }
