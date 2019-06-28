@@ -121,13 +121,16 @@ export class Game {
   getPlayersNextTo(pos: Pos): Player[] {
     return this.players.filter(x => 1 === Math.abs(x.pos.x - pos.x) + Math.abs(x.pos.y - pos.y))
   }
+  getOthers(player: Player): Player[] {
+    return this.players.filter(x => x.id !== player.id);
+  }
   getDiceChoices(player: Player, tag: string, action: (x: { dice: number }) => any): Choice<{ dice: number }>[] {
     return [new Choice(tag + ":ダイス(1D)確定", { dice: dice() }, action)];
   }
   getTwoDiceChoices(player: Player, tag: string, action: (x: TwoDice) => any): Choice<TwoDice>[] {
     return [new Choice(tag + ":ダイス(2D)確定", twoDice(), action)];
   }
-  pickACard(player: Player) {
+  drawACard(player: Player) {
     // 山札からカードを1枚引く
     if (this.leftSpellCards.length > 0) {
       let top = this.leftSpellCards[this.leftSpellCards.length - 1];
@@ -136,7 +139,7 @@ export class Game {
       return;
     }
     this.leftSpellCards = _.shuffle(this.usedSpellCards);
-    this.pickACard(player);
+    this.drawACard(player);
   }
 
   // @phase の付いた関数は 全ての以前の選択が決定したのち(= 選択肢が空になったら)
@@ -178,7 +181,7 @@ export class Game {
     player.choices = [
       new Choice("待機", {}, () => {
         player.actions.push("待機");
-        player.waitCount++;
+        player.addWaitCount();
         this.finishPlayerTurn(player);
       })]
     // 移動1 / 移動2
@@ -290,16 +293,16 @@ export class Game {
       // 初期手札を渡す
       player.spellCards = [];
       target.spellCards = [];
-      _.range(6).forEach(_ => this.pickACard(player));
-      _.range(6).forEach(_ => this.pickACard(target));
+      _.range(6).forEach(_ => this.drawACard(player));
+      _.range(6).forEach(_ => this.drawACard(target));
       // 地形カードで1ドロー
       let map = this.map[player.pos.x][player.pos.y];
       if (map && map.powerUp.addOneCard) {
         let addOne = map.powerUp.addOneCard;
         if (addOne.some(x => x === player.characterName))
-          this.pickACard(player);
+          this.drawACard(player);
         if (addOne.some(x => x === target.characterName))
-          this.pickACard(target);
+          this.drawACard(target);
       }
       // TODO: 弾幕カードがなければもう一度引き直す処理をしていない
       this.attack(player, target, false);
@@ -368,14 +371,6 @@ export class Game {
   // 正体を確認した
   @phase watch(player: Player, target: Player) {
     player.watched.add(target.id);
-  }
-  // 正体確認したのを忘れた
-  @phase forgetWatch(player: Player, target: Player) {
-    player.watched.delete(target.id)
-  }
-  // 勝利勝利履歴を忘れた
-  @phase forgetWin(player: Player, target: Player) {
-    player.won.delete(target.id);
   }
   // 残機が減った
   @phase damaged(player: Player, from?: Player, damage: number = 1) {

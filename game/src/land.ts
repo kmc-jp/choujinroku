@@ -72,7 +72,7 @@ function 博麗神社1D(this: Game, dice: number, player: Player, attrs: WithAtt
       let target = this.players[_.shuffle<number>(w)[0]];
       attrs.choices = new Choice(
         `飲みすぎて${target.name}の戦闘履歴が初期化された`,
-        {}, () => this.forgetWin(player, target));
+        {}, () => player.won.delete(target.id));
     });
   }
 }
@@ -107,7 +107,7 @@ export function getLands(): Land[] {
       landAttributes: ["花マス"],
       whenEnter: wrap1D(博麗神社1D),
       powerUp: { addOneCard: ["霊夢"] },
-      attributeHooks: [invalidate(["能力低下"], p => p.race === "人間")]
+      attributeHooks: [invalidate("", ["能力低下"], p => p.race === "人間")]
     },
     {
       name: "魔法の森",
@@ -116,7 +116,7 @@ export function getLands(): Land[] {
       powerUp: { addOneCard: ["魔理沙", "アリス"] },
       nextTo: [],
       whenEnter: wrap2D(魔法の森2D),
-      attributeHooks: [invalidate(["幻覚"], p => p.characterName === "魔理沙")]
+      attributeHooks: [invalidate("", ["幻覚"], p => p.characterName === "魔理沙")]
     },
     {
       name: "月夜の森",
@@ -165,6 +165,7 @@ export function getLands(): Land[] {
     { name: "霧の湖", nextTo: [], },
     { name: "霧の湖", nextTo: [], },
   ];
+  console.assert(tmp.length === 36);
   return tmp.map((x, i) => {
     x.ignores = x.ignores || []
     if (x.ignores.length > 0) {

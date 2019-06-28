@@ -2,7 +2,7 @@ import { Character } from "./character";
 export type PlayerActionTag = "移動1" | "待機" | "移動2" | "戦闘" | "アイテム" | "特殊能力の使用"
 import { Choice } from "./choice";
 import { Attribute, AttributeHook, WithAttribute } from "./hook";
-import { Item } from "./item";
+import { Item, ItemName } from "./item";
 import { toString } from "./util";
 import * as _ from "underscore";
 import { Game } from "./game";
@@ -34,6 +34,7 @@ export class Player {
   bomb: number = 2;
   life: number = 3; //残機
   waitCount: number = 0;
+  private waitCountIndexedByItem: { [key: string]: number } = {}
   game: Game;
   spellCards: SpellCard[] = [];
   constructor(game: Game, character: Character, name: string, id: number) {
@@ -65,15 +66,20 @@ export class Player {
     if (!up || up.every(x => x !== this.characterName)) return result;
     return result + 1;
   }
+  getWaitCount(key: ItemName) { return this.waitCountIndexedByItem[key] || 0; }
   get pos() { return this.mPos; }
   get race() { return this.character.race; }
+  get role() { return this.character.role; }
   set pos(value: Pos) {
-    if (!value.equal(this.mPos)) this.waitCount = 0;
+    if (!value.equal(this.mPos)) {
+      this.waitCount = 0;
+      this.waitCountIndexedByItem = {};
+    }
     this.mPos = value;
   }
-  get specificAdditionalActions() {
+  get specificActions() {
     // ボムチェック？
-    return this.character.specificAdditionalActions;
+    return this.character.specificActions;
   }
   get fieldActions() {
     // ボムチェック？
@@ -88,7 +94,14 @@ export class Player {
   with(...args: Attribute[]): WithAttribute {
     return new WithAttribute(this, ...args);
   }
-  private get currentLand() {
+  addWaitCount() {
+    this.waitCount++;
+    for (let item of this.items) {
+      this.waitCountIndexedByItem[item.name] =
+        (this.waitCountIndexedByItem[item.name] || 0) + 1
+    }
+  }
+  get currentLand() {
     if (this.pos.isOutOfLand()) return null;
     return this.game.map[this.pos.x][this.pos.y];
   }
@@ -117,10 +130,8 @@ export class Player {
     // アイテム / キャラ / 地形 のフックを確認
     for (let item of this.items) applyHooks(item.attributeHooks);
     applyHooks(this.character.attributeHooks)
-    if (!this.pos.isOutOfLand()) {
-      let map = this.game.map[this.pos.x][this.pos.y];
-      if (map !== null) applyHooks(map.attributeHooks);
-    }
+    let map = this.currentLand;
+    if (map !== null) applyHooks(map.attributeHooks);
     if (forced.length > 0) return forced;
     return result;
   }

@@ -1,17 +1,20 @@
 import { CharaName } from "./character";
 import { } from "./choice";
-import { Attribute } from "./hook";
+import { Ailment } from "./hook";
 import * as _ from "underscore";
 export type SpellCardColor = "R" | "B" | "Y" | "G" | "P" | "W"
 export type SpellCardType = "弾幕" | "武術" | "回避" | "防御" | "戦闘補助" | "特殊"
+export type SpellCardName =
+  "夢想封印" | "マスタースパーク" | "ディマーケイション" | "アイシクルフォール" |
+  "なし"
 type SpellCardBase = {
   id?: number;
-  name: string;
+  name: SpellCardName;
   level: number;
   star: number;
   colors: SpellCardColor[];
   charaName: CharaName;
-  attribute?: Attribute | null;
+  attribute?: Ailment | null;
   cardTypes: SpellCardType[]; // チャージドクライとかある
 }
 export type SpellCard = Required<SpellCardBase>
