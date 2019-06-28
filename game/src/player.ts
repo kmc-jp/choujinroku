@@ -1,10 +1,12 @@
 import { Character } from "./character";
-export type PlayerAction = "移動1" | "待機" | "移動2" | "戦闘" | "アイテム"
-import { Choice, Attribute, Hook } from "./choice";
+export type PlayerActionTag = "移動1" | "待機" | "移動2" | "戦闘" | "アイテム" | "特殊能力の使用"
+import { Choice, Attribute, ResistanceHook } from "./choice";
 import { Item } from "./item";
 import { toString } from "./util";
 import * as _ from "underscore";
 import { Game } from "./game";
+import { Pos } from "./pos";
+import { SpellCard } from "./spellcard";
 function setToArray<T>(set: Set<T>): T[] {
   let result: T[] = [];
   set.forEach(w => { result.push(w); });
@@ -29,7 +31,7 @@ export class WithAttribute {
   }
   wrap(value: Choice<any> | Choice<any>[]): Choice<any>[] {
     if (!(value instanceof Array)) value = [value];
-    return this.player.checkWithAttributes(value, this.attrs);
+    return this.player.checkResistanceHooks(value, this.attrs);
   }
   with(...attributes: Attribute[]): WithAttribute {
     return new WithAttribute(this.player, ...this.attrs.concat(attributes));
@@ -40,8 +42,8 @@ export class Player {
   name: string;
   private character: Character; // レベル+1などがありうるので外部から直接参照できないように
   isAbleToAction: boolean; // 戦闘敗北などでターン続行不可能になった
-  actions: PlayerAction[] = [];
-  private mPos = { x: -1, y: -1 }; // 現在地(盤外:{-1,-1})
+  actions: PlayerActionTag[] = [];
+  private mPos: Pos = new Pos(-1, -1); // 現在地(盤外:{-1,-1})
   id: number;
   watched: Set<number>; // 正体確認している？
   won: Set<number>  // 勝利している？
@@ -51,6 +53,7 @@ export class Player {
   life: number = 3; //残機
   waitCount: number = 0;
   game: Game;
+  spellCards: SpellCard[] = [];
   constructor(game: Game, character: Character, name: string, id: number) {
     this.game = game;
     this.character = character;
@@ -82,14 +85,17 @@ export class Player {
   }
   get pos() { return this.mPos; }
   get race() { return this.character.race; }
-  set pos(value: { x: number, y: number }) {
-    if (value.x !== this.mPos.x || value.y !== this.mPos.y)
-      this.waitCount = 0;
+  set pos(value: Pos) {
+    if (!value.equal(this.mPos)) this.waitCount = 0;
     this.mPos = value;
   }
-  get bombAction() {
-    if (this.bomb === 0) return [];
-    return this.character.bombAction;
+  get specificAdditionalActions() {
+    // ボムチェック？
+    return this.character.specificAdditionalActions;
+  }
+  get fieldActions() {
+    // ボムチェック？
+    return this.character.fieldActions;
   }
   heal() {
     if (this.isAbleToGetSomething) this.life = Math.min(5, this.life + 1);
@@ -101,15 +107,15 @@ export class Player {
     return new WithAttribute(this, ...args);
   }
   private get currentLand() {
-    if (this.game.isOutOfLand(this.pos)) return null;
+    if (this.pos.isOutOfLand()) return null;
     return this.game.map[this.pos.x][this.pos.y];
   }
-  checkWithAttributes(choices: Choice<any>[], attrs: Attribute[]): Choice<any>[] {
+  checkResistanceHooks(choices: Choice<any>[], attrs: Attribute[]): Choice<any>[] {
     // キャラとアイテムのHookを確認
     attrs = _.uniq(attrs);
     let result: Choice<any>[] = [];
     let forced: Choice<any>[] = [];
-    let applyHook = (hook: Hook) => {
+    let applyHook = (hook: ResistanceHook) => {
       for (let when of hook.when) {
         if (typeof (when) === "string") {
           if (!attrs.includes(when)) return;
@@ -121,16 +127,16 @@ export class Player {
         else result.push(...choices);
       }
     }
-    let applyHooks = (hooks: Hook[]) => {
+    let applyHooks = (hooks: ResistanceHook[]) => {
       for (let hook of hooks) applyHook(hook);
     }
     for (let choice of choices) result.push(choice);
     // アイテム / キャラ / 地形 のフックを確認
-    for (let item of this.items) applyHooks(item.hooks);
-    applyHooks(this.character.hooks)
-    if (!this.game.isOutOfLand(this.pos)) {
+    for (let item of this.items) applyHooks(item.resistanceHooks);
+    applyHooks(this.character.resistanceHooks)
+    if (!this.pos.isOutOfLand()) {
       let map = this.game.map[this.pos.x][this.pos.y];
-      if (map !== null) applyHooks(map.hooks);
+      if (map !== null) applyHooks(map.resistanceHooks);
     }
     if (forced.length > 0) return forced;
     return result;

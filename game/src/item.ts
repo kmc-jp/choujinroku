@@ -1,45 +1,45 @@
 import { Player } from "./player";
 import { Game } from "./game";
-import { Choice, message, Hook } from "./choice";
+import { Choice, FieldAction, ResistanceHook, invalidate } from "./choice";
 
 export type ItemCategory = "本" | "品物" | "宝物" | "発明品"
 export type ItemName = "浄玻璃の鏡" | "銘酒" | "聖の宝塔" | "巨大化茸" | "リボン" | "呪法書"
-type FieldAction = (this: Item, game: Game, player: Player) => Choice<any>[]
-export type Item = {
-  id: number;
-  name: ItemName;
-  fullText: string;
-  category: ItemCategory;
-  isCurse: boolean; // 呪いのアイテムは捨てられない
-  fieldAction: FieldAction | null;
-  hooks: Hook[] // [[A,B][C]] なら AかつB または C にHook
-}
 export type ItemCategoryGenericDict<T> = { "本": T[], "品物": T[], "宝物": T[], "発明品": T[], }
 export type ItemCategoryDict = ItemCategoryGenericDict<Item>
-function jouhari(this: Item, game: Game, player: Player): Choice<any>[] {
-  // 1D <= レベルで縦横で隣接したマスの他者1人の正体がわかる
-  return game.getPlayersNextTo(player.pos)
-    .filter(x => !player.watched.has(x.id))
-    .map(other => new Choice(`${other.name}に${this.name}を使用`, {}, () => {
-      player.choices = game.getDiceChoices(player, this.name,
-        dice => {
-          if (dice.dice <= player.level) game.watch(player, other);
-          game.processPlayerTurn(player);
-        })
-    }));
+export type Item = Required<ItemBase>
+type ItemBase = {
+  name: ItemName;
+  isCurse?: boolean; // 呪いのアイテムは捨てられない
+  fieldActions?: FieldAction[];
+  resistanceHooks?: ResistanceHook[]
+  id?: number; // 自動で埋まる
+  category?: ItemCategory;// 自動で埋まる
 }
 
-
 export function getItemsData(): ItemCategoryDict {
-  let tmp: ItemCategoryGenericDict<Partial<Item>> = {
+  let tmp: ItemCategoryGenericDict<ItemBase> = {
     "宝物": [
-      { name: "浄玻璃の鏡", fieldAction: jouhari },
+      {
+        name: "浄玻璃の鏡",
+        fieldActions: [
+          function (this: Game, player: Player): Choice<any>[] {
+            // 1D <= レベルで縦横で隣接したマスの他者1人の正体がわかる
+            let name = "浄玻璃の鏡"
+            return this.getPlayersNextTo(player.pos)
+              .filter(x => !player.watched.has(x.id))
+              .map(other => new Choice(`${other.name}に${name}を使用`, {}, () => {
+                player.choices = this.getDiceChoices(player, name,
+                  dice => {
+                    if (dice.dice <= player.level) this.watch(player, other);
+                    this.doFieldAction(player);
+                  })
+              }));
+          }
+        ]
+      },
       {
         name: "聖の宝塔",
-        hooks: [{
-          when: ["迷い"],
-          choices() { return [message("聖の宝塔で迷いを無効化")] }
-        }]
+        resistanceHooks: [invalidate(["迷い"])]
       },
       { name: "浄玻璃の鏡" },
       { name: "浄玻璃の鏡" },
@@ -111,12 +111,11 @@ export function getItemsData(): ItemCategoryDict {
     for (let item of tmp[category]) {
       result[category].push({
         id: i++,
-        name: item.name || "巨大化茸",
-        fullText: item.fullText || "詳細不明",
+        name: item.name,
         category: category,
         isCurse: item.isCurse || false,
-        fieldAction: item.fieldAction || null,
-        hooks: item.hooks || []
+        fieldActions: item.fieldActions || [],
+        resistanceHooks: item.resistanceHooks || []
       })
     }
   }

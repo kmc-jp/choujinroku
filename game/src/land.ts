@@ -1,25 +1,26 @@
 import { Game, TwoDice } from "./game";
 import { Player, WithAttribute } from "./player";
-import { Choice, message, nop, Hook, Attribute } from "./choice";
+import { Choice, message, nop, ResistanceHook, Attribute, invalidate } from "./choice";
 import * as _ from "underscore";
 import { CharaName } from "./character";
 export type LandName = "博麗神社" | "魔法の森" | "月夜の森" | "霧の湖" | "温泉"
 export type LandAttribute = "花マス" | "森マス" | "水マス"
+export type Land = Required<LandBase>
 export type PowerUp = {
   addOneCard?: CharaName[];
   levelUp?: CharaName[];
   mentalUp?: CharaName[];
 }
-export type Land = {
-  id: number;
+type LandBase = {
+  id?: number;
   name: LandName;
   nextTo: LandName[];
-  hooks: Hook[];
-  ignores: CharaName[]; // 「上記効果無効」のキャラリスト
-  landAttributes: LandAttribute[];
-  powerUp: PowerUp;
-  whenEnter: (this: Land, game: Game, player: Player, attrs: WithAttribute) => Choice<any>[];
-  whenExit: (this: Land, game: Game, player: Player, attrs: WithAttribute) => Choice<any>[];
+  resistanceHooks?: ResistanceHook[];
+  landAttributes?: LandAttribute[];
+  ignores?: CharaName[]; // 「上記効果無効」のキャラリスト
+  powerUp?: PowerUp;
+  whenEnter?: (this: Land, game: Game, player: Player, attrs: WithAttribute) => Choice<any>[];
+  whenExit?: (this: Land, game: Game, player: Player, attrs: WithAttribute) => Choice<any>[];
 }
 function 工房判定(game: Game, player: Player): Choice<any>[] {
   // 工房判定
@@ -95,25 +96,16 @@ function 霧の湖1D(this: Game, dice: number, player: Player, attrs: WithAttrib
   else if (dice === 6) attrs.choices = [message("妖精に攻撃されたけど未実装だった！ ")];
 }
 
-function invalidate(attrs: (Attribute | Attribute[])[], when: (p: Player) => boolean): Hook {
-  return {
-    when: attrs,
-    choices(player: Player) {
-      if (!when(player)) return [];
-      return [message(attrs.join("/") + "を今居る地形の効果で無効にする！")];
-    }
-  }
-}
 
 export function getLands(): Land[] {
-  let tmp: Partial<Land>[] = [
+  let tmp: LandBase[] = [
     {
       name: "博麗神社",
       nextTo: ["温泉"],
       landAttributes: ["花マス"],
       whenEnter: wrap1D(博麗神社1D),
       powerUp: { addOneCard: ["霊夢"] },
-      hooks: [invalidate(["能力低下"], p => p.race === "人間")]
+      resistanceHooks: [invalidate(["能力低下"], p => p.race === "人間")]
     },
     {
       name: "魔法の森",
@@ -122,7 +114,7 @@ export function getLands(): Land[] {
       powerUp: { addOneCard: ["魔理沙", "アリス"] },
       nextTo: [],
       whenEnter: wrap2D(魔法の森2D),
-      hooks: [invalidate(["幻覚"], p => p.characterName === "魔理沙")]
+      resistanceHooks: [invalidate(["幻覚"], p => p.characterName === "魔理沙")]
     },
     {
       name: "月夜の森",
@@ -197,7 +189,7 @@ export function getLands(): Land[] {
       nextTo: x.nextTo || [],
       whenEnter: x.whenEnter || nop,
       whenExit: x.whenExit || nop,
-      hooks: x.hooks || [],
+      resistanceHooks: x.resistanceHooks || [],
       powerUp: x.powerUp || {},
     }
   });

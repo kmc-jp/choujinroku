@@ -2,7 +2,6 @@ import { Game } from "./game";
 import { getAllCharacters } from "./character";
 import { Choice } from "./choice";
 import { toString } from "./util";
-
 export class GameProxy {
   private game: Game;
   private constructor(game: Game) {
@@ -41,7 +40,7 @@ export class GameProxy {
   }
   showMap(): string {
     let out: string[] = [];
-    this.game.players.forEach(x => { if (this.game.isOutOfLand(x.pos)) out.push(x.name) })
+    this.game.players.forEach(x => { if (x.pos.isOutOfLand()) out.push(x.name) })
     let result = `盤外:${out.join(",")}\n`;
     for (let y = 0; y < 6; y++) {
       for (let x = 0; x < 6; x++) {
