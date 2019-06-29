@@ -6,7 +6,14 @@ import * as _ from "underscore";
 import { CharaName } from "./character";
 
 export type LandName =
-  "博麗神社" | "魔法の森" | "月夜の森" | "霧の湖" | "温泉" | "？？？"
+  "博麗神社" | "魔法の森" | "月夜の森" | "霧の湖" | "紅魔館入口" | "図書館" |
+  "紅魔館" | "無何有の郷" | "マヨヒガの森" | "白玉楼" |
+  "川の畔の草原" | "夜雀の屋台" | "人間の里" | "迷いの竹林" |
+  "永遠亭" | "無名の丘" | "太陽の畑" | "三途の河" |
+  "彼岸" | "山の麓" | "妖怪の山" | "守矢神社" | "温泉" |
+  "天界" | "地上と地底を繋ぐ橋" | "地底の旧都" | "地霊殿" |
+  "灼熱地獄" | "春の湊" | "命蓮寺" | "墓地" | "大祀廟" |
+  "稗田家" | "香霖堂" | "冥界" | "工房"
 export type LandAttribute = "花マス" | "森マス" | "水マス"
 export type Land = Required<LandBase>
 export type PowerUp = {
@@ -121,7 +128,7 @@ export function getLands(): Land[] {
       landAttributes: ["森マス"],
       ignores: ["魔理沙", "アリス"],
       powerUp: { addOneCard: ["魔理沙", "アリス"] },
-      nextTo: [],
+      nextTo: ["迷いの竹林", "香霖堂"],
       whenEnter: wrap2D(魔法の森2D),
       attributeHooks: [invalidate("", ["幻覚"], p => p.characterName === "魔理沙")]
     },
@@ -129,48 +136,51 @@ export function getLands(): Land[] {
       name: "月夜の森",
       landAttributes: ["森マス"],
       ignores: ["ルーミア"],
-      nextTo: [],
+      nextTo: ["霧の湖", "無何有の郷", "山の麓"],
       whenEnter: wrap1D(月夜の森1D)
     },
     {
       name: "霧の湖",
       landAttributes: ["水マス"],
       powerUp: { addOneCard: ["チルノ"] },
-      nextTo: [],
+      nextTo: ["月夜の森", "紅魔館入口", "山の麓"],
       whenEnter: wrap1D(霧の湖1D)
     },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
-    { name: "？？？", nextTo: [], },
+    { name: "紅魔館入口", nextTo: ["霧の湖"], },
+    { name: "図書館", nextTo: [], },
+    { name: "紅魔館", nextTo: [], },
+    { name: "無何有の郷", nextTo: ["月夜の森", "マヨヒガの森", "人間の里", "温泉"], },
+    { name: "マヨヒガの森", nextTo: ["無何有の郷", "山の麓"], },
+    { name: "白玉楼", nextTo: ["冥界"], },
+    { name: "川の畔の草原", nextTo: ["夜雀の屋台", "人間の里"], },
+    { name: "夜雀の屋台", nextTo: ["川の畔の草原", "人間の里"], },
+    {
+      name: "人間の里",
+      nextTo: ["無何有の郷", "川の畔の草原", "夜雀の屋台", "迷いの竹林", "春の湊", "命蓮寺", "稗田家", "香霖堂"],
+    },
+    { name: "迷いの竹林", nextTo: ["魔法の森", "人間の里", "永遠亭"], },
+    { name: "永遠亭", nextTo: ["迷いの竹林"], },
+    { name: "無名の丘", nextTo: ["太陽の畑", "山の麓"], },
+    { name: "太陽の畑", nextTo: ["無名の丘", "山の麓"], },
+    { name: "三途の河", nextTo: ["彼岸", "冥界"], },
+    { name: "彼岸", nextTo: ["三途の河", "冥界"], },
+    { name: "山の麓", nextTo: ["月夜の森", "霧の湖", "マヨヒガの森", "無名の丘", "太陽の畑", "妖怪の山", "工房"], },
+    { name: "妖怪の山", nextTo: ["山の麓", "守矢神社"], },
+    { name: "守矢神社", nextTo: ["妖怪の山"], },
+    { name: "天界", nextTo: ["冥界"], },
+    { name: "温泉", nextTo: ["博麗神社", "無何有の郷", "地上と地底を繋ぐ橋"], },
+    { name: "地上と地底を繋ぐ橋", nextTo: ["地底の旧都", "温泉"], },
+    { name: "地底の旧都", nextTo: ["地上と地底を繋ぐ橋", "地霊殿"], },
+    { name: "地霊殿", nextTo: ["地底の旧都"], },
+    { name: "灼熱地獄", nextTo: [], },
+    { name: "春の湊", nextTo: ["人間の里", "命蓮寺"], },
+    { name: "命蓮寺", nextTo: ["人間の里", "墓地", "大祀廟"], },
+    { name: "墓地", nextTo: ["命蓮寺", "大祀廟", "冥界"], },
+    { name: "大祀廟", nextTo: ["命蓮寺", "墓地"], },
+    { name: "稗田家", nextTo: ["人間の里"], },
+    { name: "香霖堂", nextTo: ["魔法の森", "人間の里"], },
+    { name: "冥界", nextTo: ["白玉楼", "三途の河", "彼岸", "天界", "墓地"], },
+    { name: "工房", nextTo: ["山の麓"], },
   ];
   console.assert(tmp.length === 36);
   return tmp.map((x, i) => {

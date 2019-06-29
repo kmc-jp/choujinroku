@@ -58,6 +58,8 @@ export class Game {
     this.leftSpellCards = _.shuffle(getAllSpellCards());
     this.map = _.range(6).map(() => _.range(6).map(() => null));
     this.leftLands = _.shuffle(getLands());
+    while (this.leftLands.slice(0, 18).some(x => ["図書館", "香霖堂", "工房"].includes(x.name)))
+      this.leftLands = _.shuffle(this.leftLands);
     this.leftItems = getItemsData();
     this.itemsOnMap = this.placeItemsOnMap();
     this.decideFirstPlace(this.players[0]);
@@ -92,16 +94,19 @@ export class Game {
     }
   }
   private getMoveChoices(player: Player, poses: Pos[], tag: "移動1" | "移動2"): Choice<PosType>[] {
-    // WARN 同一の場所を示す選択肢を生むかも
-    return poses.map(p => {
+    return _.uniq(poses).map(p => {
       let addTag: string;
       let pos = player.pos;
-      if (p.x - pos.x === 1 && p.y - pos.y === 0) addTag = "(→)";
-      else if (p.x - pos.x === -1 && p.y - pos.y === 0) addTag = "(←)";
-      else if (p.x - pos.x === 0 && p.y - pos.y === 1) addTag = "(↓)";
-      else if (p.x - pos.x === 0 && p.y - pos.y === -1) addTag = "(↑)";
-      else addTag = `(${p.x},${p.y})`
-      return new Choice(tag + addTag, { x: p.x, y: p.y }, () => {
+      if (p.x - pos.x === 1 && p.y - pos.y === 0) addTag = "→";
+      else if (p.x - pos.x === -1 && p.y - pos.y === 0) addTag = "←";
+      else if (p.x - pos.x === 0 && p.y - pos.y === 1) addTag = "↓";
+      else if (p.x - pos.x === 0 && p.y - pos.y === -1) addTag = "↑";
+      else {
+        addTag = `${p.x},${p.y}`
+        let map = this.map[p.x][p.y];
+        if (map) addTag = map.name;
+      }
+      return new Choice(`${tag} (${addTag})`, { x: p.x, y: p.y }, () => {
         player.actions.push(tag);
         this.openRandomLand(player, p);
         this.enterLand(player, p);
@@ -201,8 +206,21 @@ export class Game {
     let moveTag: PlayerActionTag = "移動1";
     if (player.actions.includes("移動1")) moveTag = "移動2"
     if (!player.actions.includes("移動2")) {
-      // 3手行動可能な時に移動1と移動2をしているかも
-      player.choices.push(...this.getMoveChoices(player, player.pos.getNextTo(), moveTag))
+      // 3手行動可能な時に移動1と移動2をしてるかもなのでこの条件
+      let nextTo = player.pos.getNextTo();
+      let map = player.currentLand;
+      if (map) {
+        let mapNextTo = map.nextTo;
+        _.range(6).forEach(x => {
+          _.range(6).forEach(y => {
+            let here = this.map[x][y];
+            if (!here) return;
+            if (mapNextTo.includes(here.name))
+              nextTo.push(new Pos(x, y));
+          })
+        })
+      }
+      player.choices.push(...this.getMoveChoices(player, nextTo, moveTag))
     }
     // アイテム
     if (!player.actions.includes("アイテム")) {
