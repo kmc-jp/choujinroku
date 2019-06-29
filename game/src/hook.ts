@@ -1,6 +1,6 @@
 import { Game } from "./game";
 import { Player } from "./player";
-import { Choice, message } from "./choice";
+import { Choice, choices } from "./choice";
 import { LandName } from "./land";
 import { SpellCard } from "./spellcard";
 import { ItemName } from "./item";
@@ -32,7 +32,9 @@ export type Ailment =
   | "毒茸" | "飲み過ぎ" | "食あたり"
   | "残機減少" | "満身創痍" // 満身創痍はダメージを食らって死亡してから復活するので注意(場外には行く？ )
   | "大ナマズ" | "地形破壊" | "落とし穴"
-  | "PC戦闘" | "NPC戦闘" | "戦闘回避" | "スキマ送り"
+  | "PC戦闘" | "天狗警備隊"
+  | "NPC戦闘" | "NPC妖怪" | "NPC神様" | "NPC妖精" | "NPC幽霊" | "NPCランダムキャラ"
+  | "戦闘回避" | "スキマ送り"
 export type Factor =
   "地形効果" | "特殊能力" | "アイテム" | "妖精" | "戦闘"
   | "トラップ" | "アクシデント" | "イベント"
@@ -45,7 +47,7 @@ export function invalidate(skillName: string, attrs: (Attribute | Attribute[])[]
     when: attrs,
     choices(player: Player, attributes?: Attribute[]) {
       if (when && !when(player, attributes ? attributes : [])) return [];
-      return [message(skillName + "で無効化！")];
+      return choices(skillName + "で無効化！");
     }
   }
 }
@@ -55,7 +57,7 @@ export function invalidate1D(skillName: string, attrs: (Attribute | Attribute[])
     when: attrs,
     needDice: { type: "1D", success(p: Player, dice: number) { return success(p, dice); } },
     choices(player: Player, attributes?: Attribute[]) {
-      return [message(skillName + "で無効化成功！")];
+      return choices(skillName + "で無効化成功！");
     }
   }
 }
@@ -65,7 +67,7 @@ export function invalidate2D(skillName: string, attrs: (Attribute | Attribute[])
     when: attrs,
     needDice: { type: "2D", success(p: Player, dice: TwoDice) { return success(p, dice); } },
     choices(player: Player, attributes?: Attribute[]) {
-      return [message(skillName + "で無効化成功！")];
+      return choices(skillName + "で無効化成功！");
     }
   }
 }

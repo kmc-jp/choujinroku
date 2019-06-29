@@ -1,6 +1,6 @@
 import { Character, getAllCharacters } from "./character";
 import { Player, PlayerActionTag } from "./player";
-import { Choice, message, messages, choices } from "./choice";
+import { Choice, choices } from "./choice";
 import { FieldAction } from "./fieldaction";
 import { Land, getLands, LandName, judgeTable } from "./land";
 import { ItemCategoryDict, Item, getItemsData, ItemCategory, Friend, getFriendsData } from "./item";
@@ -284,7 +284,7 @@ export class Game {
     if (!map) return;
     let name = map.name;
     player.choices = [
-      message(`今は${name}判定をしない`),
+      new Choice(`今は${name}判定をしない`),
       new Choice(`${name}判定をする`, () => {
         player.choices = judgeTable[name === "香霖堂" ? "香霖堂" : name === "工房" ? "工房" : "図書館"](this, player, player.waitCount);
       })
@@ -336,7 +336,7 @@ export class Game {
   @phase gainItem(player: Player, item: Item, checkMove2: boolean = true) {
     if (checkMove2 && !player.isAbleToGetSomething) {
       this.leftItems[item.category].push(item);
-      player.choices = messages(`移動2なので${item.name}は得られなかった...`);
+      player.choices = choices(`移動2なので${item.name}は得られなかった...`);
       return;
     }
     // 星のかけらとか...
@@ -357,7 +357,7 @@ export class Game {
     player.choices = this.getDiceChoices(player, `${player.items.length}以下の出目でアイテムを失う！`, x => {
       let d = x - 1;
       if (d >= player.items.length) {
-        player.choices = messages("アイテムは失わなかった");
+        player.choices = choices("アイテムは失わなかった");
         return;
       }
       let item = player.items[d];
@@ -370,7 +370,7 @@ export class Game {
   @phase stealItem(player: Player, target: Player, item: Item) {
     target.items = target.items.filter(x => x.id !== item.id);
     this.gainItem(player, item, false);
-    player.choices = messages(`${item.name}を${target.name}から奪った！`)
+    player.choices = choices(`${item.name}を${target.name}から奪った！`)
   }
   // 戦闘 -----------------------------------------------------------------
   // 戦闘を仕掛けた WARN: 戦闘を仕掛けた結果戦闘を拒否されてもターンを消費してしまう
@@ -420,7 +420,7 @@ export class Game {
     this.usedSpellCards.push(...target.spellCards);
     player.spellCards = [];
     target.spellCards = [];
-    player.choices = messages(`${target.name}との戦闘が終わった`)
+    player.choices = choices(`${target.name}との戦闘が終わった`)
   }
   // 戦闘勝利履歴を得た
   @phase win(player: Player, target: Player) {
@@ -453,7 +453,7 @@ export class Game {
         // 移動はするがそこの地形の効果は発動しない
         if (this.map[pos.x][pos.y] !== null) target.pos = pos;
       }));
-    player.choices.push(message("キックはしない"))
+    player.choices.push(new Choice("キックはしない"))
   }
 
   // その他行動 --------------------------------------------------------------
@@ -473,7 +473,7 @@ export class Game {
       return;
     }
     player.bomb = Math.max(2, player.bomb);
-    player.choices = messages(`${damage}ダメージを受けた`);
+    player.choices = choices(`${damage}ダメージを受けた`);
   }
   // 土地を破壊した(誰がとかは無い)
   @phase destroyLand(pos: Pos, attrs: Attribute[]) {
@@ -499,7 +499,7 @@ export class Game {
     let land = this.leftLands[this.leftLands.length - 1];
     this.leftLands.pop();
     this.map[x][y] = land;
-    player.choices = messages(`開けた土地は${land.name}だった！`);
+    player.choices = choices(`開けた土地は${land.name}だった！`);
   }
   // 土地に入る(土地を新たに開くことはしない)
   @phase enterLand(player: Player, pos: Pos) {

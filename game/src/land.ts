@@ -1,6 +1,6 @@
 import { Game } from "./game";
 import { Player } from "./player";
-import { Choice, message, nop, messages, choices } from "./choice";
+import { Choice, nop, choices } from "./choice";
 import { AttributeHook, Attribute, invalidate, WithAttribute, TwoDice } from "./hook";
 import * as _ from "underscore";
 import { CharaName } from "./character";
@@ -67,7 +67,7 @@ function judgefunction(game: Game, player: Player, waitCount: number, itemNames:
     let [a, b] = [Math.max(d.a, d.b), Math.min(d.a, d.b)];
     let anythingChoice = new Choice(`好きな${category}を得る！`, () => {
       let lefts = game.leftItems[category];
-      if (lefts.length === 0) player.choices = messages(`${category}が一つも${landName}に残ってなかった...`);
+      if (lefts.length === 0) player.choices = choices(`${category}が一つも${landName}に残ってなかった...`);
       else player.choices = lefts.map(left => new Choice(left.name + "を得る", () => {
         let item = lefts.filter(x => x.name === left.name)[0];
         game.leftItems[category] = lefts.filter(x => x.name !== left.name);
@@ -87,7 +87,7 @@ function judgefunction(game: Game, player: Player, waitCount: number, itemNames:
           game.leftItems[category] = lefts.filter(x => x.name !== target);
           game.gainItem(player, item);
         } else {
-          player.choices = messages(`${target}は${landName}に残ってなかった...`)
+          player.choices = choices(`${target}は${landName}に残ってなかった...`)
         }
       })
     }
@@ -127,7 +127,7 @@ export const judgeTable = {
 // 無作為に一つアイテムを落とす
 function randomDropItem(context: string, game: Game, player: Player): Choice {
   return new Choice(context + "アイテムを1個無作為で失なう", () => {
-    if (player.items.length <= 0) player.choices = messages("アイテムを持ってなかった...")
+    if (player.items.length <= 0) player.choices = choices("アイテムを持ってなかった...")
     else {
       let target = randomPick(player.items);
       player.choices = choices(`${target.name}を失った...`, () => {
@@ -141,7 +141,7 @@ function randomForgetWin(context: string, game: Game, player: Player): Choice {
   return new Choice(context + "戦闘履歴が無作為に一人分初期化される", () => {
     let w = _.uniq(player.wonArray.concat(player.watchedArray));
     if (w.length <= 0) {
-      player.choices = messages("初期化される戦闘履歴が無かった...");
+      player.choices = choices("初期化される戦闘履歴が無かった...");
       return;
     }
     let target = game.players[randomPick(w)];
@@ -168,7 +168,7 @@ function randomWatch(context: string, game: Game, player: Player, afterAction?: 
     }
   });
 }
-
+// イベント表
 function happenEvent(game: Game, player: Player, attributes: Attribute[]): Choice[] {
   return game.getTwoDiceChoices(player, "イベントが起きた！ ", d => {
     let x = d.a + d.b;
@@ -193,7 +193,7 @@ function happenEvent(game: Game, player: Player, attributes: Attribute[]): Choic
       }
     });
     // TODO: まだ
-    else if (x === 7) choice = message("未実装の魔法使いに会った。自身・アイテムの呪いを全て解いてもらう事ができる。呪いを解いてもらったら、手番はここで終了。")
+    else if (x === 7) choice = new Choice("未実装の魔法使いに会った。自身・アイテムの呪いを全て解いてもらう事ができる。呪いを解いてもらったら、手番はここで終了。")
     else if (x === 8) choice = getGoods("持ち主の判らない落とし物を見つけた。", game, player);
     else if (x === 9) choice = new Choice("ボムの星を手に入れた。ボムが1増える。", () => { player.healBomb(); })
     else if (x === 10) choice = new Choice("河童達の研究を手伝った。手番はここで終了。", () => {
@@ -220,7 +220,7 @@ function happenEvent(game: Game, player: Player, attributes: Attribute[]): Choic
     player.with(...attributes).choices = [choice];
   })
 }
-
+// アクシデント表
 function happenAccident(game: Game, player: Player, attributes: Attribute[]): Choice[] {
   return game.getTwoDiceChoices(player, "アクシデントが起きた！ ", dice => {
     let d = dice.a + dice.b;
@@ -228,15 +228,15 @@ function happenAccident(game: Game, player: Player, attributes: Attribute[]): Ch
     if (d === 2) attrs.choices = choices("誰かとぶつかり階段から転げ落ちた。キャラシートが入れ替わるかも！", () => {
       let others = game.getOthersAtSamePos(player);
       if (others.length <= 0) {
-        player.choices = messages("同じマスに別のPCは居なかった...");
+        player.choices = choices("同じマスに別のPCは居なかった...");
         return;
       }
       let other = randomPick(others);
       // 対象に選ばれたキャラクターが地形効果無効(巨大化茸など)だった場合、無効にできそう
       other.with(...attributes).choices = choices(`${player.name}とキャラクターが入れ替わる！ `, () => {
         player.swapCharacterWithAnotherPlayer(other);
-        player.choices = messages(`${other.name} とキャラが入れ替わった！ `);
-        other.choices = messages(`${player.name} とキャラが入れ替わった！ `);
+        player.choices = choices(`${other.name} とキャラが入れ替わった！ `);
+        other.choices = choices(`${player.name} とキャラが入れ替わった！ `);
       })
     })
     else if (d === 3) attrs.choices = choices("大ナマズが暴れた!地形が破壊される！ ", () => {
@@ -252,9 +252,9 @@ function happenAccident(game: Game, player: Player, attributes: Attribute[]): Ch
       choices("妖精に悪戯される。同じもしくは縦横で隣接したマスの他のPCと、所持アイテム1個が無作為に入れ替わる", () => {
         let others = game.getOthersAtNextToOrSamePos(player).filter(x => x.items.length > 0);
         if (others.length <= 0) {
-          player.choices = messages("近くにアイテムを持ったPCが居なかった...");
+          player.choices = choices("近くにアイテムを持ったPCが居なかった...");
         } else if (player.items.length === 0) {
-          player.choices = messages("アイテムを持っていなかった...");
+          player.choices = choices("アイテムを持っていなかった...");
         } else { // 他者が耐性を持っていた場合無効化できる
           let other = randomPick(others);
           other.with("妖精", "幻覚", ...attributes).choices = choices(`妖精のせいで ${player.name} とアイテムが入れ替わる！`, () => {
@@ -263,17 +263,17 @@ function happenAccident(game: Game, player: Player, attributes: Attribute[]): Ch
         }
       })
     // TODO:
-    else if (d === 6) attrs.choices = messages("未実装の妖怪に攻撃される。 勝ったら品物を1個得る。敗れるとアイテムを1個奪われる。(無ければ残機が1減る)");
+    else if (d === 6) attrs.with("NPC戦闘", "NPC妖怪").choices = choices("未実装の妖怪に攻撃される。 勝ったら品物を1個得る。敗れるとアイテムを1個奪われる。(無ければ残機が1減る)");
     // TODO:
-    else if (d === 7) attrs.choices = messages("未実装の天狗警備隊に捕まる(属性Gの者には無効) 。2D≦レベルで脱出。次の手番の始めは2D≦精神力。その次で釈放。");
+    else if (d === 7) attrs.with("天狗警備隊").choices = choices("未実装の天狗警備隊に捕まる(属性Gの者には無効) 。2D≦レベルで脱出。次の手番の始めは2D≦精神力。その次で釈放。");
     // TODO:
-    else if (d === 8) attrs.choices = messages("未実装の幽霊に攻撃される。 敗れるとアイテムを1個奪われる。(無ければ残機が1減る");
+    else if (d === 8) attrs.with("NPC戦闘", "NPC幽霊").choices = choices("未実装の幽霊に攻撃される。 敗れるとアイテムを1個奪われる。(無ければ残機が1減る");
     else if (d === 9) attrs.choices = choices("アイテムを永久に借りられてしまった！", () => {
       let others = game.getOthersAtSamePos(player);
       if (others.length <= 0) {
-        player.choices = messages("同じマスに他のPCが居なかったので借りられなかった！ ");
+        player.choices = choices("同じマスに他のPCが居なかったので借りられなかった！ ");
       } else if (player.items.length <= 0) {
-        player.choices = messages("アイテムを持っていなかった...")
+        player.choices = choices("アイテムを持っていなかった...")
       } else {
         let other = randomPick(others);
         other.with(...attributes).choices = choices(`${player.name}のアイテムを永久に借りられるぞ！ `, () => {
@@ -297,7 +297,7 @@ function happenAccident(game: Game, player: Player, attributes: Attribute[]): Ch
     else if (d === 11) attrs.choices = choices("大ナマズが暴れた!", () => {
       game.players.filter(p => !p.pos.isOutOfLand()).forEach(p => {
         game.getTwoDiceChoices(p, "場に居るPCは全員、2D > 精神力で残機が1減る。", dice => {
-          if (dice.a + dice.b <= p.mental) p.choices = messages("大ナマズを回避した！ ");
+          if (dice.a + dice.b <= p.mental) p.choices = choices("大ナマズを回避した！ ");
           p.with("大ナマズ", ...attributes).choices = choices("大ナマズを食らった！", () => {
             game.damaged(p);
           });
@@ -310,13 +310,58 @@ function happenAccident(game: Game, player: Player, attributes: Attribute[]): Ch
     })
   });
 }
-function happenTrap(game: Game, player: Player): Choice[] {
-  return messages("トラップ表は未実装だった！ ");
+// トラップ表
+function happenTrap(game: Game, player: Player, attributes: Attribute[]): Choice[] {
+  return game.getTwoDiceChoices(player, "トラップが発動した！  ", dice => {
+    let d = dice.a + dice.b;
+    let attrs = player.with(...attributes);
+    // TODO:
+    if (d === 2) attrs.with("NPC戦闘", "NPCランダムキャラ").choices = choices("未実装の未使用キャラに攻撃される。残機1 ボム0 勝ったら品物を1個得る。PCの勝利 / 敗北条件が適用される。")
+    else if (d === 3) attrs.with("毒茸").choices = game.getTwoDiceChoices(player, "毒茸を食べてしまう。2D > 精神力で残機が1減る", dice => {
+      if (dice.a + dice.b <= player.mental) player.choices = choices("毒茸を食べたが大丈夫だった！");
+      else player.choices = choices("毒茸を食べてしまって残機が減った...", () => game.damaged(player));
+    });
+    // TODO:
+    else if (d === 4) attrs.with("NPC神様", "NPC戦闘").choices = choices("未実装の神様に攻撃される。勝つと品物を1個得る。敗れるとアイテムを1個奪われる。(無ければ残機が1減る)");
+    // TODO:
+    else if (d === 5) attrs.with("天狗警備隊").choices = choices("未実装の天狗警備隊に捕まる(属性Gの者には無効) 。2D≦レベルで脱出。次の手番の始めは2D≦精神力。その次で釈放。")
+    else if (d === 6) attrs.with("落とし穴").choices = choices("落とし穴に落ちてアイテムをばら撒く。同じマスに他のPCが居れば、所持アイテムが無作為に1個入れ替わる。", () => {
+      let others = game.getOthersAtSamePos(player).filter(x => x.items.length > 0);
+      if (others.length <= 0) {
+        player.choices = choices("近くにアイテムを持ったPCが居なかった...");
+      } else if (player.items.length === 0) {
+        player.choices = choices("アイテムを持っていなかった...");
+      } else { // 他者が耐性を持っていた場合無効化できる
+        let other = randomPick(others);
+        other.with(...attributes).choices = choices(`${player.name} とアイテムが入れ替わった！`, () => {
+          player.swapItem(other, random(player.items.length), random(other.items.length));
+        })
+      }
+    });
+    // TODO:
+    else if (d === 7) attrs.with("妖精", "幻覚").choices = choices("未実装の妖精達に悪戯される。次の移動は1Dで 1: 左  2: 上  3: 右  4: 下  5~6: 任意の方向 に進む")
+    // WARN: アイテムを落とす属性
+    else if (d === 8) attrs.choices = [randomDropItem("罠を回避した時にアイテムを落として壊してしまった。", game, player)];
+    // TODO:
+    else if (d === 9) attrs.with("呪い").choices = choices("未実装の゙バカになる呪いを受ける。次の自分の手番終了時まで、レベル1 精神力9 になる。");
+    else if (d === 10) attrs.choices = choices("金ダライが降ってきた！ ", () => {
+      game.getPlayersAt(player.pos).forEach(x => {
+        x.with(...attributes).choices = game.getDiceChoices(x, "1D > レベルで残機が1減る！", d => {
+          if (d <= x.level) x.choices = choices("金ダライを回避した！ ")
+          else x.choices = choices("金ダライが当たった！", () => game.damaged(x))
+        })
+      })
+    })
+    // TODO:
+    else if (d === 11) attrs.with("スキマ送り").choices = choices("未実装のスキマ送りにされた。駒を盤外に移し、次の手番開始時に開かれたマスに無作為に出現。※5")
+    // TODO:
+    else if (d === 12) attrs.with("落とし穴", "残機減少").choices = choices("未実装の落とし穴に落ちる。残機が1減り、地形「地上と地底を繋ぐ橋」が出ていれば、次の手番にそこへ移動する。")
+  })
 }
 function getGoods(factor: string, game: Game, player: Player): Choice {
-  if (!player.isAbleToGetSomething) return message("品物は得られ無かった...");
+  if (!player.isAbleToGetSomething) return new Choice("品物は得られ無かった...");
   let item = game.leftItems["品物"].pop();
-  if (!item) return message("世界に品物が残っていなかった...")
+  if (!item) return new Choice("世界に品物が残っていなかった...")
   return new Choice(`${factor}品物を得た `, () => {
     if (item) game.gainItem(player, item);
   });
@@ -336,40 +381,40 @@ function wrap2D(callback: (this: Land, game: Game, dice: TwoDice, player: Player
   }
 }
 // 属性の付与を忘れずに！
-function 博麗神社1D(this: Land, game: Game, dice: number, player: Player, attrs: WithAttribute) {
+function 博麗神社1D(game: Game, dice: number, player: Player, attrs: WithAttribute) {
   if (dice === 1) attrs.choices = judgeTable["工房"](game, player, 1);
   else if (dice <= 3) attrs.choices = [getGoods("", game, player)];
-  else if (dice <= 5) attrs.choices = messages("外の世界の品物を発見したが使い途が判らず捨てた");
+  else if (dice <= 5) attrs.choices = choices("外の世界の品物を発見したが使い途が判らず捨てた");
   else attrs.with("飲み過ぎ").choices = [randomForgetWin("宴会で飲みすぎて前後不覚になった", game, player)];
 }
 // ゾロ目で毒茸
-function 魔法の森2D(this: Land, game: Game, dice: TwoDice, player: Player, attrs: WithAttribute) {
+function 魔法の森2D(game: Game, dice: TwoDice, player: Player, attrs: WithAttribute) {
   if (dice.a !== dice.b) {
-    player.choices = messages("毒茸を食べなかった！");
-    return;
+    player.choices = choices("毒茸を食べなかった！");
+  } else {
+    attrs.with("毒茸", "残機減少").choices = choices("うっかり毒茸を食べてしまい残機が減った", () => {
+      game.damaged(player);
+    });
   }
-  attrs.with("毒茸", "残機減少").choices = choices("うっかり毒茸を食べてしまい残機が減った", () => {
-    game.damaged(player);
-  });
 }
 // 妖怪に攻撃
-function 月夜の森1D(this: Land, game: Game, dice: number, player: Player, attrs: WithAttribute) {
+function 月夜の森1D(game: Game, dice: number, player: Player, attrs: WithAttribute) {
   if (dice <= player.level) {
-    player.choices = messages("妖怪に攻撃されなかった！ ");
+    player.choices = choices("妖怪に攻撃されなかった！ ");
     return;
   }
-  attrs.choices = messages("妖怪に攻撃されたけど未実装だった！")
+  attrs.choices = choices("妖怪に攻撃されたけど未実装だった！")
 }
 // 属性の付与を忘れずに！
-function 霧の湖1D(this: Land, game: Game, dice: number, player: Player, attrs: WithAttribute) {
+function 霧の湖1D(game: Game, dice: number, player: Player, attrs: WithAttribute) {
   if (player.characterName === "チルノ") dice = 1;
-  if (dice >= 5 && player.characterName === "パチュリー") attrs.choices = messages("5,6の出目は無視します");
+  if (dice >= 5 && player.characterName === "パチュリー") attrs.choices = choices("5,6の出目は無視します");
   else if (dice === 1) attrs.choices = choices("大妖精が仲間に成りかけたが未実装だった！", () => { })
   else if (dice === 2) attrs.choices = [getGoods("", game, player)];
   else if (dice === 3) attrs.choices = happenEvent(game, player, attrs.attrs);
   else if (dice === 4) attrs.choices = happenAccident(game, player, attrs.attrs);
-  else if (dice === 5) attrs.with("幻覚", "手番休み", "妖精").choices = messages("妖精に悪戯されたけど未実装だった！ ");
-  else if (dice === 6) attrs.choices = messages("妖精に攻撃されたけど未実装だった！ ");
+  else if (dice === 5) attrs.with("幻覚", "手番休み", "妖精").choices = choices("妖精に悪戯されたけど未実装だった！ ");
+  else if (dice === 6) attrs.choices = choices("妖精に攻撃されたけど未実装だった！ ");
 }
 
 
