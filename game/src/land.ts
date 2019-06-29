@@ -1,10 +1,10 @@
 import { Game } from "./game";
 import { Player } from "./player";
 import { Choice, nop, choices } from "./choice";
-import { AttributeHook, Attribute, invalidate, WithAttribute, TwoDice } from "./hook";
+import { AttributeHook, Attribute, invalidate, WithAttribute, TwoDice, NPCType } from "./hook";
 import * as _ from "underscore";
-import { CharaName } from "./character";
-import { ItemName, ItemCategory } from "./item";
+import { CharaName, charaCategories } from "./character";
+import { ItemName, ItemCategory, FairyFriendNames } from "./item";
 import { randomPick, random } from "./util";
 import { Pos } from "./pos";
 
@@ -17,7 +17,7 @@ export type LandName =
   "天界" | "地上と地底を繋ぐ橋" | "地底の旧都" | "地霊殿" |
   "灼熱地獄" | "春の湊" | "命蓮寺" | "墓地" | "大祀廟" |
   "稗田家" | "香霖堂" | "冥界" | "工房"
-export type LandAttribute = "花マス" | "森マス" | "水マス"
+export type LandAttribute = "花マス" | "森マス" | "水マス" | "紅マス" | "地マス"
 export type Land = Required<LandBase>
 export type PowerUp = {
   addOneCard?: CharaName[];
@@ -151,6 +151,31 @@ function randomForgetWin(context: string, game: Game, player: Player): Choice {
     });
   });
 }
+// 2Dでゾロ目でダメージ
+function damagedOn2D(context: string, game: Game, player: Player): Choice[] {
+  return game.getTwoDiceChoices(player, `${context}ゾロ目で残機減少。`, dice => {
+    if (dice.a !== dice.b) player.choices = choices("平気だった！ ");
+    else player.choices = choices("残機が減少した！", () => game.damaged(player));
+  })
+}
+
+// 手番は終了し、次の手番は休み
+// TODO:
+function skipTurn(context: string, game: Game, player: Player): Choice {
+  return new Choice(context + "手番は終了し、次の手番は休みだが未実装だった！ ");
+}
+// NPC戦闘(後でAttributeを付ける)
+// TODO:
+function battleWithNPC(context: NPCType, game: Game, player: Player): Choice {
+  return new Choice(context + "に攻撃されたけど未実装だった！")
+}
+// 天狗警備隊に拘束(後でAttributeを付ける)
+// TODO:
+function tenguGuardian(game: Game, player: Player): Choice {
+  return new Choice("天狗警備隊に拘束されたけど未実装だった！");
+}
+
+
 // 無作為に正体確認
 function randomWatch(context: string, game: Game, player: Player, afterAction?: () => any): Choice {
   return new Choice(context + "ランダムに他者1人の正体が分かる！ ", () => {
@@ -168,6 +193,23 @@ function randomWatch(context: string, game: Game, player: Player, afterAction?: 
     }
   });
 }
+// 好きな人を正体確認
+function arbitrarilyWatch(context: string, game: Game, player: Player, afterAction?: () => any): Choice {
+  return new Choice(context + "他者1人の正体が分かる！ ", () => {
+    let yets = game.players.filter(x => !player.watched.has(x.id));
+    if (yets.length === 0) {
+      player.choices = choices("全員の正体を知っていた...", () => {
+        if (afterAction) afterAction();
+      });
+    } else {
+      player.choices = yets.map(other => new Choice(`${other.name}の正体を知った！ `, () => {
+        game.watch(player, other);
+        if (afterAction) afterAction();
+      }))
+    }
+  });
+}
+
 // イベント表
 function happenEvent(game: Game, player: Player, attributes: Attribute[]): Choice[] {
   return game.getTwoDiceChoices(player, "イベントが起きた！ ", d => {
@@ -179,7 +221,7 @@ function happenEvent(game: Game, player: Player, attributes: Attribute[]): Choic
       player.choices = judgeTable["香霖堂"](game, player, 1);
     })
     else if (x === 4) choice = randomDropItem("落とし物をしてしまった。", game, player);
-    else if (x === 5) choice = randomWatch("賢者に会った。手番はここで終了。", game, player, () => {
+    else if (x === 5) choice = arbitrarilyWatch("賢者に会った。手番はここで終了。", game, player, () => {
       player.isAbleToAction = false;
     })
     else if (x === 6) choice = new Choice("お茶の時間を楽しんだ。", () => {
@@ -262,12 +304,9 @@ function happenAccident(game: Game, player: Player, attributes: Attribute[]): Ch
           })
         }
       })
-    // TODO:
-    else if (d === 6) attrs.with("NPC戦闘", "NPC妖怪").choices = choices("未実装の妖怪に攻撃される。 勝ったら品物を1個得る。敗れるとアイテムを1個奪われる。(無ければ残機が1減る)");
-    // TODO:
-    else if (d === 7) attrs.with("天狗警備隊").choices = choices("未実装の天狗警備隊に捕まる(属性Gの者には無効) 。2D≦レベルで脱出。次の手番の始めは2D≦精神力。その次で釈放。");
-    // TODO:
-    else if (d === 8) attrs.with("NPC戦闘", "NPC幽霊").choices = choices("未実装の幽霊に攻撃される。 敗れるとアイテムを1個奪われる。(無ければ残機が1減る");
+    else if (d === 6) attrs.choices = [battleWithNPC("NPC妖怪", game, player)]
+    else if (d === 7) attrs.choices = [tenguGuardian(game, player)]
+    else if (d === 8) attrs.choices = [battleWithNPC("NPC幽霊", game, player)]
     else if (d === 9) attrs.choices = choices("アイテムを永久に借りられてしまった！", () => {
       let others = game.getOthersAtSamePos(player);
       if (others.length <= 0) {
@@ -315,16 +354,13 @@ function happenTrap(game: Game, player: Player, attributes: Attribute[]): Choice
   return game.getTwoDiceChoices(player, "トラップが発動した！  ", dice => {
     let d = dice.a + dice.b;
     let attrs = player.with(...attributes);
-    // TODO:
-    if (d === 2) attrs.with("NPC戦闘", "NPCランダムキャラ").choices = choices("未実装の未使用キャラに攻撃される。残機1 ボム0 勝ったら品物を1個得る。PCの勝利 / 敗北条件が適用される。")
+    if (d === 2) attrs.choices = [battleWithNPC("NPCランダムキャラ", game, player)]
     else if (d === 3) attrs.with("毒茸").choices = game.getTwoDiceChoices(player, "毒茸を食べてしまう。2D > 精神力で残機が1減る", dice => {
       if (dice.a + dice.b <= player.mental) player.choices = choices("毒茸を食べたが大丈夫だった！");
       else player.choices = choices("毒茸を食べてしまって残機が減った...", () => game.damaged(player));
     });
-    // TODO:
-    else if (d === 4) attrs.with("NPC神様", "NPC戦闘").choices = choices("未実装の神様に攻撃される。勝つと品物を1個得る。敗れるとアイテムを1個奪われる。(無ければ残機が1減る)");
-    // TODO:
-    else if (d === 5) attrs.with("天狗警備隊").choices = choices("未実装の天狗警備隊に捕まる(属性Gの者には無効) 。2D≦レベルで脱出。次の手番の始めは2D≦精神力。その次で釈放。")
+    else if (d === 4) attrs.choices = [battleWithNPC("NPC神様", game, player)]
+    else if (d === 5) attrs.choices = [tenguGuardian(game, player)]
     else if (d === 6) attrs.with("落とし穴").choices = choices("落とし穴に落ちてアイテムをばら撒く。同じマスに他のPCが居れば、所持アイテムが無作為に1個入れ替わる。", () => {
       let others = game.getOthersAtSamePos(player).filter(x => x.items.length > 0);
       if (others.length <= 0) {
@@ -368,98 +404,166 @@ function getGoods(factor: string, game: Game, player: Player): Choice {
 }
 function wrap1D(callback: (this: Land, game: Game, dice: number, player: Player, attrs: WithAttribute) => any) {
   return function (this: Land, game: Game, player: Player, attrs: WithAttribute): Choice[] {
-    return attrs.wrap(game.getDiceChoices(player, `${this.name}:1D`, d => {
+    return attrs.wrap(game.getDiceChoices(player, `${this.name}に入った1D`, d => {
       callback.bind(this)(game, d, player, attrs);
     }));
   }
 }
 function wrap2D(callback: (this: Land, game: Game, dice: TwoDice, player: Player, attrs: WithAttribute) => any) {
   return function (this: Land, game: Game, player: Player, attrs: WithAttribute): Choice[] {
-    return attrs.wrap(game.getTwoDiceChoices(player, `${this.name}:2D`, d => {
+    return attrs.wrap(game.getTwoDiceChoices(player, `${this.name}に入った2D`, d => {
       callback.bind(this)(game, d, player, attrs);
     }));
   }
 }
-// 属性の付与を忘れずに！
-function 博麗神社1D(game: Game, dice: number, player: Player, attrs: WithAttribute) {
-  if (dice === 1) attrs.choices = judgeTable["工房"](game, player, 1);
-  else if (dice <= 3) attrs.choices = [getGoods("", game, player)];
-  else if (dice <= 5) attrs.choices = choices("外の世界の品物を発見したが使い途が判らず捨てた");
-  else attrs.with("飲み過ぎ").choices = [randomForgetWin("宴会で飲みすぎて前後不覚になった", game, player)];
-}
-// ゾロ目で毒茸
-function 魔法の森2D(game: Game, dice: TwoDice, player: Player, attrs: WithAttribute) {
-  if (dice.a !== dice.b) {
-    player.choices = choices("毒茸を食べなかった！");
-  } else {
-    attrs.with("毒茸", "残機減少").choices = choices("うっかり毒茸を食べてしまい残機が減った", () => {
-      game.damaged(player);
-    });
-  }
-}
-// 妖怪に攻撃
-function 月夜の森1D(game: Game, dice: number, player: Player, attrs: WithAttribute) {
-  if (dice <= player.level) {
-    player.choices = choices("妖怪に攻撃されなかった！ ");
-    return;
-  }
-  attrs.choices = choices("妖怪に攻撃されたけど未実装だった！")
-}
-// 属性の付与を忘れずに！
-function 霧の湖1D(game: Game, dice: number, player: Player, attrs: WithAttribute) {
-  if (player.characterName === "チルノ") dice = 1;
-  if (dice >= 5 && player.characterName === "パチュリー") attrs.choices = choices("5,6の出目は無視します");
-  else if (dice === 1) attrs.choices = choices("大妖精が仲間に成りかけたが未実装だった！", () => { })
-  else if (dice === 2) attrs.choices = [getGoods("", game, player)];
-  else if (dice === 3) attrs.choices = happenEvent(game, player, attrs.attrs);
-  else if (dice === 4) attrs.choices = happenAccident(game, player, attrs.attrs);
-  else if (dice === 5) attrs.with("幻覚", "手番休み", "妖精").choices = choices("妖精に悪戯されたけど未実装だった！ ");
-  else if (dice === 6) attrs.choices = choices("妖精に攻撃されたけど未実装だった！ ");
-}
 
 
 export function getLands(): Land[] {
+  // WARN: fullText 要る？？
   let tmp: LandBase[] = [
     {
       name: "博麗神社",
       nextTo: ["温泉"],
       landAttributes: ["花マス"],
-      whenEnter: wrap1D(博麗神社1D),
-      powerUp: { addOneCard: ["霊夢"] },
-      attributeHooks: [invalidate("", ["能力低下"], p => p.race === "人間")]
-    },
-    {
+      powerUp: { addOneCard: ["霊夢", "萃香"] },
+      attributeHooks: [invalidate("博麗神社+人間", ["能力低下"], p => p.race === "人間")],
+      whenEnter: wrap1D((game: Game, dice: number, player: Player, attrs: WithAttribute) => {
+        if (dice === 1) attrs.choices = judgeTable["工房"](game, player, 1);
+        else if (dice <= 3) attrs.choices = [getGoods("", game, player)];
+        else if (dice <= 5) attrs.choices = choices("外の世界の品物を発見したが使い途が判らず捨てた");
+        else attrs.with("飲み過ぎ").choices = [randomForgetWin("宴会で飲みすぎて前後不覚になった", game, player)];
+      }),
+    }, {
       name: "魔法の森",
+      nextTo: ["迷いの竹林", "香霖堂"],
       landAttributes: ["森マス"],
       ignores: ["魔理沙", "アリス"],
       powerUp: { addOneCard: ["魔理沙", "アリス"] },
-      nextTo: ["迷いの竹林", "香霖堂"],
-      whenEnter: wrap2D(魔法の森2D),
-      attributeHooks: [invalidate("", ["幻覚"], p => p.characterName === "魔理沙")]
-    },
-    {
+      attributeHooks: [invalidate("魔法の森", ["幻覚"], p => p.characterName === "魔理沙")],
+      // TODO: 人間・妖怪は、精神力が1下がる。(能力低下)　
+      // TODO: 出る時に1D
+      whenEnter: wrap2D((game: Game, dice: TwoDice, player: Player, attrs: WithAttribute) => {
+        if (dice.a !== dice.b)
+          player.choices = choices("毒茸を食べなかった！");
+        else attrs.with("毒茸", "残機減少").choices = choices("うっかり毒茸を食べてしまい残機が減った", () => {
+          game.damaged(player);
+        });
+      }),
+    }, {
       name: "月夜の森",
-      landAttributes: ["森マス"],
-      ignores: ["ルーミア"],
       nextTo: ["霧の湖", "無何有の郷", "山の麓"],
-      whenEnter: wrap1D(月夜の森1D)
-    },
-    {
+      landAttributes: ["森マス"],
+      ignores: [...charaCategories["バカルテット"], ...charaCategories["紅魔館の住人"]],
+      powerUp: { levelUp: ["ルーミア"] },
+      whenEnter: wrap1D((game: Game, dice: number, player: Player, attrs: WithAttribute) => {
+        if (dice <= player.level) attrs.choices = choices("妖怪に攻撃されなかった！ ");
+        else attrs.choices = [battleWithNPC("NPC妖怪", game, player)]
+      }),
+    }, {
       name: "霧の湖",
       landAttributes: ["水マス"],
       powerUp: { addOneCard: ["チルノ"] },
       nextTo: ["月夜の森", "紅魔館入口", "山の麓"],
-      whenEnter: wrap1D(霧の湖1D)
-    },
-    { name: "紅魔館入口", nextTo: ["霧の湖"], },
-    { name: "図書館", nextTo: [], },
-    { name: "紅魔館", nextTo: [], },
-    { name: "無何有の郷", nextTo: ["月夜の森", "マヨヒガの森", "人間の里", "温泉"], },
-    { name: "マヨヒガの森", nextTo: ["無何有の郷", "山の麓"], },
-    { name: "白玉楼", nextTo: ["冥界"], },
-    { name: "川の畔の草原", nextTo: ["夜雀の屋台", "人間の里"], },
-    { name: "夜雀の屋台", nextTo: ["川の畔の草原", "人間の里"], },
-    {
+      whenEnter: wrap1D((game: Game, dice: number, player: Player, attrs: WithAttribute) => {
+        if (player.characterName === "チルノ") dice = 1;
+        let friend = player.friend;
+        if (dice >= 5 && (
+          charaCategories["紅魔館の住人"].includes(player.characterName)
+          || (friend ? FairyFriendNames.includes(friend.name) : false))
+        ) attrs.choices = choices("5,6の出目は無視します");
+        else if (dice === 1) attrs.choices = choices("大妖精を仲間にできる！ ", () => game.gainFriend(player, "大妖精"));
+        else if (dice === 2) attrs.choices = [getGoods("", game, player)];
+        else if (dice === 3) attrs.choices = happenEvent(game, player, attrs.attrs);
+        else if (dice === 4) attrs.choices = happenAccident(game, player, attrs.attrs);
+        else if (dice === 5) attrs.with("幻覚", "妖精").choices = [skipTurn("妖精に悪戯された", game, player)];
+        else if (dice === 6) attrs.choices = [battleWithNPC("NPC妖精", game, player)];
+      }),
+    }, {
+      name: "紅魔館入口",
+      nextTo: ["霧の湖"],
+      powerUp: { mentalUp: ["美鈴"] },
+      whenEnter: wrap1D((game: Game, dice: number, player: Player, attrs: WithAttribute) => {
+        if (dice >= 5 && charaCategories["紅魔館の住人"].some(x => x === player.name))
+          attrs.choices = choices("5,6の出目は無視します");
+        else if (dice === 1) attrs.choices = [arbitrarilyWatch("門番と噂話をする。", game, player)];
+        else if (dice <= 4) attrs.choices = choices("門番は微動だにしない。近づいて見てみたら、門番は立ったまま寝ていた。");
+        // TODO:
+        else attrs.choices = choices("先へ進もうとしたら、門番に怒られた。次の「移動1」「移動2」での移動時に、もと居たマスに引き返す。")
+      }),
+    }, {
+      name: "図書館",
+      nextTo: [],
+      powerUp: { addOneCard: ["パチュリー"] }
+    }, {
+      name: "紅魔館",
+      nextTo: [],
+      powerUp: { addOneCard: charaCategories["紅魔館の住人"] },
+      whenEnter: wrap1D((game: Game, dice: number, player: Player, attrs: WithAttribute) => {
+        if (player.characterName === "パチュリー") dice = 1;
+        else if (charaCategories["紅魔館の住人"].includes(player.characterName)) dice = Math.max(1, dice - 2)
+        if (dice === 1) attrs.choices = choices("小悪魔を仲間にできる！ ", () => game.gainFriend(player, "小悪魔"));
+        else if (dice === 2) attrs.choices = [getGoods("", game, player)];
+        else if (dice <= 4) attrs.choices = choices("何も起きなかった");
+        // TODO: 「手番はここで終了」と「次の手番は休み」は違う
+        else if (dice === 5) attrs.choices = choices("手番は終了し、2D>精神力で次の手番は休み。");
+        else if (dice === 6) attrs.with("残機減少").choices = choices("「きゅっとしてドカーン」された。残機が1減る。", () => game.damaged(player));
+      }),
+    }, {
+      name: "無何有の郷",
+      nextTo: ["月夜の森", "マヨヒガの森", "人間の里", "温泉"],
+      powerUp: { addOneCard: ["レティ"] },
+      attributeHooks: [invalidate("無何有の郷", ["能力低下"], p => ["レティ", "チルノ"].includes(p.characterName))],
+      whenEnter: wrap1D((game: Game, dice: number, player: Player, attrs: WithAttribute) => {
+        if (dice >= 5 && ["レティ", "チルノ"].includes(player.characterName))
+          attrs.choices = choices("5,6の出目は無視します");
+        else if (dice === 1) attrs.choices = choices("三月精を仲間にできる！ ", () => game.gainFriend(player, "三月精"));
+        else if (dice === 2) attrs.choices = choices("ボムを得る", () => player.healBomb());
+        else if (dice === 3) attrs.choices = [getGoods("", game, player)];
+        else if (dice === 4) attrs.choices = happenEvent(game, player, attrs.attrs);
+        else if (dice === 5) attrs.choices = happenAccident(game, player, attrs.attrs);
+        else if (dice === 6) attrs.choices = happenTrap(game, player, attrs.attrs);
+      })
+    }, { // TODO:
+      name: "マヨヒガの森",
+      nextTo: ["無何有の郷", "山の麓"],
+    }, {
+      name: "白玉楼",
+      nextTo: ["冥界"],
+      powerUp: { addOneCard: ["幽々子", "妖夢"] },
+      whenEnter: wrap2D((game: Game, dice: TwoDice, player: Player, attrs: WithAttribute) => {
+        let d = dice.a + dice.b;
+        if (player.life === 1 && d <= player.mental) attrs.choices = choices("残機が回復した！", () => player.heal());
+        else if (player.life === 2 && d <= player.level) attrs.choices = choices("残機が回復した！", () => player.heal());
+        else attrs.choices = choices("何も起きなかった");
+      })
+    }, {
+      name: "川の畔の草原",
+      nextTo: ["夜雀の屋台", "人間の里"],
+      powerUp: { levelUp: ["リグル"] },
+      whenEnter: wrap1D((game: Game, dice: number, player: Player, attrs: WithAttribute) => {
+        if ((dice >= 4 && player.characterName === "リグル") ||
+          dice >= 5 && player.race === "幽霊")
+          attrs.choices = choices("ダイスの出目を無視した！");
+        else if (dice === 1) attrs.choices = choices("ボムを得る", () => player.healBomb());
+        else if (dice === 2) attrs.choices = [getGoods("", game, player)];
+        else if (dice === 3) attrs.choices = happenEvent(game, player, attrs.attrs);
+        else if (dice === 4) attrs.choices = happenAccident(game, player, attrs.attrs);
+        else if (dice === 5) attrs.choices = [skipTurn("蚤に咬まれてしまった", game, player)]
+        else if (dice === 6) attrs.choices = damagedOn2D("恙虫(ツツガムシ)に咬まれてしまった。", game, player);
+      })
+    }, {
+      name: "夜雀の屋台",
+      nextTo: ["川の畔の草原", "人間の里"],
+      powerUp: { levelUp: ["ミスティア"] },
+      whenEnter: wrap1D((game: Game, dice: number, player: Player, attrs: WithAttribute) => {
+        if (dice === 1) attrs.choices = choices("美味しい！ 残機回復！ ", () => player.heal());
+        else if (dice === 2) attrs.choices = choices("ボムを得る", () => player.healBomb());
+        else if (dice === 3) attrs.choices = [arbitrarilyWatch("店主と噂話をする。", game, player)];
+        else if (dice === 4) attrs.choices = choices("何も起きなかった...");
+        else if (dice === 5) attrs.with("飲み過ぎ").choices = [randomDropItem("飲み過ぎてしまった。", game, player)];
+        else if (dice === 6) attrs.with("食あたり").choices = damagedOn2D("食あたりを起こした。", game, player);
+      })
+    }, {
       name: "人間の里",
       nextTo: ["無何有の郷", "川の畔の草原", "夜雀の屋台", "迷いの竹林", "春の湊", "命蓮寺", "稗田家", "香霖堂"],
     },

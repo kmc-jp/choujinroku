@@ -3,7 +3,7 @@ import { Player, PlayerActionTag } from "./player";
 import { Choice, choices } from "./choice";
 import { FieldAction } from "./fieldaction";
 import { Land, getLands, LandName, judgeTable } from "./land";
-import { ItemCategoryDict, Item, getItemsData, ItemCategory, Friend, getFriendsData } from "./item";
+import { ItemCategoryDict, Item, getItemsData, ItemCategory, Friend, getFriendsData, FriendName } from "./item";
 import * as _ from "underscore";
 import { Pos, PosType } from "./pos";
 import { SpellCard, getAllSpellCards } from "./spellcard";
@@ -351,6 +351,17 @@ export class Game {
         ));
     })
   }
+  @phase gainFriend(player: Player, friendName: FriendName) {
+    if (this.leftFriends.every(x => x.name !== friendName)) {
+      player.choices = choices(`${friendName}は既に居なかった...`);
+    } else if (player.friend != null) {
+      player.choices = choices(`既に${player.name}は${player.friend.name}を仲間にしていた...`)
+    } else {
+      player.friend = this.leftFriends.filter(x => x.name === friendName)[0];
+      this.leftFriends = this.leftFriends.filter(x => x.name !== friendName);
+      player.choices = choices(`${friendName}を仲間にした！ `);
+    }
+  }
   // 移動２でランダムにアイテムを失う
   @phase mayDropItem(player: Player) {
     if (player.items.length <= 0) return;
@@ -464,6 +475,7 @@ export class Game {
     });
   }
   // 残機が減った
+  // 残機減少無効は失敗している
   @phase damaged(player: Player, from?: Player, damage: number = 1) {
     player.life -= damage;
     player.isAbleToAction = false;

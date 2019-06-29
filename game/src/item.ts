@@ -20,6 +20,7 @@ export type ItemName =
   "忘れな草" | "ワンダースワン" | "サッカーボール" | "舟" | "星のかけら"
 export type FriendName =
   "大妖精" | "小悪魔" | "リリーホワイト" | "三月精" | "稗田阿求" | "犬走椛"
+export const FairyFriendNames: FriendName[] = ["大妖精", "リリーホワイト", "三月精"]
 export type ItemCategoryGenericDict<T> = { "本": T[], "品物": T[], "宝物": T[], "発明品": T[], }
 export type ItemCategoryDict = ItemCategoryGenericDict<Item>
 export type Item = Required<ItemBase<ItemName, ItemCategory>>
@@ -135,7 +136,6 @@ export function getItemsData(): ItemCategoryDict {
   }
   return result;
 }
-
 export function getFriendsData(): Friend[] {
   let tmp: ItemBase<FriendName, FriendCategory>[] = [
     { name: "大妖精" },
