@@ -147,7 +147,7 @@ export function drawACard(skillName: string, success: (a: Player, b: Player, c: 
     skillName: skillName,
     hook(this: Game, a: Player, b: Player, c: SpellCard): Choice<any>[] {
       if (!success(a, b, c)) return [];
-      return [new Choice(skillName + ":手札1枚ドロー", {}, () => {
+      return [new Choice(skillName + ":手札1枚ドロー", () => {
         this.drawACard(a);
       })];
     }

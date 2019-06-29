@@ -9,10 +9,10 @@ export function jouhariFieldAction(this: Game, player: Player): Choice<any>[] {
   let name = "浄玻璃の鏡"
   return this.getPlayersNextTo(player.pos)
     .filter(x => !player.watched.has(x.id))
-    .map(other => new Choice(`${other.name}に${name}を使用`, {}, () => {
+    .map(other => new Choice(`${other.name}に${name}を使用`, () => {
       player.choices = this.getDiceChoices(player, name,
         dice => {
-          if (dice.dice <= player.level) this.watch(player, other);
+          if (dice <= player.level) this.watch(player, other);
           this.doFieldAction(player);
         })
     }));

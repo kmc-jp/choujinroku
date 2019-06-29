@@ -64,10 +64,10 @@ function pick<T>(a: number, b: number, arr: T[]): T | null {
 function judgefunction(game: Game, player: Player, waitCount: number, itemNames: ItemName[], landName: LandName, category: ItemCategory): Choice<any>[] {
   return game.getTwoDiceChoices(player, landName + "判定をした！ ", d => {
     let [a, b] = [Math.max(d.a, d.b), Math.min(d.a, d.b)];
-    let anythingChoice = new Choice(`好きな${category}を得る！`, {}, () => {
+    let anythingChoice = new Choice(`好きな${category}を得る！`, () => {
       let lefts = game.leftItems[category];
       if (lefts.length === 0) player.choices = [message(`${category}が一つも${landName}に残ってなかった...`)];
-      else player.choices = lefts.map(left => new Choice(left.name + "を得る", {}, () => {
+      else player.choices = lefts.map(left => new Choice(left.name + "を得る", () => {
         let item = lefts.filter(x => x.name === left.name)[0];
         game.leftItems[category] = lefts.filter(x => x.name !== left.name);
         game.gainItem(player, item);
@@ -79,7 +79,7 @@ function judgefunction(game: Game, player: Player, waitCount: number, itemNames:
       [a, b] = [Math.max(a, b), Math.min(a, b)];
       if (a === b) return anythingChoice;
       if (a - b === 3) return goodsChoice;
-      return new Choice(`${target}を得る`, {}, () => {
+      return new Choice(`${target}を得る`, () => {
         if (game.leftItems[category].some(x => x.name === target)) {
           let lefts = game.leftItems[category];
           let item = lefts.filter(x => x.name === target)[0];
@@ -125,11 +125,11 @@ export const judgeTable = {
   }
 }
 function randomDropItem(context: string, game: Game, player: Player): Choice<any>[] {
-  return [new Choice(context + "アイテムを1個無作為で失なう", {}, () => {
+  return [new Choice(context + "アイテムを1個無作為で失なう", () => {
     if (player.items.length <= 0) player.choices = [message("アイテムを持ってなかった...")]
     else {
       let target = randomPick(player.items);
-      player.choices = [new Choice(`${target.name}を失った...`, {}, () => {
+      player.choices = [new Choice(`${target.name}を失った...`, () => {
         game.sendBackItem(player, target);
       })]
     }
@@ -140,27 +140,27 @@ function happenEvent(game: Game, player: Player): Choice<any>[] {
   return game.getTwoDiceChoices(player, "イベントが起きた！ ", d => {
     let x = d.a + d.b;
     if (x === 2) player.choices = [
-      new Choice("点が集まった。残機が1増える。", {}, () => {
+      new Choice("点が集まった。残機が1増える。", () => {
         player.heal();
       })];
     else if (x === 3) player.choices = [
-      new Choice("香霖堂の仕入れを手伝った。香霖堂判定表の結果に従う。手番はここで終了。", {}, () => {
+      new Choice("香霖堂の仕入れを手伝った。香霖堂判定表の結果に従う。手番はここで終了。", () => {
         player.isAbleToAction = false;
         player.choices = judgeTable["香霖堂"](game, player, 1);
       })];
     else if (x === 4) player.choices =
       randomDropItem("落とし物をしてしまった。", game, player);
     else if (x === 5) player.choices = [
-      new Choice("賢者に会った。他者1人の正体を教えてもらった。手番はここで終了。", {}, () => {
+      new Choice("賢者に会った。他者1人の正体を教えてもらった。手番はここで終了。", () => {
         let yets = game.players.filter(x => !player.watched.has(x.id));
         if (yets.length === 0) player.choices = [
-          new Choice("全員の正体を知っていた...", {}, () => {
+          new Choice("全員の正体を知っていた...", () => {
             player.isAbleToAction = false;
           })];
         else {
           let other = randomPick(yets);
           player.choices = [
-            new Choice(`${other.name}の正体を知った！ `, {}, () => {
+            new Choice(`${other.name}の正体を知った！ `, () => {
               game.watch(player, other)
               player.isAbleToAction = false;
             })
@@ -168,12 +168,12 @@ function happenEvent(game: Game, player: Player): Choice<any>[] {
         }
       })];
     else if (x === 6) player.choices = [
-      new Choice("お茶の時間を楽しんだ。", {}, () => {
+      new Choice("お茶の時間を楽しんだ。", () => {
         let sames = game.getPlayersAt(player.pos);
         if (sames.length <= 1) return;
         for (let same of sames) {
           same.choices = [
-            new Choice("お茶会で残機が1増えて手番が終了した！ ", {}, () => {
+            new Choice("お茶会で残機が1増えて手番が終了した！ ", () => {
               player.heal();
               player.isAbleToAction = false;
             })]
@@ -197,14 +197,14 @@ function getGoods(factor: string, game: Game, player: Player): Choice<any> {
   if (!player.isAbleToGetSomething) return message("品物は得られ無かった...");
   let item = game.leftItems["品物"].pop();
   if (!item) return message("世界に品物が残っていなかった...")
-  return new Choice(`${factor}品物を得た `, {}, () => {
+  return new Choice(`${factor}品物を得た `, () => {
     if (item) game.gainItem(player, item);
   });
 }
 function wrap1D(callback: (this: Land, game: Game, dice: number, player: Player, attrs: WithAttribute) => any) {
   return function (this: Land, game: Game, player: Player, attrs: WithAttribute): Choice<any>[] {
     return attrs.wrap(game.getDiceChoices(player, `${this.name}:1D`, d => {
-      callback.bind(this)(game, d.dice, player, attrs);
+      callback.bind(this)(game, d, player, attrs);
     }));
   }
 }
@@ -223,7 +223,7 @@ function 博麗神社1D(this: Land, game: Game, dice: number, player: Player, at
   else {
     let text = "宴会で飲みすぎて前後不覚になり戦闘履歴が無作為に一人分初期化される";
     attrs = attrs.with("飲み過ぎ");
-    attrs.choices = new Choice(text, {}, () => {
+    attrs.choices = new Choice(text, () => {
       let w = player.wonArray;
       if (w.length <= 0) {
         attrs.choices = [message("初期化される戦闘履歴が無かった...")];
@@ -232,7 +232,7 @@ function 博麗神社1D(this: Land, game: Game, dice: number, player: Player, at
       let target = game.players[randomPick(w)];
       attrs.choices = new Choice(
         `飲みすぎて${target.name}の戦闘履歴が初期化された`,
-        {}, () => player.won.delete(target.id));
+        () => player.won.delete(target.id));
     });
   }
 }
@@ -241,7 +241,7 @@ function 魔法の森2D(this: Land, game: Game, dice: TwoDice, player: Player, a
     player.choices = [message("毒茸を食べなかった！")];
     return;
   }
-  attrs.with("毒茸", "残機減少").choices = new Choice("うっかり毒茸を食べてしまい残機減少", {}, () => {
+  attrs.with("毒茸", "残機減少").choices = new Choice("うっかり毒茸を食べてしまい残機減少", () => {
     game.damaged(player);
   });
 }
@@ -250,13 +250,13 @@ function 月夜の森1D(this: Land, game: Game, dice: number, player: Player, at
     player.choices = [message("妖怪に攻撃されなかった！ ")];
     return;
   }
-  attrs.choices = new Choice("妖怪に攻撃されたけど未実装だった！", {}, () => { })
+  attrs.choices = message("妖怪に攻撃されたけど未実装だった！")
 }
 // 属性の付与を忘れずに！
 function 霧の湖1D(this: Land, game: Game, dice: number, player: Player, attrs: WithAttribute) {
   if (player.characterName === "チルノ") dice = 1;
   if (dice >= 5 && player.characterName === "パチュリー") attrs.choices = [message("5,6の出目は無視します")];
-  else if (dice === 1) attrs.choices = new Choice("大妖精が仲間に成りかけたが未実装だった！", {}, () => { });
+  else if (dice === 1) attrs.choices = new Choice("大妖精が仲間に成りかけたが未実装だった！", () => { });
   else if (dice === 2) attrs.choices = getGoods("", game, player);
   else if (dice === 3) attrs.choices = happenEvent(game, player);
   else if (dice === 4) attrs.choices = happenAccident(game, player);
