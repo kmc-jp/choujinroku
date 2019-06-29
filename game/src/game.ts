@@ -2,7 +2,7 @@ import { Character, getAllCharacters } from "./character";
 import { Player, PlayerActionTag } from "./player";
 import { Choice, message, UnaryFun } from "./choice";
 import { FieldAction } from "./fieldaction";
-import { Land, getLands } from "./land";
+import { Land, getLands, LandName, judgeTable } from "./land";
 import { ItemCategoryDict, Item, getItemsData, ItemCategory } from "./item";
 import * as _ from "underscore";
 import { Pos, PosType } from "./pos";
@@ -223,6 +223,7 @@ export class Game {
       new Choice("待機", {}, () => {
         player.actions.push("待機");
         player.addWaitCount();
+        this.waitAndGetItem(player);
         this.finishPlayerTurn(player);
       })]
     // 移動1 / 移動2
@@ -266,6 +267,21 @@ export class Game {
     if (!player.actions.includes("特殊能力の使用")) {
       player.choices.push(...this.parceFieldAction(player, player.fieldActions, "特殊能力の使用"))
     }
+  }
+  // 待機をして香霖堂/図書館/工房チェック
+  @phase waitAndGetItem(player: Player) {
+    let map = player.currentLand;
+    let lands: LandName[] = ["図書館", "香霖堂", "工房"];
+    if (!lands.some(x => map ? x === map.name : false)) return;
+    if (player.waitCount <= 0) return;
+    if (!map) return;
+    let name = map.name;
+    player.choices = [
+      message(`今は${name}判定をしない`),
+      new Choice(`${name}判定をする`, {}, () => {
+        player.choices = judgeTable[name === "香霖堂" ? "香霖堂" : name === "工房" ? "工房" : "図書館"](this, player, player.waitCount);
+      })
+    ]
   }
   // 手番を終了する / お見合い
   @phase finishPlayerTurn(player: Player) {
