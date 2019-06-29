@@ -225,7 +225,7 @@ export class Game {
     // 戦闘
     if (!player.actions.includes("戦闘")) {
       let versus = this.getPlayersAt(player.pos).filter(x => x.id !== player.id);
-      player.choices.push(...versus.map(target => new Choice("戦闘", { target: target.name }, () => {
+      player.choices.push(...versus.map(target => new Choice(`${target.name}と戦闘！`, { target: target.name }, () => {
         player.actions.push("戦闘");
         this.setupBattle(player, target);
         this.doFieldAction(player);
@@ -280,7 +280,7 @@ export class Game {
       // とりあえず5つまでしか持てないことにする
       if (player.items.length < 6) return;
       player.choices = player.items.map(x =>
-        new Choice("アイテムを捨てる", { item: x.name }, () =>
+        new Choice(`これ以上持てない！${x.name}を捨てる`, { item: x.name }, () =>
           this.discardItem(player, x)
         ));
     })]
@@ -380,7 +380,7 @@ export class Game {
     if (player.pos.x !== target.pos.x || player.pos.y !== target.pos.y) return;
     player.choices = player.pos.getNextTo()
       .filter(x => this.map[x.x][x.y] !== null)
-      .map(pos => new Choice("キックする", pos.raw, () => {
+      .map(pos => new Choice(`キックする (${pos.x, pos.y})`, pos.raw, () => {
         // 移動はするがそこの地形の効果は発動しない
         if (this.map[pos.x][pos.y] !== null) target.pos = pos;
       }));

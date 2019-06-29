@@ -87,7 +87,10 @@ function 魔法の森2D(this: Game, dice: TwoDice, player: Player, attrs: WithAt
   });
 }
 function 月夜の森1D(this: Game, dice: number, player: Player, attrs: WithAttribute) {
-  if (dice <= player.level) return;
+  if (dice <= player.level) {
+    player.choices = [message("妖怪に攻撃されなかった！ ")];
+    return;
+  }
   attrs.choices = new Choice("妖怪に攻撃されたけど未実装だった！", {}, () => { })
 }
 // 属性の付与を忘れずに！
