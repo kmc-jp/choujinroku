@@ -2,6 +2,7 @@ import { Game } from "./game";
 import { getAllCharacters } from "./character";
 import { Choice } from "./choice";
 import { toString } from "./util";
+import * as _ from "underscore"
 export class GameProxy {
   private game: Game;
   private constructor(game: Game) {
@@ -46,14 +47,29 @@ export class GameProxy {
     let out: string[] = [];
     this.game.players.forEach(x => { if (x.pos.isOutOfLand()) out.push(x.name) })
     let result = `盤外:${out.join(",")}\n`;
+    let mat = _.range(6).map(x => _.range(6).map(x => ""));
     for (let y = 0; y < 6; y++) {
       for (let x = 0; x < 6; x++) {
         let heres = this.game.players.filter(p => p.pos.x === x && p.pos.y === y)
-          .map(p => `${p.name}`).join(",")
-        if (heres !== "") heres = `(${heres})`
+          .map(p => `${p.name.slice(0, 1)}`).join("")
+        if (heres !== "") heres = ` ${heres} `
         let item = this.game.itemsOnMap[x][y];
         let map = this.game.map[x][y];
-        result += `[${map === null ? "" : map.name}${heres}${item === null ? "" : "!"}] `
+        let name = map === null ? "　　" : map.name.slice(0, 2);
+        let value = `${item === null ? " " : "!"}${name}${heres}`
+        mat[y][x] = value;
+      }
+    }
+    for (let x = 0; x < 6; x++) {
+      let maxLength = Math.max(..._.range(6).map(y => mat[y][x].length));
+      for (let y = 0; y < 6; y++) {
+        mat[y][x] = mat[y][x] + " ".repeat(Math.max(0, maxLength - mat[y][x].length))
+      }
+    }
+    for (let y = 0; y < 6; y++) {
+      result += "|"
+      for (let x = 0; x < 6; x++) {
+        result += `${mat[y][x]}|`
       }
       result += "\n"
     }

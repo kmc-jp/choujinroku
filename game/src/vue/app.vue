@@ -11,9 +11,6 @@
                 .icon: i.fab.fa-github
     .field.is-grouped
       .control(style="margin-top:0.5em;")
-        input.switch#showChoice(type="checkbox" checked="checked" @change="toglleShowChoices")
-        label(for="showChoice") 選択肢表示
-      .control(style="margin-top:0.5em;")
         input.switch#useAuto(type="checkbox" @change="toggleAutoMode")
         label(for="useAuto") オート進行
       .control
@@ -28,12 +25,8 @@
           @keyup.enter="onChangeCommand"
           )
     .field.is-grouped
-      .control
-        a.button.is-light(@click="showMap")
-          .icon: i.fas.fa-image
-          p ゲーム画面
       .control(v-for="i in playerNumber")
-        a.button.is-light(@click="showPlayer(i-1)" v-bind:style="getColor(i-1)")
+        a.button.is-light(@click="showPlayerInfo(i-1)" v-bind:style="getColor(i-1)")
           .icon: i.fas.fa-user
           p {{i}}P
       .control
@@ -41,15 +34,19 @@
           .icon: i.fas.fa-history
           p ログ
     .field
-      pre {{output}}
+      pre( v-html="map")
+    div(style="position:absolute;left:50vw;width:50vw;padding:0.8em")
+      .field(v-if="infoType=='Log'")
+        pre(style="max-height:20em;")
+          p(v-for="l in log" v-bind:style="parseLogToColor(l)") {{l}}
+      .field(v-if="infoType=='PlayerInfo'")
+        pre(v-bind:style="getColor(infoPlayerIndex)") {{info}}
     .field(v-for="choice,i in choices")
       .control
-        a.button.is-light(@click="decide(i)" v-bind:style="getColor(toPlayerId[i])")
+        a.button(@click="decide(i)" v-bind:style="getColor(toPlayerId[i])")
           .icon: i.fas.fa-question
           p {{choice}}
-    .field
-      pre(style="max-height:20em")
-        p(v-for="l in log" v-bind:style="parseLogToColor(l)") {{l}}
+
 </template>
 
 <script lang="ts">
@@ -60,21 +57,29 @@ import { GameProxy } from "../gameproxy";
 //　かなり巨大なオブジェクトで、これがVue管理下にあるコストは考えたほうがいい
 let gameProxy: GameProxy | null = null;
 
-type InfoType = "Log" | "PlayerInfo";
+type InfoType = "Log" | "PlayerInfo" | "Invisible";
 @Component({})
 export default class App extends Vue {
   command = "";
-  output = "";
+  map = "";
   infoType: InfoType = "Log";
   choices: string[] = [];
   toPlayerId: number[] = [];
   toChoiceId: number[] = [];
   log: string[] = [];
+  info = "";
+  infoPlayerIndex = 0;
   playerNumber = 0;
   isShowChoices = true;
   autoMode = false;
   showMap() {
-    this.output = gameProxy ? gameProxy.showMap() : "ゲーム未開始";
+    if (!gameProxy) return;
+    let map = gameProxy.showMap();
+    map = map.replace(/(\d)/g, (m, p) => {
+      let i = +m;
+      return `<span style="${this.getColor(i - 1)}">${i}</span>`;
+    });
+    this.map = map;
   }
   showChoice() {
     if (!gameProxy || !this.isShowChoices) return (this.choices = []);
@@ -98,12 +103,27 @@ export default class App extends Vue {
     gameProxy.decide(this.toPlayerId[i], this.toChoiceId[i]);
     this.update();
   }
-  showLog() {
+  updateLog() {
     if (!gameProxy) return;
     this.log = gameProxy.getLog();
   }
-  showPlayer(n: number) {
-    this.output = gameProxy ? gameProxy.showPlayer(n) : "ゲーム未開始";
+  hideInfo() {
+    this.infoType = "Invisible";
+  }
+  showLog() {
+    if (!gameProxy) return;
+    this.infoType = "Log";
+    this.updateLog();
+  }
+  updatePlayerInfo() {
+    this.info = gameProxy
+      ? gameProxy.showPlayer(this.infoPlayerIndex)
+      : "ゲーム未開始";
+  }
+  showPlayerInfo(n: number) {
+    this.infoType = "PlayerInfo";
+    this.infoPlayerIndex = n;
+    this.updatePlayerInfo();
   }
   toglleShowChoices() {
     this.isShowChoices = !this.isShowChoices;
@@ -115,7 +135,8 @@ export default class App extends Vue {
   update() {
     this.showMap();
     this.showChoice();
-    this.showLog();
+    this.updateLog();
+    this.updatePlayerInfo();
   }
   choiceRandom() {
     if (!gameProxy) return;
@@ -142,7 +163,7 @@ export default class App extends Vue {
     if (command === "" && gameProxy === null) command = "0 1 2";
     let c = command.split(" ");
     let tmp = GameProxy.tryToStart(c.map(x => parseInt(x)));
-    if (tmp === null) return (this.output = "ゲームを開始できなかった...");
+    if (tmp === null) return (this.info = "ゲームを開始できなかった...");
     gameProxy = tmp;
     this.playerNumber = gameProxy.getPlayerNumber();
     this.update();
