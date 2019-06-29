@@ -186,6 +186,9 @@ export class Game {
   // @phase の付いた関数は 全ての以前の選択が決定したのち(= 選択肢が空になったら)
   // 実行される。つまり他の選択肢に独立に実行できる。
   // よって player.choices を新たに追加することで選択肢を安全に作成できる。
+  // 基本的には player.choices に追加することになるが、
+  // 一人だけの決定で終わるわけではないので だれの選択肢でも増やせるようになっている
+  // (例:お見合いは次の全員の了承が必要)
   // 初期配置選択肢: 1Pから開始位置を選んでもらう -----------------------------
   @phase decideFirstPlace(player: Player) {
     player.choices = Pos.getOutSides().map(pos => new Choice(`初期配置位置選択(${pos.x},${pos.y})`, pos.raw, () => {
@@ -357,7 +360,7 @@ export class Game {
   // 戦闘 -----------------------------------------------------------------
   // 戦闘を仕掛けた WARN: 戦闘を仕掛けた結果戦闘を拒否されてもターンを消費してしまう
   @phase setupBattle(player: Player, target: Player) {
-    player.choices = [new Choice(`${target.name} に戦闘を仕掛けた！`, {}, () => {
+    player.choices = [new Choice(`${target.name}に戦闘を仕掛けた！`, {}, () => {
       // 呼び寄せに注意
       // 初期手札を渡す
       player.spellCards = [];
@@ -480,8 +483,13 @@ export class Game {
   }
   // ゲームを終了する
   @phase endGame() {
-    this.actionStack = [];
-    for (let p of this.players) p.choices = [];
-    alert("ゲームは正常に終了しました");
+    let i = 0;
+    this.players.map(player => {
+      player.choices = [new Choice("ゲームは終了しました。", {}, () => {
+        i += 1;
+        if (i !== this.players.length) return;
+        this.actionStack = [];
+      })];
+    })
   }
 }

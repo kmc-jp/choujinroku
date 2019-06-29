@@ -5,6 +5,7 @@ import { AttributeHook, Attribute, invalidate, WithAttribute, TwoDice } from "./
 import * as _ from "underscore";
 import { CharaName } from "./character";
 import { ItemName, ItemCategory } from "./item";
+import { randomPick } from "./util";
 
 export type LandName =
   "博麗神社" | "魔法の森" | "月夜の森" | "霧の湖" | "紅魔館入口" | "図書館" |
@@ -123,9 +124,68 @@ export const judgeTable = {
     return judgefunction(game, player, waitCount, inventions, "図書館", "本");
   }
 }
+function randomDropItem(context: string, game: Game, player: Player): Choice<any>[] {
+  return [new Choice(context + "アイテムを1個無作為で失なう", {}, () => {
+    if (player.items.length <= 0) player.choices = [message("アイテムを持ってなかった...")]
+    else {
+      let target = randomPick(player.items);
+      player.choices = [new Choice(`${target.name}を失った...`, {}, () => {
+        game.sendBackItem(player, target);
+      })]
+    }
+  })];
+}
 
 function happenEvent(game: Game, player: Player): Choice<any>[] {
-  return [message("イベント表は未実装だった！ ")];
+  return game.getTwoDiceChoices(player, "イベントが起きた！ ", d => {
+    let x = d.a + d.b;
+    if (x === 2) player.choices = [
+      new Choice("点が集まった。残機が1増える。", {}, () => {
+        player.heal();
+      })];
+    else if (x === 3) player.choices = [
+      new Choice("香霖堂の仕入れを手伝った。香霖堂判定表の結果に従う。手番はここで終了。", {}, () => {
+        player.isAbleToAction = false;
+        player.choices = judgeTable["香霖堂"](game, player, 1);
+      })];
+    else if (x === 4) player.choices =
+      randomDropItem("落とし物をしてしまった。", game, player);
+    else if (x === 5) player.choices = [
+      new Choice("賢者に会った。他者1人の正体を教えてもらった。手番はここで終了。", {}, () => {
+        let yets = game.players.filter(x => !player.watched.has(x.id));
+        if (yets.length === 0) player.choices = [
+          new Choice("全員の正体を知っていた...", {}, () => {
+            player.isAbleToAction = false;
+          })];
+        else {
+          let other = randomPick(yets);
+          player.choices = [
+            new Choice(`${other.name}の正体を知った！ `, {}, () => {
+              game.watch(player, other)
+              player.isAbleToAction = false;
+            })
+          ];
+        }
+      })];
+    else if (x === 6) player.choices = [
+      new Choice("お茶の時間を楽しんだ。", {}, () => {
+        let sames = game.getPlayersAt(player.pos);
+        if (sames.length <= 1) return;
+        for (let same of sames) {
+          same.choices = [
+            new Choice("お茶会で残機が1増えて手番が終了した！ ", {}, () => {
+              player.heal();
+              player.isAbleToAction = false;
+            })]
+        }
+      })];
+    // 7 : 魔法使いに会った。自身・アイテムの呪いを全て解いてもらう事ができる。呪いを解いてもらったら、手番はここで終了。
+    // 8 : 持ち主の判らない落とし物を見つけた。品物を1個得る。
+    // 9 : ボムの星を手に入れた。ボムが1増える。
+    // 10 : 河童達の研究を手伝った。工房判定表の結果に従う。手番はここで終了。
+    // 11 : 図書館の蔵書整理を手伝った。図書館判定表の結果に従う。手番はここで終了。
+    // 12 : スキマツアー。盤面上の開かれた任意のマスに出現する。
+  })
 }
 function happenAccident(game: Game, player: Player): Choice<any>[] {
   return [message("アクシデント表は未実装だった！ ")];
@@ -169,7 +229,7 @@ function 博麗神社1D(this: Land, game: Game, dice: number, player: Player, at
         attrs.choices = [message("初期化される戦闘履歴が無かった...")];
         return;
       }
-      let target = game.players[_.shuffle<number>(w)[0]];
+      let target = game.players[randomPick(w)];
       attrs.choices = new Choice(
         `飲みすぎて${target.name}の戦闘履歴が初期化された`,
         {}, () => player.won.delete(target.id));
