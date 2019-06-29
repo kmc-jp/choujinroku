@@ -33,5 +33,9 @@ export class Pos implements PosType {
   equal(pos: Pos): boolean {
     return this.x === pos.x && this.y === pos.y;
   }
+  // 上下左右
+  isNextTo(pos: Pos): boolean {
+    return Math.abs(pos.x - this.x) + Math.abs(pos.y - this.y) === 1
+  }
   get raw(): PosType { return { x: this.x, y: this.y } }
 }

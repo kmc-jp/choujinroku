@@ -1,13 +1,13 @@
 import { Character, getAllCharacters } from "./character";
 import { Player, PlayerActionTag } from "./player";
-import { Choice, message, messages } from "./choice";
+import { Choice, message, messages, choices } from "./choice";
 import { FieldAction } from "./fieldaction";
 import { Land, getLands, LandName, judgeTable } from "./land";
-import { ItemCategoryDict, Item, getItemsData, ItemCategory } from "./item";
+import { ItemCategoryDict, Item, getItemsData, ItemCategory, Friend, getFriendsData } from "./item";
 import * as _ from "underscore";
 import { Pos, PosType } from "./pos";
 import { SpellCard, getAllSpellCards } from "./spellcard";
-import { TwoDice, dice, twoDice } from "./hook";
+import { TwoDice, dice, twoDice, Attribute } from "./hook";
 
 // デコレータ
 function phase(target: Game, propertyKey: string, descriptor: PropertyDescriptor) {
@@ -25,11 +25,13 @@ export class Game {
   leftLands: Land[];
   leftItems: ItemCategoryDict;
   leftSpellCards: SpellCard[];
+  leftFriends: Friend[];
   usedSpellCards: SpellCard[] = [];
   actionStack: (() => any)[] = [];
   temporaryActionStack: (() => any)[] = [];
   turn: number = 0;
-  leftCharacters: Character[];
+  leftCharacters: Character[]; // 転生やランダムキャラの候補となりうるキャラクター
+  usedCharacters: Character[] = []; // 転生やランダムキャラで消え去ったキャラクター
   choiceLog: string[] = [];
   // 外部からのゲーム状態の更新はすべてこの関数を経由して行う
   // すなわち内部的には選択肢を選ぶことでのみゲームを進める
@@ -58,6 +60,7 @@ export class Game {
     while (this.leftLands.slice(0, 18).some(x => ["図書館", "香霖堂", "工房"].includes(x.name)))
       this.leftLands = _.shuffle(this.leftLands);
     this.leftItems = getItemsData();
+    this.leftFriends = getFriendsData();
     this.itemsOnMap = this.placeItemsOnMap();
     this.decideFirstPlace(this.players[0]);
     this.normalizeActionStack();
@@ -132,8 +135,7 @@ export class Game {
     let result: Choice[] = []
     for (let fieldAction of fieldActions) {
       let choices = fieldAction.bind(this)(player);
-      for (let choice of choices)
-        choice.wrap(() => { player.actions.push(tag); });
+      for (let choice of choices) choice.wrap(() => player.actions.push(tag));
       result.push(...choices);
     }
     return result;
@@ -150,13 +152,22 @@ export class Game {
   getOthers(player: Player): Player[] {
     return this.players.filter(x => x.id !== player.id);
   }
+  getOthersAtSamePos(player: Player): Player[] {
+    return this.getPlayersAt(player.pos).filter(x => x.id !== player.id);
+  }
+  getOthersAtNextTo(player: Player): Player[] {
+    return this.getPlayersNextTo(player.pos).filter(x => x.id !== player.id);
+  }
+  getOthersAtNextToOrSamePos(player: Player): Player[] {
+    return this.getOthersAtNextTo(player).concat(this.getOthersAtSamePos(player))
+  }
   getDiceChoices(player: Player, tag: string, action: (x: number) => void): Choice[] {
     let rolled = dice();
-    return [new Choice(tag + `ダイス確定(${rolled})`, () => { action(rolled); })];
+    return choices(tag + `ダイス確定(${rolled})`, () => action(rolled));
   }
   getTwoDiceChoices(player: Player, tag: string, action: (x: TwoDice) => void): Choice[] {
     let rolled = twoDice();
-    return [new Choice(tag + `ダイス確定(${rolled.a},${rolled.b})`, () => { action(rolled); })];
+    return choices(tag + `ダイス確定(${rolled.a},${rolled.b})`, () => action(rolled));
   }
   drawACard(player: Player) {
     // 山札からカードを1枚引く
@@ -169,7 +180,8 @@ export class Game {
     this.leftSpellCards = _.shuffle(this.usedSpellCards);
     this.drawACard(player);
   }
-  // アイテムを元の場所に戻す本体の処理
+  // アイテムを元の場所に戻す本体の処理。
+  // hook「アイテム損失」 が発生する
   sendBackItem(player: Player, item: Item) {
     player.items = player.items.filter(x => x.id !== item.id);
     this.leftItems[item.category].push(item);
@@ -215,13 +227,12 @@ export class Game {
       return;
     }
     // 必ず待機はできる
-    player.choices = [
-      new Choice("待機", () => {
-        player.actions.push("待機");
-        player.addWaitCount();
-        this.waitAndGetItem(player);
-        this.finishPlayerTurn(player);
-      })]
+    player.choices = choices("待機", () => {
+      player.actions.push("待機");
+      player.addWaitCount();
+      this.waitAndGetItem(player);
+      this.finishPlayerTurn(player);
+    })
     // 移動1 / 移動2
     let moveTag: PlayerActionTag = "移動1";
     if (player.actions.includes("移動1")) moveTag = "移動2"
@@ -309,11 +320,16 @@ export class Game {
       });
     });
   }
+  getNextPlayer(player: Player): Player {
+    return this.players[(player.id + 1) % this.players.length];
+  }
+  getPrePlayer(player: Player): Player {
+    return this.players[(player.id - 1 + this.players.length) % this.players.length];
+  }
   // 「手番終了後」の処理 / 手番交代
   @phase doAfterFinishedPlayerTurn(player: Player) {
     // 「手番終了後」の能力を処理
-    let nextId = (player.id + 1) % this.players.length;
-    this.doFieldAction(this.players[nextId]);
+    this.doFieldAction(this.getNextPlayer(player));
   }
   // アイテム -------------------------------------------------------------
   // アイテムを得る
@@ -323,7 +339,8 @@ export class Game {
       player.choices = messages(`移動2なので${item.name}は得られなかった...`);
       return;
     }
-    player.choices = [new Choice(`${item.name}を入手！`, () => {
+    // 星のかけらとか...
+    player.choices = choices(`${item.name}を入手！`, () => {
       player.items.push(item);
       // とりあえず5つまでしか持てないことにする
       if (player.items.length < 6) return;
@@ -332,7 +349,7 @@ export class Game {
         new Choice(`これ以上持てない！${x.name}を捨てる`, () =>
           this.sendBackItem(player, x)
         ));
-    })]
+    })
   }
   // 移動２でランダムにアイテムを失う
   @phase mayDropItem(player: Player) {
@@ -340,25 +357,25 @@ export class Game {
     player.choices = this.getDiceChoices(player, `${player.items.length}以下の出目でアイテムを失う！`, x => {
       let d = x - 1;
       if (d >= player.items.length) {
-        player.choices = [message("アイテムは失わなかった")];
+        player.choices = messages("アイテムは失わなかった");
         return;
       }
       let item = player.items[d];
-      player.choices = [new Choice(`${item.name}を失った...`, () => {
+      player.choices = choices(`${item.name}を失った...`, () => {
         this.sendBackItem(player, item)
-      })]
+      })
     })
   }
   // アイテムを奪う
   @phase stealItem(player: Player, target: Player, item: Item) {
     target.items = target.items.filter(x => x.id !== item.id);
     this.gainItem(player, item, false);
-    player.choices = [message(`${item.name}を${target.name}から奪った！`)]
+    player.choices = messages(`${item.name}を${target.name}から奪った！`)
   }
   // 戦闘 -----------------------------------------------------------------
   // 戦闘を仕掛けた WARN: 戦闘を仕掛けた結果戦闘を拒否されてもターンを消費してしまう
   @phase setupBattle(player: Player, target: Player) {
-    player.choices = [new Choice(`${target.name}に戦闘を仕掛けた！`, () => {
+    player.choices = choices(`${target.name}に戦闘を仕掛けた！`, () => {
       // 呼び寄せに注意
       // 初期手札を渡す
       player.spellCards = [];
@@ -376,7 +393,7 @@ export class Game {
       }
       // TODO: 弾幕カードがなければもう一度引き直す処理をしていない
       this.attack(player, target, false);
-    })];
+    });
   }
   // 戦闘が始まった
   @phase attack(player: Player, target: Player, isCounterAttack: boolean) {
@@ -403,18 +420,18 @@ export class Game {
     this.usedSpellCards.push(...target.spellCards);
     player.spellCards = [];
     target.spellCards = [];
-    player.choices = [message(`${target.name}との戦闘が終わった`)]
+    player.choices = messages(`${target.name}との戦闘が終わった`)
   }
   // 戦闘勝利履歴を得た
   @phase win(player: Player, target: Player) {
     player.won.add(target.id);
     target.isAbleToAction = false;
     player.choices = [
-      ...(player.watched.has(target.id) ? [] : [
-        new Choice("戦闘勝利->正体確認", () => {
+      ...(player.watched.has(target.id) ? [] :
+        choices("戦闘勝利->正体確認", () => {
           this.watch(player, target);
           this.kick(player, target);
-        })]),
+        })),
       // 必ずアイテムは奪えるとする(かっぱのリュックしかない時にNopにできてしまうので事前filterが居る)
       ...(target.items.map(item =>
         new Choice(`戦闘勝利->アイテム強奪 (${item.name})`, () => {
@@ -442,9 +459,9 @@ export class Game {
   // その他行動 --------------------------------------------------------------
   // 正体を確認した
   @phase watch(player: Player, target: Player) {
-    player.choices = [new Choice(`${target.name}の正体を確認した！`, () => {
+    player.choices = choices(`${target.name}の正体を確認した！`, () => {
       player.watched.add(target.id);
-    })];
+    });
   }
   // 残機が減った
   @phase damaged(player: Player, from?: Player, damage: number = 1) {
@@ -456,7 +473,23 @@ export class Game {
       return;
     }
     player.bomb = Math.max(2, player.bomb);
-    player.choices = [message(`${damage}ダメージを受けた`)];
+    player.choices = messages(`${damage}ダメージを受けた`);
+  }
+  // 土地を破壊した(誰がとかは無い)
+  @phase destroyLand(pos: Pos, attrs: Attribute[]) {
+    let heres = this.getPlayersAt(pos);
+    let map = this.map[pos.x][pos.y];
+    if (map) {
+      this.leftLands.push(map);
+      this.leftLands = _.shuffle(this.leftLands);
+      this.map[pos.x][pos.y] = null;
+    }
+    heres.forEach(x => {
+      x.with(...attrs, "地形破壊").choices =
+        choices("足元の地形が破壊された！", () => {
+          this.damaged(x);
+        })
+    })
   }
   // 土地を開いた(移動はしない)
   @phase openRandomLand(player: Player, pos: Pos) {
@@ -466,28 +499,28 @@ export class Game {
     let land = this.leftLands[this.leftLands.length - 1];
     this.leftLands.pop();
     this.map[x][y] = land;
-    player.choices = [message(`開けた土地は${land.name}だった！`)];
+    player.choices = messages(`開けた土地は${land.name}だった！`);
   }
   // 土地に入る(土地を新たに開くことはしない)
   @phase enterLand(player: Player, pos: Pos) {
     player.pos = pos;
     let map = this.map[pos.x][pos.y];
     if (map === null) return;
-    player.choices = [new Choice(`${map.name}に入った！ `, () => {
+    player.choices = choices(`${map.name}に入った！ `, () => {
       if (map === null) return;
       let attrs = player.with(map.name, "地形効果");
       player.choices = map.whenEnter.bind(map)(this, player, attrs);
-    })]
+    })
   }
   // ゲームを終了する
   @phase endGame() {
     let i = 0;
     this.players.map(player => {
-      player.choices = [new Choice("ゲームは終了しました。", () => {
+      player.choices = choices("ゲームは終了しました。", () => {
         i += 1;
         if (i !== this.players.length) return;
         this.actionStack = [];
-      })];
+      });
     })
   }
 }

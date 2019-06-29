@@ -32,7 +32,7 @@ export type Ailment =
   | "毒茸" | "飲み過ぎ" | "食あたり"
   | "残機減少" | "満身創痍" // 満身創痍はダメージを食らって死亡してから復活するので注意(場外には行く？ )
   | "大ナマズ" | "地形破壊" | "落とし穴"
-  | "PC戦闘" | "NPC戦闘" | "戦闘回避"
+  | "PC戦闘" | "NPC戦闘" | "戦闘回避" | "スキマ送り"
 export type Factor =
   "地形効果" | "特殊能力" | "アイテム" | "妖精" | "戦闘"
   | "トラップ" | "アクシデント" | "イベント"
@@ -128,7 +128,7 @@ export type HookBattle<T> = {
 // A が タイプ
 export type HookA<T> = {
   type: "A"
-  when: ("移動" | "待機" | "地形破壊" | "残機上昇" | "アイテム獲得" | "土地を開く")[]
+  when: ("移動" | "待機" | "地形破壊" | "残機上昇" | "アイテム獲得" | "アイテム損失" | "土地を開く")[]
   hook: (this: Game, a: Player, me: Player) => T;
   allowAisNotMe?: boolean;
   skillName?: string;

@@ -8,7 +8,9 @@ export function toString(obj: any): string {
     result.push(`${key}:${toString(obj[key])}`);
   return "{" + result.join(",") + "}";
 }
+export function random(n: number): number {
+  return Math.floor(Math.random() * n);
+}
 export function randomPick<T>(arr: T[]): T {
-  let i = Math.floor(Math.random() * arr.length);
-  return arr[i];
+  return arr[random(arr.length)];
 }

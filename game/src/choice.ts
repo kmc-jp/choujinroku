@@ -21,5 +21,8 @@ export function message(text: string): Choice {
 export function messages(...texts: string[]): Choice[] {
   return texts.map(text => new Choice(text, () => { }));
 }
+export function choices(message: string, callback: () => any): Choice[] {
+  return [new Choice(message, callback)]
+}
 // プレイヤーに提示すらせず続行するための空の選択肢
 export function nop(): Choice[] { return [] }

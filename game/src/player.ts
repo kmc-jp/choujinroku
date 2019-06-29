@@ -2,7 +2,7 @@ import { Character } from "./character";
 export type PlayerActionTag = "移動1" | "待機" | "移動2" | "戦闘" | "アイテム" | "特殊能力の使用"
 import { Choice } from "./choice";
 import { Attribute, AttributeHook, WithAttribute } from "./hook";
-import { Item, ItemName } from "./item";
+import { Item, ItemName, Friend } from "./item";
 import { toString } from "./util";
 import * as _ from "underscore";
 import { Game } from "./game";
@@ -31,6 +31,7 @@ export class Player {
   won: Set<number>  // 勝利している？
   items: Item[];
   choices: Choice[];
+  friend: Friend | null = null;
   bomb: number = 2;
   life: number = 3; //残機
   waitCount: number = 0;
@@ -65,6 +66,48 @@ export class Player {
     let up = land.powerUp.mentalUp;
     if (!up || up.every(x => x !== this.characterName)) return result;
     return result + 1;
+  }
+  swapPosition(target: Player) {
+    // WARN: 移動Hookが発動する？
+    let tmp = this.pos;
+    this.pos = target.pos;
+    target.pos = tmp;
+    if (this.pos.isOutOfLand()) this.isAbleToAction = false;
+    if (target.pos.isOutOfLand()) target.isAbleToAction = false;
+  }
+  swapItem(target: Player, playerItemIndex: number, targetItemIndex: number) {
+    if (playerItemIndex < 0 || playerItemIndex >= this.items.length) return;
+    if (targetItemIndex < 0 || targetItemIndex >= target.items.length) return;
+    let item = this.items.splice(playerItemIndex, 1)[0];
+    let titem = target.items.splice(targetItemIndex, 1)[0];
+    this.game.gainItem(this, titem, false);
+    this.game.gainItem(target, item, false);
+  }
+  swapCharacter(character: Character, lostFriend = true) {
+    this.game.usedCharacters.push(character);
+    this.character = character;
+    if (this.friend && lostFriend) {
+      this.game.leftFriends.push(this.friend);
+      this.friend = null;
+    }
+    this.watched = new Set();
+    this.won = new Set();
+    // これは残機減少ではない！
+    this.life = 3;
+    this.bomb = 2;
+    this.game.getOthers(this).forEach(other => {
+      other.watched.delete(this.id);
+      other.won.delete(this.id);
+    })
+  }
+  swapCharacterWithAnotherPlayer(target: Player) {
+    let a = this.character;
+    let b = target.character;
+    this.swapCharacter(b, false);
+    target.swapCharacter(a, false);
+    // 使用済みの中に分裂して入ってるので戻す
+    this.game.usedCharacters = this.game.usedCharacters.filter(
+      x => x.id !== a.id && x.id !== b.id);
   }
   getWaitCount(key: ItemName) { return this.waitCountIndexedByItem[key] || 0; }
   get pos() { return this.mPos; }

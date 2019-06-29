@@ -106,6 +106,8 @@ export function getAllCharacters(): Character[] {
       invalidate("さいきょーの妖精", ["呪い", "能力低下"], (_, a) => !a.includes("地形効果")),
     ]
   }]
+  // 紫は書いていないけどスキマ送り耐性を忘れないでね！
+  // 文はアクシデント6「他者が盛大に転んだマスに居合わせれば勝利、自分が盛大に転んだマスに他者が居たら敗北となる。」を忘れないで！
   let result: Character[] = [];
   tmp.forEach((x, i) => result.push({
     id: i,
