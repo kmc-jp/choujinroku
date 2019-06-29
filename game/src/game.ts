@@ -94,7 +94,11 @@ export class Game {
     }
   }
   private getMoveChoices(player: Player, poses: Pos[], tag: "移動1" | "移動2"): Choice<PosType>[] {
-    return _.uniq(poses).map(p => {
+    let tmp: any = poses.map(x => [x.x * 100 + x.y, x]);
+    tmp = Array.from(new Map(tmp).values());
+    poses = tmp;
+    return poses.map(p => {
+      // 見やすいようにタグを整形
       let addTag: string;
       let pos = player.pos;
       if (p.x - pos.x === 1 && p.y - pos.y === 0) addTag = "→";
@@ -108,11 +112,24 @@ export class Game {
       }
       return new Choice(`${tag} (${addTag})`, { x: p.x, y: p.y }, () => {
         player.actions.push(tag);
+        if (tag === "移動2") this.mayDropItem(player);
         this.openRandomLand(player, p);
         this.enterLand(player, p);
         this.doFieldAction(player)
       })
     });
+  }
+  private getNextToPos(land: Land): Pos[] {
+    let result: Pos[] = []
+    _.range(6).forEach(x => {
+      _.range(6).forEach(y => {
+        let here = this.map[x][y];
+        if (!here) return;
+        if (land.nextTo.includes(here.name))
+          result.push(new Pos(x, y));
+      })
+    })
+    return result;
   }
   private parceFieldAction(player: Player, fieldActions: FieldAction[], tag: PlayerActionTag): Choice<any>[] {
     let result: Choice<any>[] = []
@@ -140,11 +157,11 @@ export class Game {
   getOthers(player: Player): Player[] {
     return this.players.filter(x => x.id !== player.id);
   }
-  getDiceChoices(player: Player, tag: string, action: (x: { dice: number }) => any): Choice<{ dice: number }>[] {
+  getDiceChoices(player: Player, tag: string, action: (x: { dice: number }) => void): Choice<{ dice: number }>[] {
     let rolled = dice();
     return [new Choice(tag + `ダイス確定(${rolled})`, { dice: rolled }, action)];
   }
-  getTwoDiceChoices(player: Player, tag: string, action: (x: TwoDice) => any): Choice<TwoDice>[] {
+  getTwoDiceChoices(player: Player, tag: string, action: (x: TwoDice) => void): Choice<TwoDice>[] {
     let rolled = twoDice();
     return [new Choice(tag + `ダイス確定(${rolled.a},${rolled.b})`, rolled, action)];
   }
@@ -158,6 +175,12 @@ export class Game {
     }
     this.leftSpellCards = _.shuffle(this.usedSpellCards);
     this.drawACard(player);
+  }
+  // アイテムを元の場所に戻す本体の処理
+  sendBackItem(player: Player, item: Item) {
+    player.items = player.items.filter(x => x.id !== item.id);
+    this.leftItems[item.category].push(item);
+    this.leftItems[item.category] = _.shuffle(this.leftItems[item.category]);
   }
 
   // @phase の付いた関数は 全ての以前の選択が決定したのち(= 選択肢が空になったら)
@@ -209,17 +232,7 @@ export class Game {
       // 3手行動可能な時に移動1と移動2をしてるかもなのでこの条件
       let nextTo = player.pos.getNextTo();
       let map = player.currentLand;
-      if (map) {
-        let mapNextTo = map.nextTo;
-        _.range(6).forEach(x => {
-          _.range(6).forEach(y => {
-            let here = this.map[x][y];
-            if (!here) return;
-            if (mapNextTo.includes(here.name))
-              nextTo.push(new Pos(x, y));
-          })
-        })
-      }
+      if (map) nextTo.push(...this.getNextToPos(map))
       player.choices.push(...this.getMoveChoices(player, nextTo, moveTag))
     }
     // アイテム
@@ -297,23 +310,27 @@ export class Game {
       player.items.push(item);
       // とりあえず5つまでしか持てないことにする
       if (player.items.length < 6) return;
+      // アイテムを捨てる(呪いのアイテムは捨てられない！)
       player.choices = player.items.map(x =>
         new Choice(`これ以上持てない！${x.name}を捨てる`, { item: x.name }, () =>
-          this.discardItem(player, x)
+          this.sendBackItem(player, x)
         ));
     })]
   }
-  // アイテムを捨てる(呪いのアイテムは捨てられない！)
-  @phase discardItem(player: Player, item: Item) {
-    player.items = player.items.filter(x => x.id !== item.id);
-    this.leftItems[item.category].push(item);
-    player.choices = [message(`${item.name}を捨てた！`)]
-  }
-  // アイテムを落とす
-  @phase dropItem(player: Player, item: Item) {
-    // とりあえずね
-    this.discardItem(player, item);
-    player.choices = [message(`${item.name}を落とした！`)]
+  // 移動２でランダムにアイテムを失う
+  @phase mayDropItem(player: Player) {
+    if (player.items.length <= 0) return;
+    player.choices = this.getDiceChoices(player, `${player.items.length}以下の出目でアイテムを失う！`, x => {
+      let d = x.dice - 1;
+      if (d >= player.items.length) {
+        player.choices = [message("アイテムは失わなかった")];
+        return;
+      }
+      let item = player.items[d];
+      player.choices = [new Choice(`${item.name}を失った...`, {}, () => {
+        this.sendBackItem(player, item)
+      })]
+    })
   }
   // アイテムを奪う
   @phase stealItem(player: Player, target: Player, item: Item) {
@@ -404,6 +421,7 @@ export class Game {
       }));
     player.choices.push(new Choice("キックはしない", {}, () => { }))
   }
+
   // その他行動 --------------------------------------------------------------
   // 正体を確認した
   @phase watch(player: Player, target: Player) {

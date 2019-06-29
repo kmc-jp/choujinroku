@@ -45,28 +45,32 @@ function happenAccident(game: Game, player: Player): Choice<any>[] {
 function happenTrap(game: Game, player: Player): Choice<any>[] {
   return [message("トラップ表は未実装だった！ ")];
 }
-function getGoods(game: Game, player: Player): Choice<any>[] {
+function getGoods(factor: string, game: Game, player: Player): Choice<any>[] {
   if (!player.isAbleToGetSomething) return [message("品物は得られ無かった...")];
-  return [message("品物を得るのは未実装だった...")];
+  let item = game.leftItems["品物"].pop();
+  if (!item) return [message("世界に品物が残っていなかった...")]
+  return [new Choice(`${factor}品物を得た `, {}, () => {
+    if (item) game.gainItem(player, item);
+  })];
 }
-function wrap1D(callback: (this: Game, dice: number, player: Player, attrs: WithAttribute) => any) {
+function wrap1D(callback: (this: Land, game: Game, dice: number, player: Player, attrs: WithAttribute) => any) {
   return function (this: Land, game: Game, player: Player, attrs: WithAttribute): Choice<any>[] {
     return attrs.wrap(game.getDiceChoices(player, `${this.name}:1D`, d => {
-      callback.bind(game)(d.dice, player, attrs);
+      callback.bind(this)(game, d.dice, player, attrs);
     }));
   }
 }
-function wrap2D(callback: (this: Game, dice: TwoDice, player: Player, attrs: WithAttribute) => any) {
+function wrap2D(callback: (this: Land, game: Game, dice: TwoDice, player: Player, attrs: WithAttribute) => any) {
   return function (this: Land, game: Game, player: Player, attrs: WithAttribute): Choice<any>[] {
     return attrs.wrap(game.getTwoDiceChoices(player, `${this.name}:2D`, d => {
-      callback.bind(game)(d, player, attrs);
+      callback.bind(this)(game, d, player, attrs);
     }));
   }
 }
 // 属性の付与を忘れずに！
-function 博麗神社1D(this: Game, dice: number, player: Player, attrs: WithAttribute) {
-  if (dice === 1) attrs.choices = 工房判定(this, player);
-  else if (dice <= 3) attrs.choices = getGoods(this, player);
+function 博麗神社1D(this: Land, game: Game, dice: number, player: Player, attrs: WithAttribute) {
+  if (dice === 1) attrs.choices = 工房判定(game, player);
+  else if (dice <= 3) attrs.choices = getGoods("", game, player);
   else if (dice <= 5) attrs.choices = [message("外の世界の品物を発見したが使い途が判らず捨てた")];
   else {
     let text = "宴会で飲みすぎて前後不覚になり戦闘履歴が無作為に一人分初期化される";
@@ -77,23 +81,23 @@ function 博麗神社1D(this: Game, dice: number, player: Player, attrs: WithAtt
         attrs.choices = [message("初期化される戦闘履歴が無かった...")];
         return;
       }
-      let target = this.players[_.shuffle<number>(w)[0]];
+      let target = game.players[_.shuffle<number>(w)[0]];
       attrs.choices = new Choice(
         `飲みすぎて${target.name}の戦闘履歴が初期化された`,
         {}, () => player.won.delete(target.id));
     });
   }
 }
-function 魔法の森2D(this: Game, dice: TwoDice, player: Player, attrs: WithAttribute) {
+function 魔法の森2D(this: Land, game: Game, dice: TwoDice, player: Player, attrs: WithAttribute) {
   if (dice.a !== dice.b) {
     player.choices = [message("毒茸を食べなかった！")];
     return;
   }
   attrs.with("毒茸", "残機減少").choices = new Choice("うっかり毒茸を食べてしまい残機減少", {}, () => {
-    this.damaged(player);
+    game.damaged(player);
   });
 }
-function 月夜の森1D(this: Game, dice: number, player: Player, attrs: WithAttribute) {
+function 月夜の森1D(this: Land, game: Game, dice: number, player: Player, attrs: WithAttribute) {
   if (dice <= player.level) {
     player.choices = [message("妖怪に攻撃されなかった！ ")];
     return;
@@ -101,13 +105,13 @@ function 月夜の森1D(this: Game, dice: number, player: Player, attrs: WithAtt
   attrs.choices = new Choice("妖怪に攻撃されたけど未実装だった！", {}, () => { })
 }
 // 属性の付与を忘れずに！
-function 霧の湖1D(this: Game, dice: number, player: Player, attrs: WithAttribute) {
+function 霧の湖1D(this: Land, game: Game, dice: number, player: Player, attrs: WithAttribute) {
   if (player.characterName === "チルノ") dice = 1;
   if (dice >= 5 && player.characterName === "パチュリー") attrs.choices = [message("5,6の出目は無視します")];
   else if (dice === 1) attrs.choices = new Choice("大妖精が仲間に成りかけたが未実装だった！", {}, () => { });
-  else if (dice === 2) attrs.choices = getGoods(this, player);
-  else if (dice === 3) attrs.choices = happenEvent(this, player);
-  else if (dice === 4) attrs.choices = happenAccident(this, player);
+  else if (dice === 2) attrs.choices = getGoods("", game, player);
+  else if (dice === 3) attrs.choices = happenEvent(game, player);
+  else if (dice === 4) attrs.choices = happenAccident(game, player);
   else if (dice === 5) attrs.with("幻覚", "手番休み", "妖精").choices = [message("妖精に悪戯されたけど未実装だった！ ")];
   else if (dice === 6) attrs.choices = [message("妖精に攻撃されたけど未実装だった！ ")];
 }
