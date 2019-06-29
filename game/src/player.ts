@@ -83,8 +83,18 @@ export class Player {
     this.game.gainItem(this, titem, false);
     this.game.gainItem(target, item, false);
   }
+  swapRandomCharacter() {
+    let character = this.game.leftCharacters.pop();
+    if (!character) {
+      this.game.leftCharacters.push(...this.game.usedCharacters);
+      this.game.usedCharacters = [];
+      character = this.game.leftCharacters.pop();
+    }
+    if (!character) return;
+    this.swapCharacter(character);
+  }
   swapCharacter(character: Character, lostFriend = true) {
-    this.game.usedCharacters.push(character);
+    this.game.usedCharacters.push(this.character);
     this.character = character;
     if (this.friend && lostFriend) {
       this.game.leftFriends.push(this.friend);
