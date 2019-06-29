@@ -77,7 +77,7 @@ export default class App extends Vue {
     let map = gameProxy.showMap();
     map = map.replace(/(\d)/g, (m, p) => {
       let i = +m;
-      return `<span style="${this.getColor(i - 1)}">${i}</span>`;
+      return `<span style="background-${this.getColor(i - 1)}">${i}</span>`;
     });
     this.map = map;
   }

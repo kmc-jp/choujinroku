@@ -5,7 +5,8 @@ import { AttributeHook, Attribute, invalidate, WithAttribute, TwoDice } from "./
 import * as _ from "underscore";
 import { CharaName } from "./character";
 
-export type LandName = "博麗神社" | "魔法の森" | "月夜の森" | "霧の湖" | "温泉" | "？？？"
+export type LandName =
+  "博麗神社" | "魔法の森" | "月夜の森" | "霧の湖" | "温泉" | "？？？"
 export type LandAttribute = "花マス" | "森マス" | "水マス"
 export type Land = Required<LandBase>
 export type PowerUp = {
@@ -50,7 +51,7 @@ function wrap1D(callback: (this: Game, dice: number, player: Player, attrs: With
 }
 function wrap2D(callback: (this: Game, dice: TwoDice, player: Player, attrs: WithAttribute) => any) {
   return function (this: Land, game: Game, player: Player, attrs: WithAttribute): Choice<any>[] {
-    return attrs.wrap(game.getTwoDiceChoices(player, `${this.name}:1D`, d => {
+    return attrs.wrap(game.getTwoDiceChoices(player, `${this.name}:2D`, d => {
       callback.bind(game)(d, player, attrs);
     }));
   }
@@ -77,7 +78,10 @@ function 博麗神社1D(this: Game, dice: number, player: Player, attrs: WithAtt
   }
 }
 function 魔法の森2D(this: Game, dice: TwoDice, player: Player, attrs: WithAttribute) {
-  if (dice.a !== dice.b) return;
+  if (dice.a !== dice.b) {
+    player.choices = [message("毒茸を食べなかった！")];
+    return;
+  }
   attrs.with("毒茸", "残機減少").choices = new Choice("うっかり毒茸を食べてしまい残機減少", {}, () => {
     this.damaged(player);
   });

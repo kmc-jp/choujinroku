@@ -58,7 +58,9 @@ export function getAllCharacters(): Character[] {
     // まだ: G常ダイス反転 / B戦(夢想天生)
     attributeHooks: [
       invalidate("楽園の素敵な巫女", ["能力低下"], p => p.items.some(x => x.name === "銘酒")),
-      invalidate1D("空を飛ぶ程度の能力", ["残機減少", ["地形破壊", "落とし穴", "大ナマズ"]], (p, d) => d <= p.level),
+      invalidate1D("空を飛ぶ程度の能力",
+        [["残機減少", "地形破壊"], ["残機減少", "落とし穴"], ["残機減少", "大ナマズ"]],
+        (p, d) => d <= p.level),
       invalidate2D("楽園の素敵な巫女", ["満身創痍"], (p, d) => d.a + d.b <= p.mental)
     ],
     specificActions: [

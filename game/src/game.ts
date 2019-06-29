@@ -94,12 +94,13 @@ export class Game {
   private getMoveChoices(player: Player, poses: Pos[], tag: "移動1" | "移動2"): Choice<PosType>[] {
     // WARN 同一の場所を示す選択肢を生むかも
     return poses.map(p => {
-      let addTag = "";
+      let addTag: string;
       let pos = player.pos;
       if (p.x - pos.x === 1 && p.y - pos.y === 0) addTag = "(→)";
-      if (p.x - pos.x === -1 && p.y - pos.y === 0) addTag = "(←)";
-      if (p.x - pos.x === 0 && p.y - pos.y === 1) addTag = "(↓)";
-      if (p.x - pos.x === 0 && p.y - pos.y === -1) addTag = "(↑)";
+      else if (p.x - pos.x === -1 && p.y - pos.y === 0) addTag = "(←)";
+      else if (p.x - pos.x === 0 && p.y - pos.y === 1) addTag = "(↓)";
+      else if (p.x - pos.x === 0 && p.y - pos.y === -1) addTag = "(↑)";
+      else addTag = `(${p.x},${p.y})`
       return new Choice(tag + addTag, { x: p.x, y: p.y }, () => {
         player.actions.push(tag);
         this.openRandomLand(player, p);
@@ -159,7 +160,7 @@ export class Game {
   // よって player.choices を新たに追加することで選択肢を安全に作成できる。
   // 初期配置選択肢: 1Pから開始位置を選んでもらう -----------------------------
   @phase decideFirstPlace(player: Player) {
-    player.choices = Pos.getOutSides().map(pos => new Choice(`初期配置位置選択(x:${pos.x},y:${pos.y})`, pos.raw, () => {
+    player.choices = Pos.getOutSides().map(pos => new Choice(`初期配置位置選択(${pos.x},${pos.y})`, pos.raw, () => {
       player.pos = pos;
       if (player.id < this.players.length - 1) {
         this.decideFirstPlace(this.players[player.id + 1]);
@@ -364,7 +365,7 @@ export class Game {
         })]),
       // 必ずアイテムは奪えるとする(かっぱのリュックしかない時にNopにできてしまうので事前filterが居る)
       ...(target.items.map(item =>
-        new Choice("戦闘勝利->アイテム強奪", { item: item.name }, () => {
+        new Choice(`戦闘勝利->アイテム強奪 (${item.name})`, {}, () => {
           this.stealItem(player, target, item);
           this.kick(player, target);
         })
