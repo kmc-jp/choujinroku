@@ -2,7 +2,7 @@ import { Character, getAllCharacters } from "./character";
 import { Player, PlayerActionTag } from "./player";
 import { Choice, choices } from "./choice";
 import { FieldAction } from "./fieldaction";
-import { Land, getLands, LandName, judgeTable } from "./land";
+import { Land, getLands, LandName, EventWrapper } from "./land";
 import { ItemCategoryDict, Item, getItemsData, ItemCategory, Friend, getFriendsData, FriendName } from "./item";
 import * as _ from "underscore";
 import { Pos, PosType } from "./pos";
@@ -286,7 +286,7 @@ export class Game {
     player.choices = [
       new Choice(`今は${name}判定をしない`),
       new Choice(`${name}判定をする`, () => {
-        player.choices = judgeTable[name === "香霖堂" ? "香霖堂" : name === "工房" ? "工房" : "図書館"](this, player, player.waitCount);
+        player.choices = new EventWrapper(this, player).judge(name === "香霖堂" ? "香霖堂" : name === "工房" ? "工房" : "図書館", player.waitCount)
       })
     ]
   }
@@ -520,8 +520,8 @@ export class Game {
     if (map === null) return;
     player.choices = choices(`${map.name}に入った！ `, () => {
       if (map === null) return;
-      let attrs = player.with(map.name, "地形効果");
-      player.choices = map.whenEnter.bind(map)(this, player, attrs);
+      player.with(map.name, "地形効果").choices =
+        map.whenEnter.bind(new EventWrapper(this, player))();
     })
   }
   // ゲームを終了する
