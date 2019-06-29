@@ -35,15 +35,15 @@
           p ログ
     .field
       pre( v-html="map")
-    div(style="position:absolute;left:50vw;width:50vw;padding:0.8em")
+    div(style="z-index:50;position:absolute;left:50vw;width:50vw;padding:0.8em")
       .field(v-if="infoType=='Log'")
         pre(style="max-height:20em;")
           p(v-for="l in log" v-bind:style="parseLogToColor(l)") {{l}}
       .field(v-if="infoType=='PlayerInfo'")
         pre(v-bind:style="getColor(infoPlayerIndex)") {{info}}
-    .field(v-for="choice,i in choices")
+    .field(style="z-index:0;" v-for="choice,i in choices")
       .control
-        a.button(@click="decide(i)" v-bind:style="getColor(toPlayerId[i])")
+        a.button(style="z-index:100;" @click="decide(i)" v-bind:style="getColor(toPlayerId[i])")
           .icon: i.fas.fa-question
           p {{choice}}
 
