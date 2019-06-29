@@ -6,6 +6,7 @@ import * as _ from "underscore";
 import { CharaName } from "./character";
 import { ItemName, ItemCategory } from "./item";
 import { randomPick } from "./util";
+import { Pos } from "./pos";
 
 export type LandName =
   "博麗神社" | "魔法の森" | "月夜の森" | "霧の湖" | "紅魔館入口" | "図書館" |
@@ -102,21 +103,21 @@ function judgefunction(game: Game, player: Player, waitCount: number, itemNames:
 }
 
 export const judgeTable = {
-  "工房": function judgeStudio(game: Game, player: Player, waitCount: number): Choice[] {
+  "工房"(game: Game, player: Player, waitCount: number): Choice[] {
     let inventions: ItemName[] = [
       "リボン", "デジカメ", "河童のリュック", "手作りの人形",
       "ドロワーズ", "光学迷彩スーツ", "猫車", "PAD",
       "のびーるアーム", "もんぺ", "携帯電話", "ミニ八卦炉"];
     return judgefunction(game, player, waitCount, inventions, "工房", "発明品");
   },
-  "図書館": function judgeLibrary(game: Game, player: Player, waitCount: number): Choice[] {
+  "図書館"(game: Game, player: Player, waitCount: number): Choice[] {
     let inventions: ItemName[] = [
       "呪法書", "スペカ事典", "同人誌", "幻想郷の歩き方",
       "超整理術", "鉄人レシピ", "スポ根漫画", "エア巻物",
       "カリスマの秘訣", "武術指南書", "文々。新聞", "求聞史記"];
     return judgefunction(game, player, waitCount, inventions, "図書館", "本");
   },
-  "香霖堂": function judgeKorindo(game: Game, player: Player, waitCount: number): Choice[] {
+  "香霖堂"(game: Game, player: Player, waitCount: number): Choice[] {
     let inventions: ItemName[] = [
       "浄玻璃の鏡", "天狗の腕章", "聖の宝塔", "神社の御札",
       "ZUN帽", "銘酒", "死神の舟", "蓬莱の薬",
@@ -144,7 +145,7 @@ function happenEvent(game: Game, player: Player): Choice[] {
         player.heal();
       })];
     else if (x === 3) player.choices = [
-      new Choice("香霖堂の仕入れを手伝った。香霖堂判定表の結果に従う。手番はここで終了。", () => {
+      new Choice("香霖堂の仕入れを手伝った。手番はここで終了。", () => {
         player.isAbleToAction = false;
         player.choices = judgeTable["香霖堂"](game, player, 1);
       })];
@@ -181,15 +182,34 @@ function happenEvent(game: Game, player: Player): Choice[] {
         }
       })];
     else if (x === 7) player.choices = [
-      // WARN まだ
+      // WARN: まだ
       message("未実装の魔法使いに会った。自身・アイテムの呪いを全て解いてもらう事ができる。呪いを解いてもらったら、手番はここで終了。")
     ]
     else if (x === 8) player.choices = [getGoods("持ち主の判らない落とし物を見つけた。", game, player)];
-
-    // 9 : ボムの星を手に入れた。ボムが1増える。
-    // 10 : 河童達の研究を手伝った。工房判定表の結果に従う。手番はここで終了。
-    // 11 : 図書館の蔵書整理を手伝った。図書館判定表の結果に従う。手番はここで終了。
-    // 12 : スキマツアー。盤面上の開かれた任意のマスに出現する。
+    else if (x === 9) player.choices = [new Choice("ボムの星を手に入れた。ボムが1増える。", () => { player.healBomb(); })]
+    else if (x === 10) player.choices = [
+      new Choice("河童達の研究を手伝った。手番はここで終了。", () => {
+        player.isAbleToAction = false;
+        player.choices = judgeTable["工房"](game, player, 1);
+      })];
+    else if (x === 11) player.choices = [
+      new Choice("図書館の蔵書整理を手伝った。手番はここで終了。", () => {
+        player.isAbleToAction = false;
+        player.choices = judgeTable["図書館"](game, player, 1);
+      })];
+    else player.choices = [
+      new Choice("スキマツアー。盤面上の開かれた任意のマスに出現する。", () => {
+        let openMat = _.range(6).map(x => _.range(6).filter(y => game.map[x][y] !== null).map(y => {
+          let map = game.map[x][y];
+          return { x: x, y: y, name: map ? map.name : "" }
+        }));
+        player.choices = [];
+        openMat.forEach(ms => {
+          player.choices.push(...ms.map(m => new Choice(`スキマツアー (${m.name})`, () => {
+            game.enterLand(player, new Pos(m.x, m.y));
+          })))
+        })
+      })]
   })
 }
 function happenAccident(game: Game, player: Player): Choice[] {
