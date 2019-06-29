@@ -1,6 +1,6 @@
 import { Character, getAllCharacters } from "./character";
 import { Player, PlayerActionTag } from "./player";
-import { Choice, message } from "./choice";
+import { Choice, message, messages } from "./choice";
 import { FieldAction } from "./fieldaction";
 import { Land, getLands, LandName, judgeTable } from "./land";
 import { ItemCategoryDict, Item, getItemsData, ItemCategory } from "./item";
@@ -8,9 +8,6 @@ import * as _ from "underscore";
 import { Pos, PosType } from "./pos";
 import { SpellCard, getAllSpellCards } from "./spellcard";
 import { TwoDice, dice, twoDice } from "./hook";
-
-// アイテム / キャラ効果 / 地形効果 / 仲間 / 勝利条件 / 戦闘
-type AnyAction = (() => any);
 
 // デコレータ
 function phase(target: Game, propertyKey: string, descriptor: PropertyDescriptor) {
@@ -29,8 +26,8 @@ export class Game {
   leftItems: ItemCategoryDict;
   leftSpellCards: SpellCard[];
   usedSpellCards: SpellCard[] = [];
-  actionStack: AnyAction[] = [];
-  temporaryActionStack: AnyAction[] = [];
+  actionStack: (() => any)[] = [];
+  temporaryActionStack: (() => any)[] = [];
   turn: number = 0;
   leftCharacters: Character[];
   choiceLog: string[] = [];
@@ -93,7 +90,7 @@ export class Game {
       this.temporaryActionStack = [];
     }
   }
-  private getMoveChoices(player: Player, poses: Pos[], tag: "移動1" | "移動2"): Choice<PosType>[] {
+  private getMoveChoices(player: Player, poses: Pos[], tag: "移動1" | "移動2"): Choice[] {
     let tmp: any = poses.map(x => [x.x * 100 + x.y, x]);
     tmp = Array.from(new Map(tmp).values());
     poses = tmp;
@@ -131,8 +128,8 @@ export class Game {
     })
     return result;
   }
-  private parceFieldAction(player: Player, fieldActions: FieldAction[], tag: PlayerActionTag): Choice<any>[] {
-    let result: Choice<any>[] = []
+  private parceFieldAction(player: Player, fieldActions: FieldAction[], tag: PlayerActionTag): Choice[] {
+    let result: Choice[] = []
     for (let fieldAction of fieldActions) {
       let choices = fieldAction.bind(this)(player);
       for (let choice of choices)
@@ -153,11 +150,11 @@ export class Game {
   getOthers(player: Player): Player[] {
     return this.players.filter(x => x.id !== player.id);
   }
-  getDiceChoices(player: Player, tag: string, action: (x: number) => void): Choice<{ dice: number }>[] {
+  getDiceChoices(player: Player, tag: string, action: (x: number) => void): Choice[] {
     let rolled = dice();
     return [new Choice(tag + `ダイス確定(${rolled})`, () => { action(rolled); })];
   }
-  getTwoDiceChoices(player: Player, tag: string, action: (x: TwoDice) => void): Choice<TwoDice>[] {
+  getTwoDiceChoices(player: Player, tag: string, action: (x: TwoDice) => void): Choice[] {
     let rolled = twoDice();
     return [new Choice(tag + `ダイス確定(${rolled.a},${rolled.b})`, () => { action(rolled); })];
   }
@@ -244,7 +241,7 @@ export class Game {
           player.actions.push("アイテム");
           let { x, y } = player.pos;
           this.itemsOnMap[x][y] = null;
-          this.gainItem(player, itemHere!); // nullなわけないだろ！
+          this.gainItem(player, itemHere!, false); // nullなわけないだろ！
           this.doFieldAction(player);
         }));
       }
@@ -320,7 +317,12 @@ export class Game {
   }
   // アイテム -------------------------------------------------------------
   // アイテムを得る
-  @phase gainItem(player: Player, item: Item) {
+  @phase gainItem(player: Player, item: Item, checkMove2: boolean = true) {
+    if (checkMove2 && !player.isAbleToGetSomething) {
+      this.leftItems[item.category].push(item);
+      player.choices = messages(`移動2なので${item.name}は得られなかった...`);
+      return;
+    }
     player.choices = [new Choice(`${item.name}を入手！`, () => {
       player.items.push(item);
       // とりあえず5つまでしか持てないことにする
@@ -350,7 +352,7 @@ export class Game {
   // アイテムを奪う
   @phase stealItem(player: Player, target: Player, item: Item) {
     target.items = target.items.filter(x => x.id !== item.id);
-    this.gainItem(player, item);
+    this.gainItem(player, item, false);
     player.choices = [message(`${item.name}を${target.name}から奪った！`)]
   }
   // 戦闘 -----------------------------------------------------------------

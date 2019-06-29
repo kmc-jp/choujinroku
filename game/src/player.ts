@@ -30,7 +30,7 @@ export class Player {
   watched: Set<number>; // 正体確認している？
   won: Set<number>  // 勝利している？
   items: Item[];
-  choices: Choice<any>[];
+  choices: Choice[];
   bomb: number = 2;
   life: number = 3; //残機
   waitCount: number = 0;
@@ -88,6 +88,10 @@ export class Player {
   heal() {
     if (this.isAbleToGetSomething) this.life = Math.min(5, this.life + 1);
   }
+  healBomb() {
+    if (this.isAbleToGetSomething) this.bomb = Math.min(5, this.bomb + 1);
+  }
+
   isAbleToGetSomething(): boolean {
     return !this.actions.includes("移動2");
   }
@@ -105,12 +109,12 @@ export class Player {
     if (this.pos.isOutOfLand()) return null;
     return this.game.map[this.pos.x][this.pos.y];
   }
-  checkAttributeHooks(choices: Choice<any>[], attrs: Attribute[]): Choice<any>[] {
+  checkAttributeHooks(choices: Choice[], attrs: Attribute[]): Choice[] {
     // TODO: ダイスロールに成功したら、が未実装
     // キャラとアイテムのHookを確認
     attrs = _.uniq(attrs);
-    let result: Choice<any>[] = [];
-    let forced: Choice<any>[] = [];
+    let result: Choice[] = [];
+    let forced: Choice[] = [];
     let applyHook = (hook: AttributeHook) => {
       for (let when of hook.when) {
         if (typeof (when) === "string") {

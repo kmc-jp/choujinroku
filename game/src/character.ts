@@ -1,4 +1,4 @@
-import { message, Choice } from "./choice";
+import { message, messages } from "./choice";
 import { AttributeHook, Attribute, SpecificActionHook, invalidate, invalidate1D, WinLoseHook, invalidate2D, drawACard, waitToWin, gatherToWin, allWatchAndAllWinToWin } from "./hook"
 import { Game } from "./game";
 import { Player } from "./player";
@@ -40,9 +40,9 @@ export function getAllCharacters(): Character[] {
     choices(this: Game, player: Player) {
       return this.getTwoDiceChoices(player, "大食い", dice => {
         let success = dice.a + dice.b <= player.level
-        if (!success) return [message("大食いをした！ ")]
+        if (!success) return messages("大食いをした！ ")
         player.heal();
-        return [message("大食いをして残機が1増えた！ ")]
+        return messages("大食いをして残機が1増えた！ ")
       })
     }
   };

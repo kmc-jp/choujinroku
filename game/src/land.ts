@@ -1,6 +1,6 @@
 import { Game } from "./game";
 import { Player } from "./player";
-import { Choice, message, nop } from "./choice";
+import { Choice, message, nop, messages } from "./choice";
 import { AttributeHook, Attribute, invalidate, WithAttribute, TwoDice } from "./hook";
 import * as _ from "underscore";
 import { CharaName } from "./character";
@@ -31,8 +31,8 @@ type LandBase = {
   landAttributes?: LandAttribute[];
   ignores?: CharaName[]; // 「上記効果無効」のキャラリスト
   powerUp?: PowerUp;
-  whenEnter?: (this: Land, game: Game, player: Player, attrs: WithAttribute) => Choice<any>[];
-  whenExit?: (this: Land, game: Game, player: Player, attrs: WithAttribute) => Choice<any>[];
+  whenEnter?: (this: Land, game: Game, player: Player, attrs: WithAttribute) => Choice[];
+  whenExit?: (this: Land, game: Game, player: Player, attrs: WithAttribute) => Choice[];
 }
 function pick<T>(a: number, b: number, arr: T[]): T | null {
   [a, b] = [Math.max(a, b), Math.min(a, b)];
@@ -61,12 +61,12 @@ function pick<T>(a: number, b: number, arr: T[]): T | null {
   return null;
 }
 
-function judgefunction(game: Game, player: Player, waitCount: number, itemNames: ItemName[], landName: LandName, category: ItemCategory): Choice<any>[] {
+function judgefunction(game: Game, player: Player, waitCount: number, itemNames: ItemName[], landName: LandName, category: ItemCategory): Choice[] {
   return game.getTwoDiceChoices(player, landName + "判定をした！ ", d => {
     let [a, b] = [Math.max(d.a, d.b), Math.min(d.a, d.b)];
     let anythingChoice = new Choice(`好きな${category}を得る！`, () => {
       let lefts = game.leftItems[category];
-      if (lefts.length === 0) player.choices = [message(`${category}が一つも${landName}に残ってなかった...`)];
+      if (lefts.length === 0) player.choices = messages(`${category}が一つも${landName}に残ってなかった...`);
       else player.choices = lefts.map(left => new Choice(left.name + "を得る", () => {
         let item = lefts.filter(x => x.name === left.name)[0];
         game.leftItems[category] = lefts.filter(x => x.name !== left.name);
@@ -74,7 +74,7 @@ function judgefunction(game: Game, player: Player, waitCount: number, itemNames:
       }));
     });
     let goodsChoice = getGoods("", game, player);
-    function pickChoice(a: number, b: number): Choice<any> {
+    function pickChoice(a: number, b: number): Choice {
       let target = pick(a, b, itemNames);
       [a, b] = [Math.max(a, b), Math.min(a, b)];
       if (a === b) return anythingChoice;
@@ -86,7 +86,7 @@ function judgefunction(game: Game, player: Player, waitCount: number, itemNames:
           game.leftItems[category] = lefts.filter(x => x.name !== target);
           game.gainItem(player, item);
         } else {
-          player.choices = [message(`${target}は${landName}に残ってなかった...`)]
+          player.choices = messages(`${target}は${landName}に残ってなかった...`)
         }
       })
     }
@@ -102,21 +102,21 @@ function judgefunction(game: Game, player: Player, waitCount: number, itemNames:
 }
 
 export const judgeTable = {
-  "工房": function judgeStudio(game: Game, player: Player, waitCount: number): Choice<any>[] {
+  "工房": function judgeStudio(game: Game, player: Player, waitCount: number): Choice[] {
     let inventions: ItemName[] = [
       "リボン", "デジカメ", "河童のリュック", "手作りの人形",
       "ドロワーズ", "光学迷彩スーツ", "猫車", "PAD",
       "のびーるアーム", "もんぺ", "携帯電話", "ミニ八卦炉"];
     return judgefunction(game, player, waitCount, inventions, "工房", "発明品");
   },
-  "図書館": function judgeLibrary(game: Game, player: Player, waitCount: number): Choice<any>[] {
+  "図書館": function judgeLibrary(game: Game, player: Player, waitCount: number): Choice[] {
     let inventions: ItemName[] = [
       "呪法書", "スペカ事典", "同人誌", "幻想郷の歩き方",
       "超整理術", "鉄人レシピ", "スポ根漫画", "エア巻物",
       "カリスマの秘訣", "武術指南書", "文々。新聞", "求聞史記"];
     return judgefunction(game, player, waitCount, inventions, "図書館", "本");
   },
-  "香霖堂": function judgeKorindo(game: Game, player: Player, waitCount: number): Choice<any>[] {
+  "香霖堂": function judgeKorindo(game: Game, player: Player, waitCount: number): Choice[] {
     let inventions: ItemName[] = [
       "浄玻璃の鏡", "天狗の腕章", "聖の宝塔", "神社の御札",
       "ZUN帽", "銘酒", "死神の舟", "蓬莱の薬",
@@ -124,9 +124,9 @@ export const judgeTable = {
     return judgefunction(game, player, waitCount, inventions, "図書館", "本");
   }
 }
-function randomDropItem(context: string, game: Game, player: Player): Choice<any>[] {
+function randomDropItem(context: string, game: Game, player: Player): Choice[] {
   return [new Choice(context + "アイテムを1個無作為で失なう", () => {
-    if (player.items.length <= 0) player.choices = [message("アイテムを持ってなかった...")]
+    if (player.items.length <= 0) player.choices = messages("アイテムを持ってなかった...")
     else {
       let target = randomPick(player.items);
       player.choices = [new Choice(`${target.name}を失った...`, () => {
@@ -136,7 +136,7 @@ function randomDropItem(context: string, game: Game, player: Player): Choice<any
   })];
 }
 
-function happenEvent(game: Game, player: Player): Choice<any>[] {
+function happenEvent(game: Game, player: Player): Choice[] {
   return game.getTwoDiceChoices(player, "イベントが起きた！ ", d => {
     let x = d.a + d.b;
     if (x === 2) player.choices = [
@@ -153,19 +153,20 @@ function happenEvent(game: Game, player: Player): Choice<any>[] {
     else if (x === 5) player.choices = [
       new Choice("賢者に会った。他者1人の正体を教えてもらった。手番はここで終了。", () => {
         let yets = game.players.filter(x => !player.watched.has(x.id));
-        if (yets.length === 0) player.choices = [
-          new Choice("全員の正体を知っていた...", () => {
-            player.isAbleToAction = false;
-          })];
-        else {
-          let other = randomPick(yets);
+        if (yets.length === 0) {
           player.choices = [
-            new Choice(`${other.name}の正体を知った！ `, () => {
-              game.watch(player, other)
+            new Choice("全員の正体を知っていた...", () => {
               player.isAbleToAction = false;
-            })
-          ];
+            })];
+          return;
         }
+        let other = randomPick(yets);
+        player.choices = [
+          new Choice(`${other.name}の正体を知った！ `, () => {
+            game.watch(player, other)
+            player.isAbleToAction = false;
+          })
+        ];
       })];
     else if (x === 6) player.choices = [
       new Choice("お茶の時間を楽しんだ。", () => {
@@ -179,21 +180,25 @@ function happenEvent(game: Game, player: Player): Choice<any>[] {
             })]
         }
       })];
-    // 7 : 魔法使いに会った。自身・アイテムの呪いを全て解いてもらう事ができる。呪いを解いてもらったら、手番はここで終了。
-    // 8 : 持ち主の判らない落とし物を見つけた。品物を1個得る。
+    else if (x === 7) player.choices = [
+      // WARN まだ
+      message("未実装の魔法使いに会った。自身・アイテムの呪いを全て解いてもらう事ができる。呪いを解いてもらったら、手番はここで終了。")
+    ]
+    else if (x === 8) player.choices = [getGoods("持ち主の判らない落とし物を見つけた。", game, player)];
+
     // 9 : ボムの星を手に入れた。ボムが1増える。
     // 10 : 河童達の研究を手伝った。工房判定表の結果に従う。手番はここで終了。
     // 11 : 図書館の蔵書整理を手伝った。図書館判定表の結果に従う。手番はここで終了。
     // 12 : スキマツアー。盤面上の開かれた任意のマスに出現する。
   })
 }
-function happenAccident(game: Game, player: Player): Choice<any>[] {
-  return [message("アクシデント表は未実装だった！ ")];
+function happenAccident(game: Game, player: Player): Choice[] {
+  return messages("アクシデント表は未実装だった！ ");
 }
-function happenTrap(game: Game, player: Player): Choice<any>[] {
-  return [message("トラップ表は未実装だった！ ")];
+function happenTrap(game: Game, player: Player): Choice[] {
+  return messages("トラップ表は未実装だった！ ");
 }
-function getGoods(factor: string, game: Game, player: Player): Choice<any> {
+function getGoods(factor: string, game: Game, player: Player): Choice {
   if (!player.isAbleToGetSomething) return message("品物は得られ無かった...");
   let item = game.leftItems["品物"].pop();
   if (!item) return message("世界に品物が残っていなかった...")
@@ -202,14 +207,14 @@ function getGoods(factor: string, game: Game, player: Player): Choice<any> {
   });
 }
 function wrap1D(callback: (this: Land, game: Game, dice: number, player: Player, attrs: WithAttribute) => any) {
-  return function (this: Land, game: Game, player: Player, attrs: WithAttribute): Choice<any>[] {
+  return function (this: Land, game: Game, player: Player, attrs: WithAttribute): Choice[] {
     return attrs.wrap(game.getDiceChoices(player, `${this.name}:1D`, d => {
       callback.bind(this)(game, d, player, attrs);
     }));
   }
 }
 function wrap2D(callback: (this: Land, game: Game, dice: TwoDice, player: Player, attrs: WithAttribute) => any) {
-  return function (this: Land, game: Game, player: Player, attrs: WithAttribute): Choice<any>[] {
+  return function (this: Land, game: Game, player: Player, attrs: WithAttribute): Choice[] {
     return attrs.wrap(game.getTwoDiceChoices(player, `${this.name}:2D`, d => {
       callback.bind(this)(game, d, player, attrs);
     }));
@@ -218,50 +223,52 @@ function wrap2D(callback: (this: Land, game: Game, dice: TwoDice, player: Player
 // 属性の付与を忘れずに！
 function 博麗神社1D(this: Land, game: Game, dice: number, player: Player, attrs: WithAttribute) {
   if (dice === 1) attrs.choices = judgeTable["工房"](game, player, 1);
-  else if (dice <= 3) attrs.choices = getGoods("", game, player);
-  else if (dice <= 5) attrs.choices = [message("外の世界の品物を発見したが使い途が判らず捨てた")];
+  else if (dice <= 3) attrs.choices = [getGoods("", game, player)];
+  else if (dice <= 5) attrs.choices = messages("外の世界の品物を発見したが使い途が判らず捨てた");
   else {
     let text = "宴会で飲みすぎて前後不覚になり戦闘履歴が無作為に一人分初期化される";
     attrs = attrs.with("飲み過ぎ");
-    attrs.choices = new Choice(text, () => {
+    attrs.choices = [new Choice(text, () => {
       let w = player.wonArray;
       if (w.length <= 0) {
-        attrs.choices = [message("初期化される戦闘履歴が無かった...")];
+        attrs.choices = messages("初期化される戦闘履歴が無かった...");
         return;
       }
       let target = game.players[randomPick(w)];
-      attrs.choices = new Choice(
+      attrs.choices = [new Choice(
         `飲みすぎて${target.name}の戦闘履歴が初期化された`,
-        () => player.won.delete(target.id));
-    });
+        () => player.won.delete(target.id))
+      ];
+    })];
   }
 }
 function 魔法の森2D(this: Land, game: Game, dice: TwoDice, player: Player, attrs: WithAttribute) {
   if (dice.a !== dice.b) {
-    player.choices = [message("毒茸を食べなかった！")];
+    player.choices = messages("毒茸を食べなかった！");
     return;
   }
-  attrs.with("毒茸", "残機減少").choices = new Choice("うっかり毒茸を食べてしまい残機減少", () => {
-    game.damaged(player);
-  });
+  attrs.with("毒茸", "残機減少").choices = [
+    new Choice("うっかり毒茸を食べてしまい残機減少", () => {
+      game.damaged(player);
+    })];
 }
 function 月夜の森1D(this: Land, game: Game, dice: number, player: Player, attrs: WithAttribute) {
   if (dice <= player.level) {
-    player.choices = [message("妖怪に攻撃されなかった！ ")];
+    player.choices = messages("妖怪に攻撃されなかった！ ");
     return;
   }
-  attrs.choices = message("妖怪に攻撃されたけど未実装だった！")
+  attrs.choices = messages("妖怪に攻撃されたけど未実装だった！")
 }
 // 属性の付与を忘れずに！
 function 霧の湖1D(this: Land, game: Game, dice: number, player: Player, attrs: WithAttribute) {
   if (player.characterName === "チルノ") dice = 1;
-  if (dice >= 5 && player.characterName === "パチュリー") attrs.choices = [message("5,6の出目は無視します")];
-  else if (dice === 1) attrs.choices = new Choice("大妖精が仲間に成りかけたが未実装だった！", () => { });
-  else if (dice === 2) attrs.choices = getGoods("", game, player);
+  if (dice >= 5 && player.characterName === "パチュリー") attrs.choices = messages("5,6の出目は無視します");
+  else if (dice === 1) attrs.choices = [new Choice("大妖精が仲間に成りかけたが未実装だった！", () => { })];
+  else if (dice === 2) attrs.choices = [getGoods("", game, player)];
   else if (dice === 3) attrs.choices = happenEvent(game, player);
   else if (dice === 4) attrs.choices = happenAccident(game, player);
-  else if (dice === 5) attrs.with("幻覚", "手番休み", "妖精").choices = [message("妖精に悪戯されたけど未実装だった！ ")];
-  else if (dice === 6) attrs.choices = [message("妖精に攻撃されたけど未実装だった！ ")];
+  else if (dice === 5) attrs.with("幻覚", "手番休み", "妖精").choices = messages("妖精に悪戯されたけど未実装だった！ ");
+  else if (dice === 6) attrs.choices = messages("妖精に攻撃されたけど未実装だった！ ");
 }
 
 
@@ -340,14 +347,14 @@ export function getLands(): Land[] {
     if (x.ignores.length > 0) {
       if (x.whenEnter) {
         let original = x.whenEnter;
-        x.whenEnter = function (this: Land, game: Game, player: Player, attrs: WithAttribute): Choice<any>[] {
+        x.whenEnter = function (this: Land, game: Game, player: Player, attrs: WithAttribute): Choice[] {
           if ((x.ignores || []).some(y => y === player.characterName)) return [];
           return original.bind(this)(game, player, attrs);
         }
       }
       if (x.whenExit) {
         let original = x.whenExit;
-        x.whenExit = function (this: Land, game: Game, player: Player, attrs: WithAttribute): Choice<any>[] {
+        x.whenExit = function (this: Land, game: Game, player: Player, attrs: WithAttribute): Choice[] {
           if ((x.ignores || []).some(y => y === player.characterName)) return [];
           return original.bind(this)(game, player, attrs);
         }

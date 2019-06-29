@@ -25,7 +25,7 @@ export type AttributeHook = {
   // [[A,B],[C],[D,E,F]] なら( (A and B) or C or (D and E and F))な状態を表す
   when: (Attribute | Attribute[])[];
   // 提示される選択肢(嫌なアクションを選ばなくてよいという点で無効化成功の選択肢があると嬉しい)
-  choices: (this: Game, player: Player, attributes?: Attribute[]) => Choice<any>[]
+  choices: (this: Game, player: Player, attributes?: Attribute[]) => Choice[]
 }
 export type Ailment =
   "幻覚" | "呪い" | "能力低下" | "迷い" | "手番休み"
@@ -79,11 +79,10 @@ export class WithAttribute {
     this.player = player;
     this.attrs = attributes;
   }
-  set choices(value: Choice<any> | Choice<any>[]) {
+  set choices(value: Choice[]) {
     this.player.choices = this.wrap(value);
   }
-  wrap(value: Choice<any> | Choice<any>[]): Choice<any>[] {
-    if (!(value instanceof Array)) value = [value];
+  wrap(value: Choice[]): Choice[] {
     return this.player.checkAttributeHooks(value, this.attrs);
   }
   with(...attributes: Attribute[]): WithAttribute {
@@ -137,7 +136,7 @@ export type HookA<T> = {
 }
 export type ActionHook<T> = HookAbyB<T> | HookAtoB<T> | HookA<T> | HookBattle<T>
 export type WinLoseHook = ActionHook<boolean>
-export type SpecificActionHook = ActionHook<Choice<any>[]>
+export type SpecificActionHook = ActionHook<Choice[]>
 
 // 条件を満たしたら手札1枚ドロー
 export function drawACard(skillName: string, success: (a: Player, b: Player, c: SpellCard) => boolean): SpecificActionHook {
@@ -145,7 +144,7 @@ export function drawACard(skillName: string, success: (a: Player, b: Player, c: 
     type: "Battle",
     when: "Attack",
     skillName: skillName,
-    hook(this: Game, a: Player, b: Player, c: SpellCard): Choice<any>[] {
+    hook(this: Game, a: Player, b: Player, c: SpellCard): Choice[] {
       if (!success(a, b, c)) return [];
       return [new Choice(skillName + ":手札1枚ドロー", () => {
         this.drawACard(a);
