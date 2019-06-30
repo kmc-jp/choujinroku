@@ -135,7 +135,7 @@ export class Game {
     let result: Choice[] = []
     for (let fieldAction of fieldActions) {
       let choices = fieldAction.bind(this)(player);
-      for (let choice of choices) choice.wrap(() => player.actions.push(tag));
+      for (let choice of choices) choice.wrapBefore(() => player.actions.push(tag));
       result.push(...choices);
     }
     return result;

@@ -99,6 +99,6 @@ export class GameProxy {
   showAll(): string {
     return `# status\n${this.showStatus()}\n# map\n${this.showMap()}\n# choice\n${this.showChoices()}`;
   }
-  static getAvailableCharacters(): string { return getAllCharacters().map(x => `${toString(x)}`).join("\n"); }
+  static getAvailableCharacters(): string[] { return getAllCharacters().map(x => `${toString(x)}`); }
 
 }
