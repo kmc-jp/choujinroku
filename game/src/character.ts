@@ -97,7 +97,7 @@ export function getAllCharacters(): Character[] {
     role: "妖怪",
     spellCard: "ディマーケイション",
     level: 2,
-    mental: 7
+    mental: 7,
   }, {
     name: "チルノ",
     fullname: "チルノ",
@@ -110,6 +110,42 @@ export function getAllCharacters(): Character[] {
       invalidate("さいきょーの妖精", ["妖精"]),
       invalidate("さいきょーの妖精", ["呪い", "能力低下"], (_, a) => !a.includes("地形効果")),
     ]
+    // まだ:色々
+  }, {
+    name: "美鈴",
+    fullname: "紅美鈴",
+    role: "妖怪",
+    spellCard: "飛花落葉",
+    level: 3,
+    mental: 6,
+  }, {
+    name: "パチュリー",
+    fullname: "パチュリー・ノーレッジ",
+    role: "野次馬",
+    spellCard: "賢者の石",
+    level: 5,
+    mental: 5,
+  }, {
+    name: "咲夜",
+    fullname: "十六夜咲夜",
+    role: "主人公",
+    spellCard: "殺人ドール",
+    level: 4,
+    mental: 7,
+  }, {
+    name: "レミリア",
+    fullname: "レミリア・スカーレット",
+    role: "野次馬",
+    spellCard: "紅色の幻想郷",
+    level: 5,
+    mental: 6,
+  }, {
+    name: "フラン",
+    fullname: "フランドール・スカーレット",
+    role: "野次馬",
+    spellCard: "そして誰もいなくなるか？",
+    level: 5,
+    mental: 5,
   }]
   // 紫は書いていないけどスキマ送り耐性を忘れないでね！
   // 文はアクシデント6「他者が盛大に転んだマスに居合わせれば勝利、自分が盛大に転んだマスに他者が居たら敗北となる。」を忘れないで！

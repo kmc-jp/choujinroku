@@ -53,7 +53,8 @@
 import Vue from "vue";
 import Component from "vue-class-component";
 import { GameProxy } from "../gameproxy";
-
+import { getAllCharacters } from "../character";
+import * as _ from "underscore";
 //　かなり巨大なオブジェクトで、これがVue管理下にあるコストは考えたほうがいい
 let gameProxy: GameProxy | null = null;
 
@@ -160,7 +161,12 @@ export default class App extends Vue {
   }
   onChangeCommand() {
     let command = this.command.replace(/\s\s/g, " ").trim();
-    if (command === "" && gameProxy === null) command = "0 1 2";
+    if (command === "" && gameProxy === null) {
+      let charas = getAllCharacters();
+      command = _.shuffle(charas)
+        .slice(0, 4)
+        .join(" ");
+    }
     let c = command.split(" ");
     let tmp = GameProxy.tryToStart(c.map(x => parseInt(x)));
     if (tmp === null) return (this.info = "ゲームを開始できなかった...");
