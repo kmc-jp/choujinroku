@@ -86,10 +86,11 @@ export class GameProxy {
       "[ " + x.choices.map((x, i) => `${i}:${x}`).join("\n  ") + " ]"
       }`).join("\n");
   }
-  getLog(n: number = 250): string[] {
+  getLog(n: number = 1000): string[] {
     let result: string[] = []
     for (let i = 0; i < Math.min(n, this.game.choiceLog.length); i++) {
-      result.push(this.game.choiceLog[this.game.choiceLog.length - 1 - i]);
+      let j = this.game.choiceLog.length - 1 - i;
+      result.push(this.game.choiceLog[j].replace(":", `:${j}:`));
     }
     return result;
   }
