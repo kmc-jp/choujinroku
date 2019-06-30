@@ -161,13 +161,27 @@ export class Game {
   getOthersAtNextToOrSamePos(player: Player): Player[] {
     return this.getOthersAtNextTo(player).concat(this.getOthersAtSamePos(player))
   }
-  getDiceChoices(player: Player, tag: string, action: (x: number) => void): Choice[] {
+  getDiceChoices(player: Player, tag: string, action: (x: number) => void, allowBomb = true): Choice[] {
     let rolled = dice();
-    return choices(tag + `ダイス確定(${rolled})`, () => action(rolled));
+    let result = [new Choice(tag + `ダイス確定(${rolled})`, () => action(rolled))]
+    if (allowBomb && player.bomb > 0) {
+      result.push(new Choice(tag + `:ボムを使って振り直す`, () => {
+        player.bomb--;
+        player.choices = this.getDiceChoices(player, tag, action, false);
+      }))
+    }
+    return result;
   }
-  getTwoDiceChoices(player: Player, tag: string, action: (x: TwoDice) => void): Choice[] {
+  getTwoDiceChoices(player: Player, tag: string, action: (x: TwoDice) => void, allowBomb = true): Choice[] {
     let rolled = twoDice();
-    return choices(tag + `ダイス確定(${rolled.a},${rolled.b})`, () => action(rolled));
+    let result = [new Choice(tag + `ダイス確定(${rolled.a},${rolled.b})`, () => action(rolled))]
+    if (allowBomb && player.bomb > 0) {
+      result.push(new Choice(tag + `:ボムを使って振り直す`, () => {
+        player.bomb--;
+        player.choices = this.getTwoDiceChoices(player, tag, action, false);
+      }))
+    }
+    return result;
   }
   drawACard(player: Player) {
     // 山札からカードを1枚引く
@@ -317,7 +331,7 @@ export class Game {
             .forEach(x => this.watch(p, x));
         }
         this.doAfterFinishedPlayerTurn(player);
-      });
+      }, false);
     });
   }
   getNextPlayer(player: Player): Player {
@@ -375,7 +389,7 @@ export class Game {
       player.choices = choices(`${item.name}を失った...`, () => {
         this.sendBackItem(player, item)
       })
-    })
+    }, false)
   }
   // アイテムを奪う
   @phase stealItem(player: Player, target: Player, item: Item) {
@@ -403,28 +417,62 @@ export class Game {
           this.drawACard(target);
       }
       // TODO: 弾幕カードがなければもう一度引き直す処理をしていない
-      this.attack(player, target, false);
+      this.battle(player, target);
     });
   }
   // 戦闘が始まった
-  @phase attack(player: Player, target: Player, isCounterAttack: boolean) {
-    // 使うカードを決める(コストが足りるなら)
-    // 使おうとする -> [成功,失敗]
-    // なんやかんやあって最終的に勝敗を決定するが、ひとまず
-    player.choices = [
-      new Choice("戦闘勝利", () => {
-        this.finishBattle(player, target);
-        this.win(player, target);
-      }),
-      new Choice("戦闘敗北", () => {
+  @phase battle(player: Player, target: Player, spellCard?: SpellCard) {
+    let cans = player.spellCards.filter(sc =>
+      player.spellCards.reduce((x, y) => x + y.star, 0) - sc.star >= sc.level
+    ).filter(sc => sc.cardTypes.includes("弾幕") || sc.cardTypes.includes("武術"))
+    let isRevenge = spellCard ? true : false
+    let tag = isRevenge ? "反撃" : "攻撃";
+    if (spellCard) { // 攻撃された
+      cans = cans.filter(sc => sc.level > spellCard.level)
+    }
+    // スペカを出せなかった...
+    if (cans.length === 0) {
+      player.choices = choices(`出せるスペルカードがなかった...${isRevenge ? "攻撃を食らった..." : ""}`)
+      this.finishBattle(player, target);
+      if (isRevenge) this.win(target, player);
+      return;
+    }
+    // スペカを出す！
+    player.choices = cans.map(sc => {
+      let view = `${sc.name}(LV${sc.level})`
+      if (sc.level <= player.level) // 普通に攻撃
+        return new Choice(`${view}で${tag}！`, () => {
+          this.battle(target, player, sc);
+        })
+      else { // 精神力チェック
+        let tryLoop = (left: number) => {
+          player.choices = this.getTwoDiceChoices(player, `${view}`, dice => {
+            let d = dice.a + dice.b;
+            if (d > player.mental) { // 失敗
+              player.choices = choices(`精神力が足りなかった...${isRevenge ? "攻撃を食らった..." : ""}`, () => {
+                this.finishBattle(player, target);
+                if (isRevenge) this.win(target, player);
+              })
+            } else if (left <= 1) { // 成功
+              player.choices = choices(`${view}で${tag}！`, () => {
+                this.battle(target, player, sc);
+              })
+            } else { // まだまだやる
+              player.choices = choices(`${view}を${left}回の精神力チェックで頑張ってだす！`, () => { tryLoop(left - 1) })
+            }
+          })
+        }
+        let left = sc.level - player.level;
+        return new Choice(`${view}を${left}回の精神力チェックで頑張ってだす！`, () => { tryLoop(left) })
+      }
+    })
+    if (isRevenge) // 別に無理して試さなくてもいい
+      player.choices.push(new Choice("反撃は諦める...", () => {
         this.finishBattle(player, target);
         this.win(target, player);
-      }),
-      new Choice("戦闘は何も起きなかった", () => {
-        this.finishBattle(player, target);
-      }),
-    ];
+      }))
   }
+
   // 戦闘終了後になにか処理があればそれをする
   @phase finishBattle(player: Player, target: Player) {
     this.usedSpellCards.push(...player.spellCards);
@@ -445,7 +493,7 @@ export class Game {
         })),
       // 必ずアイテムは奪えるとする(かっぱのリュックしかない時にNopにできてしまうので事前filterが居る)
       ...(target.items.map(item =>
-        new Choice(`戦闘勝利->アイテム強奪 (${item.name})`, () => {
+        new Choice(`戦闘勝利 -> アイテム強奪(${item.name})`, () => {
           this.stealItem(player, target, item);
           this.kick(player, target);
         })
@@ -460,10 +508,13 @@ export class Game {
     if (player.pos.x !== target.pos.x || player.pos.y !== target.pos.y) return;
     player.choices = player.pos.getNextTo()
       .filter(x => this.map[x.x][x.y] !== null)
-      .map(pos => new Choice(`キックする (${pos.x, pos.y})`, () => {
-        // 移動はするがそこの地形の効果は発動しない
-        if (this.map[pos.x][pos.y] !== null) target.pos = pos;
-      }));
+      .map(pos => {
+        let map = this.map[pos.x][pos.y];
+        return new Choice(`キックする(${map ? map.name : "??"})`, () => {
+          // 移動はするがそこの地形の効果は発動しない
+          if (this.map[pos.x][pos.y] !== null) target.pos = pos;
+        })
+      });
     player.choices.push(new Choice("キックはしない"))
   }
 

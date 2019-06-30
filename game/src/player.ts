@@ -7,7 +7,7 @@ import { toString } from "./util";
 import * as _ from "underscore";
 import { Game } from "./game";
 import { Pos } from "./pos";
-import { SpellCard } from "./spellcard";
+import { SpellCard, parseSpellCard } from "./spellcard";
 function setToArray<T>(set: Set<T>): T[] {
   let result: T[] = [];
   set.forEach(w => { result.push(w); });
@@ -208,6 +208,7 @@ export class Player {
   勝利済み:${this.wonArray.map(x => this.game.players[x].name).join(",")}
   正体確認:${this.watchedArray.map(x => this.game.players[x].name).join(",")}
   アイテム:{${this.items.map(x => x.name).join(",")}}
-  仲間:${friend ? friend.name : ""}`;
+  仲間:${friend ? friend.name : ""}
+  スペルカード:\n  ${this.spellCards.map(x => parseSpellCard(x)).join("\n  ")}`;
   }
 }

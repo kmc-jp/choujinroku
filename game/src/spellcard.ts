@@ -2,6 +2,7 @@ import { CharaName } from "./character";
 import { } from "./choice";
 import { Ailment } from "./hook";
 import * as _ from "underscore";
+import { random } from "./util";
 export type SpellCardColor = "R" | "B" | "Y" | "G" | "P" | "W"
 export type SpellCardType = "弾幕" | "武術" | "回避" | "防御" | "戦闘補助" | "特殊"
 export type SpellCardName =
@@ -16,6 +17,13 @@ type SpellCardBase = {
   colors: SpellCardColor[];
   attribute?: Ailment | null;
   cardTypes: SpellCardType[]; // チャージドクライとかある
+}
+export function parseSpellCard(card: SpellCard): string {
+  let star = "☆".repeat(card.star);
+  if (card.cardTypes.includes("武術") || card.cardTypes.includes("弾幕")) {
+    return `${card.cardTypes[0]}:${card.name}(LV:${card.level}) ${star} ${card.colors.join("")}`
+  }
+  return `${card.name}(LV:${card.level}) ${star}`
 }
 export type SpellCard = Required<SpellCardBase>
 export function getAllSpellCards(): SpellCard[] {
@@ -32,7 +40,8 @@ export function getAllSpellCards(): SpellCard[] {
     let tmp: SpellCard = {
       ...defaultSpellCard,
       id: i,
-      attribute: defaultSpellCard.attribute || null
+      attribute: defaultSpellCard.attribute || null,
+      level: random(6) + 1
     }
     return tmp;
   });

@@ -163,7 +163,8 @@ export default class App extends Vue {
     let command = this.command.replace(/\s\s/g, " ").trim();
     if (command === "" && gameProxy === null) {
       let charas = getAllCharacters();
-      command = _.shuffle(charas)
+      // command = "0 1 2";
+      command = _.shuffle(_.range(charas.length))
         .slice(0, 4)
         .join(" ");
     }

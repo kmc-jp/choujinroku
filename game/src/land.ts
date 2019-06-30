@@ -236,7 +236,7 @@ export class EventWrapper {
         .map(d => [a + d[0], b + d[1]])
         .filter(x => x[0] >= 1 && x[1] >= 1 && x[0] <= 6 && x[1] <= 6)
         .map(x => pickChoice(x[0], x[1]))
-    })
+    }, false)
   }
 
   judge(type: "工房" | "図書館" | "香霖堂", waitCount: number): Choice[] {
@@ -309,7 +309,7 @@ export class EventWrapper {
       })
       // 初期化チェック便利〜〜〜〜〜〜〜〜〜〜〜〜
       player.with(...attributes).choices = [choice]
-    })
+    }, false)
   }
   // アクシデント表
   happenAccident(attributes: Attribute[]): Choice[] {
@@ -337,7 +337,7 @@ export class EventWrapper {
             .map(x => new Pos(player.pos.x + x[0], player.pos.y + x[1]))
             .filter(p => !p.isOutOfLand())
           poses.forEach(p => game.destroyLand(p, ["大ナマズ", ...attributes]))
-        })
+        }, false)
       })
       else if (d === 4) attrs.with("飲み過ぎ").choices = [this.randomForgetWin("つい飲み過ぎて前後不覚になってしまった。")]
       else if (d === 5) attrs.with("妖精", "幻覚").choices =
@@ -395,7 +395,7 @@ export class EventWrapper {
       })
       // WARN: 文の条件
       else if (d === 12) attrs.choices = [this.dropAllItems("蹴躓いて盛大に転んだ。")]
-    })
+    }, false)
   }
   // トラップ表
   happenTrap(attributes: Attribute[]): Choice[] {
@@ -441,7 +441,7 @@ export class EventWrapper {
       else if (d === 11) attrs.with("スキマ送り").choices = choices("未実装のスキマ送りにされた。駒を盤外に移し、次の手番開始時に開かれたマスに無作為に出現。※5")
       // TODO:
       else if (d === 12) attrs.with("落とし穴", "残機減少").choices = choices("未実装の落とし穴に落ちる。残機が1減り、地形「地上と地底を繋ぐ橋」が出ていれば、次の手番にそこへ移動する。")
-    })
+    }, false)
   }
 }
 // 入ったら1D
@@ -450,7 +450,7 @@ function wrap1D(landName: LandName, callback: (this: EventWrapper, dice: number,
     let attrs = this.player.with("地形効果", landName)
     return attrs.wrap(this.game.getDiceChoices(this.player, `${landName}に入った1D`, d => {
       callback.bind(this)(d, attrs)
-    }))
+    }, false))
   }
 }
 // 入ったら2D
@@ -459,7 +459,7 @@ function wrap2D(landName: LandName, callback: (this: EventWrapper, dice: TwoDice
     let attrs = this.player.with("地形効果", landName)
     return attrs.wrap(this.game.getTwoDiceChoices(this.player, `${landName}に入った2D`, d => {
       callback.bind(this)(d, attrs)
-    }))
+    }, false))
   }
 }
 
