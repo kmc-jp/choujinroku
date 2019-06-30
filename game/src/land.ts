@@ -162,7 +162,8 @@ export class EventWrapper {
   arbitrarilyWatch(context: string, afterAction?: () => any): Choice {
     let player = this.player
     return new Choice(context + "他者1人の正体が分かる！ ", () => {
-      let yets = this.game.players.filter(x => !player.watched.has(x.id))
+      let yets = this.game.players
+        .filter(x => !player.watched.has(x.id) && x.id !== player.id)
       if (yets.length === 0) {
         player.choices = choices("全員の正体を知っていた...", () => {
           if (afterAction) afterAction()
