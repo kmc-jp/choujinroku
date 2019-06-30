@@ -7,7 +7,7 @@ import { ItemCategoryDict, Item, getItemsData, ItemCategory, Friend, getFriendsD
 import * as _ from "underscore";
 import { Pos, PosType } from "./pos";
 import { SpellCard, getAllSpellCards } from "./spellcard";
-import { TwoDice, dice, twoDice, Attribute } from "./hook";
+import { TwoDice, dice, twoDice, Attribute, NPCType } from "./hook";
 
 // デコレータ
 function phase(target: Game, propertyKey: string, descriptor: PropertyDescriptor) {
@@ -428,20 +428,41 @@ export class Game {
     });
   }
   // 戦闘が始まった
-  @phase battle(player: Player, target: Player, spellCard?: SpellCard) {
+  @phase battle(player: Player, target: Player | NPCType, spellCard?: SpellCard) {
     let cans = player.spellCards.filter(sc =>
       player.spellCards.reduce((x, y) => x + y.star, 0) - sc.star >= sc.level
     ).filter(sc => sc.cardTypes.includes("弾幕") || sc.cardTypes.includes("武術"))
-    let isRevenge = spellCard ? true : false
+    let isNPC = target ? false : true; // NPC戦闘もここでやっちゃおう
+    let isRevenge = spellCard ? true : false // 反撃もここでやっちゃおう
     let tag = isRevenge ? "反撃" : "攻撃";
     if (spellCard) { // 攻撃された
       cans = cans.filter(sc => sc.level > spellCard.level)
     }
+    // 敗北
+    let lose = () => {
+      if (target instanceof Player) {
+        this.finishBattle(player, target);
+        if (isRevenge) this.win(target, player);
+      } else {//NPCに敗北
+        if (player.items.length > 0) {
+          player.choices = [new EventWrapper(this, player).randomDropItem(target + "に負けてしまった...")]
+        } else {
+          player.choices = choices(target + "に敗北してアイテムが無いので残機を失った！", () => {
+            this.damaged(player);
+          })
+        }
+      }
+    }
+    // NPCに勝利
+    let winToNPC = () => {
+      if (target instanceof Player) return;
+      player.choices = choices(target + "に勝利した！ ", () => {
+        if (target !== "NPC幽霊") player.choices = [new EventWrapper(this, player).gainGoods(target + "に勝利したので")]
+      })
+    }
     // スペカを出せなかった...
     if (cans.length === 0) {
-      player.choices = choices(`出せるスペルカードがなかった...${isRevenge ? "攻撃を食らった..." : ""}`)
-      this.finishBattle(player, target);
-      if (isRevenge) this.win(target, player);
+      player.choices = choices(`出せるスペルカードがなかった...${isRevenge ? "攻撃を食らった..." : ""}`, lose)
       return;
     }
     // スペカを出す！
@@ -455,7 +476,8 @@ export class Game {
               leftCost -= x.star;
               this.discardACard(player, x);
               if (leftCost > 0) attackLoop();
-              else this.battle(target, player, sc);
+              else if (target instanceof Player) this.battle(target, player, sc);
+              else winToNPC();
             }))
         }
         attackLoop();
@@ -468,10 +490,7 @@ export class Game {
           player.choices = this.getTwoDiceChoices(player, `${view}`, dice => {
             let d = dice.a + dice.b;
             if (d > player.mental) { // 失敗
-              player.choices = choices(`精神力が足りなかった...${isRevenge ? "攻撃を食らった..." : ""}`, () => {
-                this.finishBattle(player, target);
-                if (isRevenge) this.win(target, player);
-              })
+              player.choices = choices(`精神力が足りなかった...${isRevenge ? "攻撃を食らった..." : ""}`, lose)
             } else if (left <= 1) { // 成功
               player.choices = choices(`${view}で${tag}！`, attack)
             } else { // まだまだやる
@@ -484,10 +503,7 @@ export class Game {
       }
     })
     if (isRevenge) // 別に無理して試さなくてもいい
-      player.choices.push(new Choice("反撃は諦める...", () => {
-        this.finishBattle(player, target);
-        this.win(target, player);
-      }))
+      player.choices.push(new Choice("反撃は諦める...", lose))
   }
 
   // 戦闘終了後になにか処理があればそれをする

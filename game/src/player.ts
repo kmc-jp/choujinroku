@@ -19,7 +19,6 @@ Set.prototype.toString = function () {
   this.forEach(x => result += x + ",");
   return result + "}";
 }
-
 export class Player {
   name: string;
   private character: Character; // レベル+1などがありうるので外部から直接参照できないように

@@ -7,8 +7,8 @@ export type SpellCardColor = "R" | "B" | "Y" | "G" | "P" | "W"
 export type SpellCardType = "弾幕" | "武術" | "回避" | "防御" | "戦闘補助" | "特殊"
 export type SpellCardName =
   "夢想封印" | "マスタースパーク" | "ディマーケイション" | "アイシクルフォール" |
-  "飛花落葉" | "賢者の石" | "殺人ドール" | "紅色の幻想郷" | "そして誰もいなくなるか？"
-"なし"
+  "飛花落葉" | "賢者の石" | "殺人ドール" | "紅色の幻想郷" | "そして誰もいなくなるか？" |
+  "NPCの攻撃" | "なし"
 type SpellCardBase = {
   id?: number;
   name: SpellCardName;

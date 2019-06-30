@@ -7,6 +7,7 @@ import { CharaName, charaCategories } from "./character"
 import { ItemName, ItemCategory, FairyFriendNames, FriendName } from "./item"
 import { randomPick, random } from "./util"
 import { Pos } from "./pos"
+import { SpellCardType } from "./spellcard";
 
 export type LandName =
   "博麗神社" | "魔法の森" | "月夜の森" | "霧の湖" | "紅魔館入口" | "図書館" |
@@ -48,9 +49,35 @@ export class EventWrapper {
     return new Choice(context + "手番は終了し、次の手番は休みだが未実装だった！ ")
   }
   // NPC戦闘(後でAttributeを付ける)
-  // TODO:
   battleWithNPC(context: NPCType): Choice {
-    return new Choice(context + "に攻撃されたけど未実装だった！")
+    // TODO:
+    if (context === "NPCランダムキャラ") {
+      return new Choice(context + "は未実装だった！")
+    }
+    // WARN: 回避xとかは実装していない
+    let npcList = {
+      "NPC妖精": [1, 1, 1, 2, 2, 3],
+      "NPC幽霊": [1, 2, 2, 2, 3, 3],
+      "NPC妖怪": [1, 2, 2, 2, 3, 3],
+      "NPC神様": [1, 2, 3, 3, 4, 4],
+      "NPCランダムキャラ": [1, 2, 3, 3, 4, 4],
+    }
+    return new Choice(context + "に攻撃された！", () => {
+      this.player.choices = this.game.getDiceChoices(this.player, "敵の強さ決定", d => {
+        let level = npcList[context][d - 1]
+        let type: SpellCardType = "弾幕"
+        if ((d === 5 || d === 7) && context === "NPC妖怪") type = "武術"
+        this.game.battle(this.player, context, {
+          id: -1,
+          name: "NPCの攻撃",
+          level: level,
+          star: 0,
+          colors: [],
+          attribute: null,
+          cardTypes: [type]
+        })
+      }, false)
+    })
   }
   // 天狗警備隊に拘束(後でAttributeを付ける)
   // TODO:
