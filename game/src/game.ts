@@ -194,6 +194,13 @@ export class Game {
     this.leftSpellCards = _.shuffle(this.usedSpellCards);
     this.drawACard(player);
   }
+  // 捨て札にスペルカードを捨てる
+  // WARN:戦闘中に捨てたカードを引かれるかもしれない
+  discardACard(player: Player, card: SpellCard) {
+    if (player.spellCards.length <= 0) return;
+    this.usedSpellCards.push(card);
+    player.spellCards = player.spellCards.filter(x => x.id !== card.id);
+  }
   // アイテムを元の場所に戻す本体の処理。
   // hook「アイテム損失」 が発生する
   sendBackItem(player: Player, item: Item) {
@@ -439,11 +446,23 @@ export class Game {
     }
     // スペカを出す！
     player.choices = cans.map(sc => {
+      let leftCost = sc.level;
+      let attack = () => {
+        this.discardACard(player, sc);
+        let attackLoop = () => {
+          player.choices = player.spellCards.map(x =>
+            new Choice(`${x.name}(${"☆".repeat(x.star)})をコストにする(残り:${leftCost})`, () => {
+              leftCost -= x.star;
+              this.discardACard(player, x);
+              if (leftCost > 0) attackLoop();
+              else this.battle(target, player, sc);
+            }))
+        }
+        attackLoop();
+      }
       let view = `${sc.name}(LV${sc.level})`
       if (sc.level <= player.level) // 普通に攻撃
-        return new Choice(`${view}で${tag}！`, () => {
-          this.battle(target, player, sc);
-        })
+        return new Choice(`${view}で${tag}！`, attack)
       else { // 精神力チェック
         let tryLoop = (left: number) => {
           player.choices = this.getTwoDiceChoices(player, `${view}`, dice => {
@@ -454,9 +473,7 @@ export class Game {
                 if (isRevenge) this.win(target, player);
               })
             } else if (left <= 1) { // 成功
-              player.choices = choices(`${view}で${tag}！`, () => {
-                this.battle(target, player, sc);
-              })
+              player.choices = choices(`${view}で${tag}！`, attack)
             } else { // まだまだやる
               player.choices = choices(`${view}を${left}回の精神力チェックで頑張ってだす！`, () => { tryLoop(left - 1) })
             }
