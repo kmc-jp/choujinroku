@@ -143,7 +143,7 @@ export function getAllCharacters(): Character[] {
     name: "フラン",
     fullname: "フランドール・スカーレット",
     role: "野次馬",
-    spellCard: "そして誰もいなくなるか？",
+    spellCard: "そして誰もいなくなるか?",
     level: 5,
     mental: 5,
   }]

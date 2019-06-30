@@ -43,8 +43,8 @@ export class EventWrapper {
     this.game = game
     this.player = player
   }
-  // 手番は終了し、次の手番は休み
   // TODO:
+  // 手番は終了し、次の手番は休み
   skipTurn(context: string, isSkipNextTurn: boolean = true): Choice {
     return new Choice(context + "手番は終了し、次の手番は休みだが未実装だった！ ")
   }
@@ -79,15 +79,15 @@ export class EventWrapper {
       }, false)
     })
   }
-  // 天狗警備隊に拘束(後でAttributeを付ける)
   // TODO:
+  // 天狗警備隊に拘束(後でAttributeを付ける)
   tenguGuardian(): Choice {
     return new Choice("天狗警備隊に拘束されたけど未実装だった！")
   }
+  // (地形カード用)
   nameIsIn(charaNames: CharaName[]) {
     return charaNames.includes(this.player.characterName)
   }
-  //
   // 無作為に一つアイテムを落とす
   randomDropItem(context: string): Choice {
     let player = this.player
@@ -131,6 +131,7 @@ export class EventWrapper {
       else player.choices = choices("残機が減少した！", () => this.game.damaged(player))
     })
   }
+  // ランダムキャラと抗体
   swapRandomCharacter(context: string): Choice {
     if (this.player.role === "主人公") {
       return new Choice(context + "しかし主人公は転生しなかった...")
@@ -197,7 +198,7 @@ export class EventWrapper {
     return new Choice(`${name}を仲間にできる！ `, () =>
       this.game.gainFriend(this.player, name))
   }
-
+  // 工房とかの実装
   judgefunctionImpl(waitCount: number, itemNames: ItemName[], landName: LandName, category: ItemCategory): Choice[] {
 
     function pick<T>(a: number, b: number, arr: T[]): T | null {
@@ -265,7 +266,7 @@ export class EventWrapper {
         .map(x => pickChoice(x[0], x[1]))
     }, false)
   }
-
+  // 工房とか
   judge(type: "工房" | "図書館" | "香霖堂", waitCount: number): Choice[] {
     // 工房とかの判定の実装
     let { player, game } = this
