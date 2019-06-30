@@ -494,12 +494,12 @@ export class Game {
             } else if (left <= 1) { // 成功
               player.choices = choices(`${view}で${tag}！`, attack)
             } else { // まだまだやる
-              player.choices = choices(`${view}を${left}回の精神力チェックで頑張ってだす！`, () => { tryLoop(left - 1) })
+              player.choices = choices(`${view}を残り${left - 1}回の精神力チェックで頑張ってだす！`, () => { tryLoop(left - 1) })
             }
           })
         }
         let left = sc.level - player.level;
-        return new Choice(`${view}を${left}回の精神力チェックで頑張ってだす！`, () => { tryLoop(left) })
+        return new Choice(`${view}を残り${left}回の精神力チェックで頑張ってだす！`, () => { tryLoop(left) })
       }
     })
     if (isRevenge) // 別に無理して試さなくてもいい
