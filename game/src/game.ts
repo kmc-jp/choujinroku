@@ -2,7 +2,7 @@ import { Character, getAllCharacters } from "./character";
 import { Player, PlayerActionTag } from "./player";
 import { Choice, choices } from "./choice";
 import { FieldAction } from "./fieldaction";
-import { Land, getLands, LandName, EventWrapper } from "./land";
+import { Land, getLands, LandName, EventWrapper, ItemGetJudgeableLand } from "./land";
 import { ItemCategoryDict, Item, getItemsData, ItemCategory, Friend, getFriendsData, FriendName } from "./item";
 import * as _ from "underscore";
 import { Pos, PosType } from "./pos";
@@ -215,6 +215,7 @@ export class Game {
   // 基本的には player.choices に追加することになるが、
   // 一人だけの決定で終わるわけではないので だれの選択肢でも増やせるようになっている
   // (例:お見合いは次の全員の了承が必要)
+
   // 初期配置選択肢: 1Pから開始位置を選んでもらう -----------------------------
   @phase decideFirstPlace(player: Player) {
     player.choices = Pos.getOutSides().map(pos => new Choice(`初期配置位置選択(${pos.x},${pos.y})`, () => {
@@ -299,15 +300,16 @@ export class Game {
   // 待機をして香霖堂/図書館/工房チェック
   @phase waitAndGetItem(player: Player) {
     let map = player.currentLand;
-    let lands: LandName[] = ["図書館", "香霖堂", "工房"];
-    if (!lands.some(x => map ? x === map.name : false)) return;
-    if (player.waitCount <= 0) return;
     if (!map) return;
-    let name = map.name;
+    if (player.waitCount <= 0) return;
+    let lands: ItemGetJudgeableLand[] = ["図書館", "香霖堂", "工房"];
+    let name = lands.filter(x => map ? x === map.name : false)[0];
+    if (!name) return;
     player.choices = [
       new Choice(`今は${name}判定をしない`),
       new Choice(`${name}判定をする`, () => {
-        player.choices = new EventWrapper(this, player).judge(name === "香霖堂" ? "香霖堂" : name === "工房" ? "工房" : "図書館", player.waitCount)
+        player.choices = player.eventWrapper.judge(name, player.waitCount)
+          .map(x => x.wrapAfter(() => { player.waitCount = 0; }));
       })
     ]
   }

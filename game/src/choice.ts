@@ -7,9 +7,15 @@ export class Choice {
     if (callback) this.callback = callback;
     else this.callback = () => { };
   }
-  wrap(fun: () => any) {
+  wrapBefore(fun: () => any): this {
     let original = this.callback;
     this.callback = () => { fun(); original(); };
+    return this;
+  }
+  wrapAfter(fun: () => any): this {
+    let original = this.callback;
+    this.callback = () => { fun(); original(); };
+    return this;
   }
   invoke() { this.callback(); }
   toString(): string { return this.message; }

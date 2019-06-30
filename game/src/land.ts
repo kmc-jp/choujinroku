@@ -10,14 +10,15 @@ import { Pos } from "./pos"
 import { SpellCardType } from "./spellcard";
 
 export type LandName =
-  "博麗神社" | "魔法の森" | "月夜の森" | "霧の湖" | "紅魔館入口" | "図書館" |
+  "博麗神社" | "魔法の森" | "月夜の森" | "霧の湖" | "紅魔館入口" |
   "紅魔館" | "無何有の郷" | "マヨヒガの森" | "白玉楼" |
   "川の畔の草原" | "夜雀の屋台" | "人間の里" | "迷いの竹林" |
   "永遠亭" | "無名の丘" | "太陽の畑" | "三途の河" |
   "彼岸" | "山の麓" | "妖怪の山" | "守矢神社" | "温泉" |
   "天界" | "地上と地底を繋ぐ橋" | "地底の旧都" | "地霊殿" |
   "灼熱地獄" | "春の湊" | "命蓮寺" | "墓地" | "大祀廟" |
-  "稗田家" | "香霖堂" | "冥界" | "工房"
+  "稗田家" | "冥界" | ItemGetJudgeableLand
+export type ItemGetJudgeableLand = "工房" | "図書館" | "香霖堂"
 export type LandAttribute = "花マス" | "森マス" | "水マス" | "紅マス" | "地マス"
 export type Land = Required<LandBase>
 export type PowerUp = {
@@ -268,9 +269,7 @@ export class EventWrapper {
     }, false)
   }
   // 工房とか
-  judge(type: "工房" | "図書館" | "香霖堂", waitCount: number): Choice[] {
-    // 工房とかの判定の実装
-    let { player, game } = this
+  judge(type: ItemGetJudgeableLand, waitCount: number): Choice[] {
     if (type === "工房")
       return this.judgefunctionImpl(waitCount, [
         "リボン", "デジカメ", "河童のリュック", "手作りの人形",
@@ -282,10 +281,12 @@ export class EventWrapper {
         "超整理術", "鉄人レシピ", "スポ根漫画", "エア巻物",
         "カリスマの秘訣", "武術指南書", "文々。新聞", "求聞史記"
       ], "図書館", "本")
-    return this.judgefunctionImpl(waitCount, [
-      "浄玻璃の鏡", "天狗の腕章", "聖の宝塔", "神社の御札",
-      "ZUN帽", "銘酒", "死神の舟", "蓬莱の薬",
-      "宝剣", "船幽霊の柄杓", "羽衣", "妖怪の傘"], "香霖堂", "宝物")
+    if (type === "香霖堂")
+      return this.judgefunctionImpl(waitCount, [
+        "浄玻璃の鏡", "天狗の腕章", "聖の宝塔", "神社の御札",
+        "ZUN帽", "銘酒", "死神の舟", "蓬莱の薬",
+        "宝剣", "船幽霊の柄杓", "羽衣", "妖怪の傘"], "香霖堂", "宝物")
+    return [];
   }
   // イベント表
   happenEvent(attributes: Attribute[]): Choice[] {

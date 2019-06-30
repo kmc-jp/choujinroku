@@ -8,6 +8,7 @@ import * as _ from "underscore";
 import { Game } from "./game";
 import { Pos } from "./pos";
 import { SpellCard, parseSpellCard } from "./spellcard";
+import { EventWrapper } from "./land";
 function setToArray<T>(set: Set<T>): T[] {
   let result: T[] = [];
   set.forEach(w => { result.push(w); });
@@ -37,6 +38,7 @@ export class Player {
   private waitCountIndexedByItem: { [key: string]: number } = {}
   game: Game;
   spellCards: SpellCard[] = [];
+  eventWrapper: EventWrapper;
   constructor(game: Game, character: Character, name: string, id: number) {
     this.game = game;
     this.character = character;
@@ -47,6 +49,7 @@ export class Player {
     this.isAbleToAction = true;
     this.items = [];
     this.choices = [];
+    this.eventWrapper = new EventWrapper(game, this);
   }
 
   get characterName() { return this.character.name; }
