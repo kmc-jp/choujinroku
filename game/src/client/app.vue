@@ -53,12 +53,11 @@
 import Vue from "vue";
 import Component from "vue-class-component";
 import { GameProxy } from "../gameproxy";
-import { getAllCharacters } from "../character";
 import * as _ from "underscore";
-//　かなり巨大なオブジェクトで、これがVue管理下にあるコストは考えたほうがいい
-let gameProxy: GameProxy | null = null;
 
+let gameProxy: GameProxy | null = null;
 type InfoType = "Log" | "PlayerInfo" | "Invisible";
+
 @Component({})
 export default class App extends Vue {
   command = "";
@@ -162,7 +161,7 @@ export default class App extends Vue {
   onChangeCommand() {
     let command = this.command.replace(/\s\s/g, " ").trim();
     if (command === "" && gameProxy === null) {
-      let charas = getAllCharacters();
+      let charas = GameProxy.getAvailableCharacters();
       // command = "0 1 2";
       command = _.shuffle(_.range(charas.length))
         .slice(0, 4)

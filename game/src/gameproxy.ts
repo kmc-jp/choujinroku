@@ -3,6 +3,8 @@ import { getAllCharacters } from "./character";
 import { Choice } from "./choice";
 import { toString } from "./util";
 import * as _ from "underscore"
+
+
 export class GameProxy {
   private game: Game;
   private constructor(game: Game) {
