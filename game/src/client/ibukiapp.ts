@@ -12,7 +12,7 @@ import { Pos } from "../pos";
 // あとでやる
 // エンターキーで自動モードってなんやねん
 let charalength = _.range(GameProxy.getAvailableCharacters().length);
-let playerNumber = 2 + random(4);
+let playerNumber = 2 + random(5);
 let ids: number[] = _.shuffle<number>(charalength).slice(0, playerNumber);
 let gameProxy = GameProxy.tryToStart(ids);
 function playerColor(i: number): string { return `hsla(${Math.floor((i * 360) / playerNumber)},100%,82%,0.5)`; }
@@ -142,8 +142,10 @@ class ChoujinrokuView {
     let height = this.height * 0.13;
     poses.forEach((pos, i) => {
       if (pos.x < 0) pos.x = 3;
-      this.players[i].x = width * pos.x * 1.1 + width * 0.8 + this.randoms[i] * width / 2;
-      this.players[i].y = height * pos.y * 1.1 + height * 1.4 + this.randoms[i] * width / 2;
+      this.players[i].to({
+        x: width * pos.x * 1.1 + width * 0.8 + this.randoms[i] * width / 2,
+        y: height * pos.y * 1.1 + height * 1.4 + this.randoms[i] * width / 2
+      }, { duration: 0.5 })
     })
   }
   initPlayers() {
