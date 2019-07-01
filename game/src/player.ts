@@ -142,6 +142,13 @@ export class Player {
     result = result.filter(x => x.allowAisNotMe || factor.id === this.id)
     return result;
   }
+  getWhenWin(factor: Player): VictoryHook[] {
+    return this.character.whenWin.filter(x => x.allowAisNotMe || factor.id === this.id);
+  }
+  getWhenLose(factor: Player): VictoryHook[] {
+    return this.character.whenLose.filter(x => x.allowAisNotMe || factor.id === this.id);
+  }
+
   // キャラの特殊能力
   get characterFieldActions(): FieldAction[] {
     // ボムチェック？
@@ -207,8 +214,6 @@ export class Player {
   }
   get watchedArray(): number[] { return setToArray(this.watched); }
   get wonArray(): number[] { return setToArray(this.won); }
-  get whenWin(): VictoryHook[] { return this.character.whenWin; }
-  get whenLose(): VictoryHook[] { return this.character.whenLose; }
   parceCharacter(): string {
     let chara = this.character;
     return `${chara.name}:${chara.level},${chara.mental}(${chara.role})`;

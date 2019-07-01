@@ -255,7 +255,7 @@ export class Game {
     // WARN: 同じフックのタイミングがあるときは宣言した順にスタックに積まれて消費されていく
     for (let player of this.players) {
       let lose = false;
-      player.whenLose.forEach(x => {
+      player.getWhenLose(factor).forEach(x => {
         let lose = impl(player, x)
         if (typeof (lose) !== "boolean") return;
         if (!lose) return;
@@ -263,7 +263,7 @@ export class Game {
         lose = true;
       })
       if (lose) return;
-      player.whenWin.forEach(x => {
+      player.getWhenWin(factor).forEach(x => {
         let win = impl(player, x)
         if (typeof (win) !== "boolean") return;
         if (!win) return;
