@@ -48,7 +48,7 @@ export class EventWrapper {
   // 手番は終了し、次の手番は休み
   skipTurn(context: string, isSkipNextTurn: boolean = true): Choice {
     this.player.isAbleToAction = false;
-    this.player.skipTurnCounter = 2;
+    if (isSkipNextTurn) this.player.reserveSkipNextTurn();
     return new Choice(context + "手番は終了し、次の手番は休み")
   }
   // NPC戦闘(後でAttributeを付ける)

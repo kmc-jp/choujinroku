@@ -218,6 +218,10 @@ export class Player {
     let chara = this.character;
     return `${chara.name}:${chara.level},${chara.mental}(${chara.role})`;
   }
+  // 次の手番は休みを予約
+  reserveSkipNextTurn() {
+    this.skipTurnCounter = 2;
+  }
   toString(): string {
     let land = this.currentLand
     let friend = this.friend;
