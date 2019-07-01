@@ -6,6 +6,16 @@ import { RoleName, CharaName } from "./character";
 import { VictoryHook, NPCType } from "./hooktype";
 import { SpellCard } from "./spellcard";
 
+// 条件を満たしてxxでNターン待機
+export function waitToWinWith(when: (p: Player) => boolean): VictoryHook {
+  return {
+    type: "A",
+    when: ["待機"],
+    hook(this: Game, player: Player) { return when(player) }
+  }
+}
+
+
 // xxでxxを持ってxxターン待機して勝利
 export function waitToWin(where: LandName, items: ItemName[], waitCount: number): VictoryHook {
   return {
@@ -59,7 +69,7 @@ export function allWatchAndAllWinToWin(winRequire: (a: Player) => boolean): Vict
 }
 
 // 全員の正体を確認し、全ての ignoreCharas を除く Role のキャラクターに戦闘で勝つ
-export function WinToWin(when: (me: Player, b: Player, c: SpellCard) => boolean): VictoryHook {
+export function winToWin(when: (me: Player, b: Player, c: SpellCard) => boolean): VictoryHook {
   return {
     type: "AwinB",
     when: ["AwinB"],
@@ -69,7 +79,20 @@ export function WinToWin(when: (me: Player, b: Player, c: SpellCard) => boolean)
     }
   }
 }
-
+// 満身創痍にする
+export function killToWin(when: (me: Player, target: Player) => boolean): VictoryHook {
+  return {
+    type: "AbyB",
+    when: ["満身創痍"],
+    allowAisNotMe: true,
+    hook(this: Game, a: Player, b?: Player, me?: Player): boolean {
+      if (!b) return false;
+      if (!me) return false;
+      if (b.id !== me.id) return false;
+      return when(me, a)
+    }
+  }
+}
 
 export function loseToLose(when: (me: Player, target: Player) => boolean): VictoryHook {
   return {
@@ -97,4 +120,15 @@ export function destroyedToLose(lands: LandName[]): VictoryHook {
       return lands.some(x => x === land.name)
     }
   };
+}
+export function watchedToLose(when: (me: Player, from: Player) => boolean): VictoryHook {
+  return {
+    type: "AtoB",
+    allowAisNotMe: true,
+    when: ["正体確認"],
+    hook(this: Game, a: Player, b: Player, me: Player): boolean {
+      if (b.id !== me.id) return false;
+      return when(me, a)
+    }
+  }
 }

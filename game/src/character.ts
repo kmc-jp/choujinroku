@@ -117,10 +117,10 @@ export function getAllCharacters(): Character[] {
     mental: 7,
     attributeHooks: [
       invalidate2D("バカルテット", ["満身創痍"], (p, d) => d.a + d.b <= p.mental)
-    ], whenLose: [
-      Victory.destroyedToLose(["月夜の森"]),
     ], whenWin: [
       Victory.waitToWin("月夜の森", ["リボン"], 2),
+    ], whenLose: [
+      Victory.destroyedToLose(["月夜の森"]),
     ]
   }, {
     name: "チルノ",
@@ -135,8 +135,10 @@ export function getAllCharacters(): Character[] {
       invalidate("さいきょーの妖精", ["呪い", "能力低下"], (_, a) => !a.includes("地形効果")),
     ],
     whenWin: [
-      Victory.WinToWin((me, a, c) => c.level === 6 && a.friend ? FairyFriendNames.includes(a.friend.name) : false),
-      ...Victory.allWatchAndAllWinToWin(p => !charaCategories["バカルテット"].includes(p.characterName)),
+      Victory.winToWin((me, a, c) =>
+        c.level === 6 && a.friend ? FairyFriendNames.includes(a.friend.name) : false),
+      ...Victory.allWatchAndAllWinToWin(p =>
+        !charaCategories["バカルテット"].includes(p.characterName)),
     ], whenLose: [
       Victory.destroyedToLose(["霧の湖"]),
     ]
@@ -148,8 +150,14 @@ export function getAllCharacters(): Character[] {
     level: 3,
     mental: 6,
     whenWin: [
-      Victory.WinToWin((me, a) => me.currentLand ? me.currentLand.landAttributes.includes("紅マス") : false),
-
+      Victory.winToWin((me, a) =>
+        me.currentLand ? me.currentLand.landAttributes.includes("紅マス") : false),
+      Victory.waitToWin("紅魔館入口", ["武術指南書"], 1),
+    ], whenLose: [
+      Victory.destroyedToLose(["紅魔館", "紅魔館入口"]),
+      Victory.damagedToLose(me =>
+        me.game.getOthersAtSamePos(me).some(x =>
+          me.watched[x.id] && charaCategories["紅魔館の住人"].includes(x.characterName)))
     ]
   }, {
     name: "パチュリー",
@@ -158,6 +166,11 @@ export function getAllCharacters(): Character[] {
     spellCard: "賢者の石",
     level: 5,
     mental: 5,
+    whenWin: [
+      Victory.winToWin((me, a) => a.items.some(x => x.name === "呪法書")),
+    ], whenLose: [
+      Victory.destroyedToLose(["図書館", "紅魔館"]),
+    ]
   }, {
     name: "咲夜",
     fullname: "十六夜咲夜",
@@ -165,6 +178,19 @@ export function getAllCharacters(): Character[] {
     spellCard: "殺人ドール",
     level: 4,
     mental: 7,
+    attributeHooks: [
+      invalidate("時間を操る程度の能力", ["手番休み"]),
+      invalidate("完璧で瀟洒なメイド", ["能力低下", "幻覚", "呪い"],
+        p => p.game.getOthersAtSamePos(p).some(
+          x => charaCategories["紅魔館の住人"].includes(x.characterName) && p.watched.has(x.id)))
+    ],
+    whenWin: [
+      Victory.killToWin((me, a) => a.wonArray.some(
+        x => charaCategories["紅魔館の住人"].includes(me.game.players[x].characterName))),
+      Victory.waitToWin("紅魔館", ["PAD"], 2),
+    ], whenLose: [
+      Victory.damagedToLose(me => me.items.some(x => x.name === "PAD"))
+    ]
   }, {
     name: "レミリア",
     fullname: "レミリア・スカーレット",
@@ -172,6 +198,24 @@ export function getAllCharacters(): Character[] {
     spellCard: "紅色の幻想郷",
     level: 5,
     mental: 6,
+    attributeHooks: [
+      invalidate1D("紅い悪魔", ["残機減少"], (p, d) => d <= p.level),
+    ], whenWin: [
+      Victory.waitToWin("紅魔館", ["カリスマの秘訣"], 3),
+      Victory.waitToWinWith(p => {
+        let land = p.currentLand;
+        if (!land) return false;
+        if (!land.landAttributes.includes("紅マス")) return false;
+        if (p.waitCount < 1) return false;
+        for (let other of this.getOthers(p)) {
+          if (!charaCategories["地霊殿の住人"].includes(other.characterName) && !p.won.has(other.id)) return false;
+        }
+        return true;
+      })
+    ], whenLose: [
+      Victory.destroyedToLose(["紅魔館"]),
+      Victory.damagedToLose(me => me.items.some(x => x.name === "カリスマの秘訣"))
+    ]
   }, {
     name: "フラン",
     fullname: "フランドール・スカーレット",
@@ -179,7 +223,63 @@ export function getAllCharacters(): Character[] {
     spellCard: "そして誰もいなくなるか?",
     level: 5,
     mental: 5,
-  }]
+    attributeHooks: [
+      invalidate1D("悪魔の妹", ["残機減少"], (p, d) => d <= p.level),
+    ], whenWin: [
+      Victory.waitToWin("紅魔館", ["手作りの人形"], 2),
+      Victory.killToWin((me, a) => a.role === "主人公" && a.characterName !== "咲夜"),
+    ], whenLose: [
+      Victory.destroyedToLose(["紅魔館"]),
+      Victory.damagedToLose(me => me.currentLand ? me.currentLand.landAttributes.includes("紅マス") : false)
+    ]
+  }, {
+    name: "レティ",
+    fullname: "レティ・ホワイトロック",
+    role: "妖怪",
+    spellCard: "リンガリングコールド",
+    level: 3,
+    mental: 6,
+    whenWin: [
+      Victory.waitToWin("無何有の郷", ["ドロワーズ"], 1),
+      Victory.winToWin((me, a) => (a.friend && a.friend.name === "リリーホワイト") || a.characterName === "秋姉妹"),
+    ], whenLose: [
+      Victory.destroyedToLose(["無何有の郷"]),
+      Victory.watchedToLose((me, from) => me.game.getOthers(me).every(x => x.watched.has(me.id)))
+    ]
+  }, {
+    name: "橙",
+    fullname: "橙",
+    role: "妖怪",
+    spellCard: "飛翔韋駄天",
+    level: 2,
+    mental: 7,
+    attributeHooks: [
+      invalidate("妖怪の式の式", ["天狗警備隊"]),
+    ],
+    whenWin: [
+      Victory.waitToWin("マヨヒガの森", ["幻想郷の歩き方"], 1),
+    ], whenLose: [
+      Victory.destroyedToLose(["マヨヒガの森"]),
+      Victory.damagedToLose(me => me.currentLand ? me.currentLand.landAttributes.includes("水マス") : false)
+    ]
+  }, {
+    name: "アリス",
+    fullname: "アリス・マーガトロイド",
+    role: "野次馬",
+    spellCard: "魔彩光の上海人形",
+    level: 4,
+    mental: 6,
+    attributeHooks: [
+      invalidate("人形を操る程度の能力", ["アイテム", "呪い"]),
+    ],
+    whenWin: [
+      Victory.waitToWin("魔法の森", ["手作りの人形"], 2),
+      Victory.winToWin((me, a) => a.items.some(x => x.name === "呪法書")),
+    ], whenLose: [
+      Victory.destroyedToLose(["魔法の森"]),
+    ]
+  },
+  ]
   // 紫は書いていないけどスキマ送り耐性を忘れないでね！
   // 文はアクシデント6「他者が盛大に転んだマスに居合わせれば勝利、自分が盛大に転んだマスに他者が居たら敗北となる。」を忘れないで！
   let result: Character[] = [];
