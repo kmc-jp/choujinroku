@@ -14,7 +14,10 @@
     "url": "https://muratam.github.io"
   },
   "dependencies": {
+    "bootstrap": "^4.3.1",
     "ibukidom": "^5.72.0",
+    "jquery": "^3.4.1",
+    "popper.js": "^1.15.0",
     "vue": "^2.5.2",
     "vue-class-component": "^6.3.2",
     "vue-property-decorator": "^6.0.0",
