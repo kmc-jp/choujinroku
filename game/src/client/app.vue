@@ -54,7 +54,6 @@ import Vue from "vue";
 import Component from "vue-class-component";
 import { GameProxy } from "../gameproxy";
 import * as _ from "underscore";
-
 let gameProxy: GameProxy | null = null;
 type InfoType = "Log" | "PlayerInfo" | "Invisible";
 
@@ -177,18 +176,7 @@ export default class App extends Vue {
 </script>
 
 <style lang="scss" scoped>
-.greeting {
-  font-size: 20px;
-}
-textarea,
 input {
   font-family: "Menlo", "Courier New", Consolas, monospace;
-}
-canvas {
-  background: black;
-  border-color: #dbdbdb;
-  border-radius: 4px;
-  box-shadow: inset 0 1px 2px rgba(10, 10, 10, 0.1);
-  width: 100%;
 }
 </style>
