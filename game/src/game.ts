@@ -414,56 +414,62 @@ export class Game {
     }
     // 休憩
     if (player.life === 2) {
-      player.choices.push(...this.getTwoDiceChoices(player, "休憩をした！2D<=レベルで残機が回復し、手番は終了！", d => {
-        let success = d.a + d.b <= player.level
-        let tag = success ? "残機が回復した！" : "残機が回復しなかった...";
-        let skipNextTurn = d.a === d.b;
-        if (skipNextTurn) tag += "ゾロ目だったので次の手番は休み..."
-        player.choices = choices(tag, () => {
-          if (success) player.heal();
-          if (skipNextTurn) player.reserveSkipNextTurn();
-          this.finishPlayerTurn(player);
+      player.choices.push(new Choice("休憩をした！", () => {
+        player.choices = this.getTwoDiceChoices(player, "休憩をした！2D<=レベルで残機が回復し、手番は終了！", d => {
+          let success = d.a + d.b <= player.level
+          let tag = success ? "残機が回復した！" : "残機が回復しなかった...";
+          let skipNextTurn = d.a === d.b;
+          if (skipNextTurn) tag += "ゾロ目だったので次の手番は休み..."
+          player.choices = choices(tag, () => {
+            if (success) player.heal();
+            if (skipNextTurn) player.reserveSkipNextTurn();
+            this.finishPlayerTurn(player);
+          })
         })
       }))
     }
     // 昼寝
     if (player.life === 2) {
-      player.choices.push(...this.getTwoDiceChoices(player, "休憩をした！2D<=レベルで残機が回復し、手番は終了！", d => {
-        let success = d.a + d.b <= player.level
-        let skipNextTurn = d.a === d.b;
-        // WARN: 出目にマイナス1できるが...
-        // (2,3) なら 2,2 にするか悩むと思うので選択肢を作るべき？
-        if (player.characterName === "霊夢" || player.characterName === "レミリア") {
-          //   success = d.a + d.b - 1 <= player.level;
-          //   skipNextTurn = false;
-        }
-        let tag = success ? "残機が回復した！" : "残機が回復しなかった...";
-        if (skipNextTurn) tag += "ゾロ目だったので次の手番は休み..."
-        player.choices = choices(tag, () => {
-          if (success) player.heal();
-          if (skipNextTurn) player.reserveSkipNextTurn();
-          this.finishPlayerTurn(player);
+      player.choices.push(new Choice("休憩をした！", () => {
+        player.choices = this.getTwoDiceChoices(player, "休憩をした！2D<=レベルで残機が回復し、手番は終了！", d => {
+          let success = d.a + d.b <= player.level
+          let skipNextTurn = d.a === d.b;
+          // WARN: 出目にマイナス1できるが...
+          // (2,3) なら 2,2 にするか悩むと思うので選択肢を作るべき？
+          if (player.characterName === "霊夢" || player.characterName === "レミリア") {
+            //   success = d.a + d.b - 1 <= player.level;
+            //   skipNextTurn = false;
+          }
+          let tag = success ? "残機が回復した！" : "残機が回復しなかった...";
+          if (skipNextTurn) tag += "ゾロ目だったので次の手番は休み..."
+          player.choices = choices(tag, () => {
+            if (success) player.heal();
+            if (skipNextTurn) player.reserveSkipNextTurn();
+            this.finishPlayerTurn(player);
+          })
         })
-      }))
+      }));
     }
     // 昼寝
     if (player.life === 1) {
-      player.choices.push(...this.getTwoDiceChoices(player, "昼寝をした！2D<=精神力で残機が回復し、手番は終了！", d => {
-        let success = d.a + d.b <= player.mental
-        let dropRandomItem = d.a === d.b;
-        // WARN: 出目にマイナス1できるが...
-        // (2,3) なら 2,2 にするか悩むと思うので選択肢を作るべき？
-        if (player.characterName === "美鈴" || player.characterName === "小町") {
-          //   success = d.a + d.b - 1 <= player.level;
-          //   skipNextTurn = false;
-        }
-        let tag = success ? "残機が回復した！" : "残機が回復しなかった...";
-        player.choices = choices(tag, () => {
-          if (success) player.heal();
-          if (dropRandomItem) player.choices = [new EventWrapper(this, player).randomDropItem("ゾロ目だったのでアイテムを一つ落とす...")]
-          this.finishPlayerTurn(player);
+      player.choices.push(new Choice("昼寝をした！", () => {
+        player.choices = this.getTwoDiceChoices(player, "昼寝をした！2D<=精神力で残機が回復し、手番は終了！", d => {
+          let success = d.a + d.b <= player.mental
+          let dropRandomItem = d.a === d.b;
+          // WARN: 出目にマイナス1できるが...
+          // (2,3) なら 2,2 にするか悩むと思うので選択肢を作るべき？
+          if (player.characterName === "美鈴" || player.characterName === "小町") {
+            //   success = d.a + d.b - 1 <= player.level;
+            //   skipNextTurn = false;
+          }
+          let tag = success ? "残機が回復した！" : "残機が回復しなかった...";
+          player.choices = choices(tag, () => {
+            if (success) player.heal();
+            if (dropRandomItem) player.choices = [new EventWrapper(this, player).randomDropItem("ゾロ目だったのでアイテムを一つ落とす...")]
+            this.finishPlayerTurn(player);
+          })
         })
-      }))
+      }));
     }
   }
   // 待機をして香霖堂/図書館/工房チェック
