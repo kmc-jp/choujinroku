@@ -407,24 +407,24 @@ export class Game {
     player.choices = choices(`${item.name}を${target.name}から奪った！`)
   }
   // 戦闘 -----------------------------------------------------------------
+  distributeCards(player: Player) {
+    // 初期手札を渡す
+    player.spellCards = [];
+    _.range(6).forEach(_ => this.drawACard(player));
+    // 地形カードで1ドロー
+    let map = this.map[player.pos.x][player.pos.y];
+    if (map && map.powerUp.addOneCard) {
+      let addOne = map.powerUp.addOneCard;
+      if (addOne.some(x => x === player.characterName))
+        this.drawACard(player);
+    }
+  }
   // 戦闘を仕掛けた WARN: 戦闘を仕掛けた結果戦闘を拒否されてもターンを消費してしまう
   @phase setupBattle(player: Player, target: Player) {
     player.choices = choices(`${target.name}に戦闘を仕掛けた！`, () => {
       // 呼び寄せに注意
-      // 初期手札を渡す
-      player.spellCards = [];
-      target.spellCards = [];
-      _.range(6).forEach(_ => this.drawACard(player));
-      _.range(6).forEach(_ => this.drawACard(target));
-      // 地形カードで1ドロー
-      let map = this.map[player.pos.x][player.pos.y];
-      if (map && map.powerUp.addOneCard) {
-        let addOne = map.powerUp.addOneCard;
-        if (addOne.some(x => x === player.characterName))
-          this.drawACard(player);
-        if (addOne.some(x => x === target.characterName))
-          this.drawACard(target);
-      }
+      this.distributeCards(player);
+      this.distributeCards(target);
       // TODO: 弾幕カードがなければもう一度引き直す処理をしていない
       this.battle(player, target);
     });

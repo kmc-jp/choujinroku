@@ -68,14 +68,17 @@ export class EventWrapper {
         let level = npcList[context][d - 1]
         let type: SpellCardType = "弾幕"
         if ((d === 5 || d === 7) && context === "NPC妖怪") type = "武術"
-        this.game.battle(this.player, context, {
-          id: -1,
-          name: "NPCの攻撃",
-          level: level,
-          star: 0,
-          colors: [],
-          attribute: null,
-          cardTypes: [type]
+        this.player.choices = choices(`LV${level}の${type}で攻撃された！ `, () => {
+          this.game.distributeCards(this.player);
+          this.game.battle(this.player, context, {
+            id: -1,
+            name: "NPCの攻撃",
+            level: level,
+            star: 0,
+            colors: [],
+            attribute: null,
+            cardTypes: [type]
+          })
         })
       }, false)
     })
