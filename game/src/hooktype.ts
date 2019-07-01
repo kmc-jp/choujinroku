@@ -8,8 +8,8 @@ import { Item } from "./item";
 export function dice(): number { return 1 + Math.floor(Math.random() * 6); }
 export function twoDice(): TwoDice { return { a: dice(), b: dice() } }
 export type TwoDice = { a: number, b: number };
-export type Dice1D = { type: "1D", success: (this: Game, player: Player, dice: number) => boolean }
-export type Dice2D = { type: "2D", success: (this: Game, player: Player, dice: TwoDice) => boolean }
+export type Dice1D = { type: "1D", success: (player: Player, dice: number) => boolean }
+export type Dice2D = { type: "2D", success: (player: Player, dice: TwoDice) => boolean }
 
 // その属性をもつアクションが自分に対して行われた時に行われるHook
 export type AttributeHook = {
@@ -24,7 +24,7 @@ export type AttributeHook = {
   // [[A,B],[C],[D,E,F]] なら( (A and B) or C or (D and E and F))な状態を表す
   when: (Attribute | Attribute[])[];
   // 提示される選択肢(嫌なアクションを選ばなくてよいという点で無効化成功の選択肢があると嬉しい)
-  choices: (this: Game, player: Player, attributes?: Attribute[]) => Choice[]
+  choices: (player: Player, attributes?: Attribute[]) => Choice[]
 }
 
 export type Ailment =
@@ -74,7 +74,7 @@ export type HookAbyBWhen = "残機減少" | "満身創痍"
 export interface HookAbyB<T> extends HookBase {
   type: "AbyB";
   when: HookAbyBWhen[]
-  hook: (this: Game, a: Player, b?: Player, me?: Player) => T;
+  hook: (a: Player, b?: Player, me?: Player) => T;
 }
 // A が B に タイプ :
 export type HookAtoBWhen = "正体確認" | "説教"
@@ -83,31 +83,31 @@ export type HookAtoBWhen = "正体確認" | "説教"
 export interface HookAtoB<T> extends HookBase {
   type: "AtoB"
   when: HookAtoBWhen[]
-  hook: (this: Game, a: Player, b: Player, me: Player) => T;
+  hook: (a: Player, b: Player, me: Player) => T;
 }
 export type HookAtoBWithItemWhen = "アイテム強奪" | "アイテム譲渡"
 export interface HookAtoBWithItem<T> extends HookBase {
   type: "AtoBWithItem"
   when: HookAtoBWithItemWhen[]
-  hook: (this: Game, a: Player, b: Player, item: Item, me: Player) => T;
+  hook: (a: Player, b: Player, item: Item, me: Player) => T;
 }
 // A が B に スペカで攻撃(or反撃)
 export interface HookAttack<T> extends HookBase {
   type: "Attack";
   when: "Attack"[]
-  hook: (this: Game, a: Player, b: Player | NPCType, spellCard: SpellCard, isRevenge: boolean, me?: Player) => T;
+  hook: (a: Player, b: Player | NPCType, spellCard: SpellCard, isRevenge: boolean, me?: Player) => T;
 }
 // A が B に スペカで攻撃された
 export interface HookAttacked<T> extends HookBase {
   type: "Attacked";
   when: "Attacked"[]
-  hook: (this: Game, a: Player, b: Player | NPCType, spellCard: SpellCard, me?: Player) => T;
+  hook: (a: Player, b: Player | NPCType, spellCard: SpellCard, me?: Player) => T;
 }
 // A が B に スペカで勝利
 export interface HookAWinB<T> extends HookBase {
   type: "AwinB";
   when: "AwinB"[]
-  hook: (this: Game, a: Player, b: Player | NPCType, spellCard: SpellCard, me?: Player) => T;
+  hook: (a: Player, b: Player | NPCType, spellCard: SpellCard, me?: Player) => T;
 }
 
 
@@ -116,14 +116,14 @@ export type HookAWhen = "移動" | "待機" | "残機上昇" | "アイテム獲�
 export interface HookA<T> extends HookBase {
   type: "A"
   when: HookAWhen[]
-  hook: (this: Game, a: Player, me: Player) => T;
+  hook: (a: Player, me: Player) => T;
 }
 // 地形をAが
 export type HookALandWhen = "地形破壊" | "土地を開く";
 export interface HookALand<T> extends HookBase {
   type: "ALand"
   when: HookALandWhen[]
-  hook: (this: Game, a: Player, land: Land) => T;
+  hook: (a: Player, land: Land) => T;
 }
 
 

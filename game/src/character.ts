@@ -36,9 +36,9 @@ type CharacterBase = {
   whenLose?: VictoryHook[];
   id?: number;
   // アイテム所持数の数え方が特殊なキャラ用
-  howToCountItems?: ((this: Game, player: Player) => number) | null;
+  howToCountItems?: ((player: Player) => number) | null;
   // アイテムを捨てられないキャラ用
-  canDiscardItem?: ((this: Game, player: Player, item: Item) => boolean) | null
+  canDiscardItem?: ((player: Player, item: Item) => boolean) | null
 }
 export type Character = Required<CharacterBase>;
 
@@ -48,8 +48,8 @@ export function getAllCharacters(): Character[] {
   let 大食い: AttributeHook = {
     force: true,
     when: ["毒茸", "食あたり", "飲み過ぎ"],
-    choices(this: Game, player: Player) {
-      return this.getTwoDiceChoices(player, "大食い", dice => {
+    choices(player: Player) {
+      return player.game.getTwoDiceChoices(player, "大食い", dice => {
         let success = dice.a + dice.b <= player.level
         if (!success) return choices("大食いをした！ ")
         player.heal();
@@ -157,7 +157,7 @@ export function getAllCharacters(): Character[] {
       Victory.destroyedToLose(["紅魔館", "紅魔館入口"]),
       Victory.damagedToLose(me =>
         me.game.getOthersAtSamePos(me).some(x =>
-          me.watched[x.id] && charaCategories["紅魔館の住人"].includes(x.characterName)))
+          me.watched.has(x.id) && charaCategories["紅魔館の住人"].includes(x.characterName)))
     ]
   }, {
     name: "パチュリー",
@@ -207,7 +207,7 @@ export function getAllCharacters(): Character[] {
         if (!land) return false;
         if (!land.landAttributes.includes("紅マス")) return false;
         if (p.waitCount < 1) return false;
-        for (let other of this.getOthers(p)) {
+        for (let other of p.game.getOthers(p)) {
           if (!charaCategories["地霊殿の住人"].includes(other.characterName) && !p.won.has(other.id)) return false;
         }
         return true;

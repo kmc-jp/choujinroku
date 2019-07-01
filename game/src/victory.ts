@@ -11,7 +11,7 @@ export function waitToWinWith(when: (p: Player) => boolean): VictoryHook {
   return {
     type: "A",
     when: ["待機"],
-    hook(this: Game, player: Player) { return when(player) }
+    hook(player: Player) { return when(player) }
   }
 }
 
@@ -21,7 +21,7 @@ export function waitToWin(where: LandName, items: ItemName[], waitCount: number)
   return {
     type: "A",
     when: ["待機"],
-    hook(this: Game, player: Player) {
+    hook(player: Player) {
       let land = player.currentLand;
       if (land === null) return false;
       if (land.name !== where) return false;
@@ -38,11 +38,11 @@ export function gatherToWin(where: LandName, item: ItemName, memberCount: number
     type: "A",
     when: ["移動"],
     allowAisNotMe: true,
-    hook(this: Game, _: Player, me: Player) {
+    hook(player: Player, me: Player) {
       let land = me.currentLand;
       if (land === null) return false;
       if (land.name !== where) return false;
-      let heres = this.getPlayersAt(me.pos);
+      let heres = me.game.getPlayersAt(me.pos);
       if (heres.length < memberCount) return false;
       return heres.some(x => x.items.some(i => i.name === item));
     }
@@ -50,8 +50,8 @@ export function gatherToWin(where: LandName, item: ItemName, memberCount: number
 }
 // 全員の正体を確認し、全ての ignoreCharas を除く Role のキャラクターに戦闘で勝つ
 export function allWatchAndAllWinToWin(winRequire: (a: Player) => boolean): VictoryHook[] {
-  function impl(this: Game, player: Player) {
-    for (let other of this.getOthers(player)) {
+  function impl(player: Player) {
+    for (let other of player.game.getOthers(player)) {
       if (!player.watched.has(other.id)) return false;
       if (winRequire(other) && !player.won.has(other.id)) return false;
     }
@@ -73,7 +73,7 @@ export function winToWin(when: (me: Player, b: Player, c: SpellCard) => boolean)
   return {
     type: "AwinB",
     when: ["AwinB"],
-    hook(this: Game, a: Player, b: Player | NPCType, spellCard: SpellCard, me?: Player) {
+    hook(a: Player, b: Player | NPCType, spellCard: SpellCard, me?: Player) {
       if (!(b instanceof Player)) return false;
       return when(a, b, spellCard);
     }
@@ -85,7 +85,7 @@ export function killToWin(when: (me: Player, target: Player) => boolean): Victor
     type: "AbyB",
     when: ["満身創痍"],
     allowAisNotMe: true,
-    hook(this: Game, a: Player, b?: Player, me?: Player): boolean {
+    hook(a: Player, b?: Player, me?: Player): boolean {
       if (!b) return false;
       if (!me) return false;
       if (b.id !== me.id) return false;
@@ -97,7 +97,7 @@ export function killToWin(when: (me: Player, target: Player) => boolean): Victor
 export function loseToLose(when: (me: Player, target: Player) => boolean): VictoryHook {
   return {
     type: "AwinB", when: ["AwinB"], allowAisNotMe: true,
-    hook(this: Game, a: Player, b: Player | NPCType, spellCard: SpellCard, me?: Player): boolean {
+    hook(a: Player, b: Player | NPCType, spellCard: SpellCard, me?: Player): boolean {
       if (!(b instanceof Player)) return false;
       if (!me) return false;
       if (b.id !== me.id) return false;
@@ -108,7 +108,7 @@ export function loseToLose(when: (me: Player, target: Player) => boolean): Victo
 export function damagedToLose(when: (me: Player, target?: Player) => boolean): VictoryHook {
   return {
     type: "AbyB", when: ["残機減少"],
-    hook(this: Game, a: Player, b?: Player, me?: Player): boolean {
+    hook(a: Player, b?: Player, me?: Player): boolean {
       return when(a, b)
     }
   };
@@ -116,7 +116,7 @@ export function damagedToLose(when: (me: Player, target?: Player) => boolean): V
 export function destroyedToLose(lands: LandName[]): VictoryHook {
   return {
     type: "ALand", when: ["地形破壊"], allowAisNotMe: true,
-    hook(this: Game, a: Player, land: Land): boolean {
+    hook(a: Player, land: Land): boolean {
       return lands.some(x => x === land.name)
     }
   };
@@ -126,7 +126,7 @@ export function watchedToLose(when: (me: Player, from: Player) => boolean): Vict
     type: "AtoB",
     allowAisNotMe: true,
     when: ["正体確認"],
-    hook(this: Game, a: Player, b: Player, me: Player): boolean {
+    hook(a: Player, b: Player, me: Player): boolean {
       if (b.id !== me.id) return false;
       return when(me, a)
     }

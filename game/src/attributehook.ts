@@ -32,7 +32,7 @@ export function useAndInvalidate(itemName: ItemName, attrs: (Attribute | Attribu
         let items = player.items.filter(x => x.name === itemName);
         if (items.length <= 0) return;
         let item = items[0]
-        this.sendBackItem(player, item);
+        player.game.sendBackItem(player, item);
       });
     }
   }
