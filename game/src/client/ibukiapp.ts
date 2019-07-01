@@ -145,7 +145,7 @@ class ChoujinrokuView {
       this.players[i].to({
         x: width * pos.x * 1.1 + width * 0.8 + this.randoms[i] * width / 2,
         y: height * pos.y * 1.1 + height * 1.4 + this.randoms[i] * width / 2
-      }, { duration: 0.5 })
+      }, { duration: 0.5, })
     })
   }
   initPlayers() {

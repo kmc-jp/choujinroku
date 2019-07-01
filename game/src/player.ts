@@ -187,11 +187,13 @@ export class Player {
       for (let hook of hooks) applyHook(hook);
     }
     for (let choice of choices) result.push(choice);
-    // アイテム / キャラ / 地形 のフックを確認
+    // アイテム / キャラ / 地形 / 仲間のフックを確認
     for (let item of this.items) applyHooks(item.attributeHooks);
     applyHooks(this.character.attributeHooks)
     let map = this.currentLand;
     if (map !== null) applyHooks(map.attributeHooks);
+    let friend = this.friend;
+    if (friend != null) applyHooks(friend.attributeHooks)
     if (forced.length > 0) return forced;
     return result;
   }

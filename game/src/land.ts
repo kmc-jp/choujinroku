@@ -65,23 +65,24 @@ export class EventWrapper {
       "NPCランダムキャラ": [1, 2, 3, 3, 4, 4],
     }
     return new Choice(context + "に攻撃された！", () => {
-      this.player.choices = this.game.getDiceChoices(this.player, "敵の強さ決定", d => {
-        let level = npcList[context][d - 1]
-        let type: SpellCardType = "弾幕"
-        if ((d === 5 || d === 7) && context === "NPC妖怪") type = "武術"
-        this.player.choices = choices(`LV${level}の${type}で攻撃された！ `, () => {
-          this.game.distributeCards(this.player);
-          this.game.battle(this.player, context, {
-            id: -1,
-            name: "NPCの攻撃",
-            level: level,
-            star: 0,
-            colors: [],
-            attribute: null,
-            cardTypes: [type]
+      this.player.with("NPC戦闘", context).choices =
+        this.game.getDiceChoices(this.player, "敵の強さ決定", d => {
+          let level = npcList[context][d - 1]
+          let type: SpellCardType = "弾幕"
+          if ((d === 5 || d === 7) && context === "NPC妖怪") type = "武術"
+          this.player.choices = choices(`LV${level}の${type}で攻撃された！ `, () => {
+            this.game.distributeCards(this.player);
+            this.game.battle(this.player, context, {
+              id: -1,
+              name: "NPCの攻撃",
+              level: level,
+              star: 0,
+              colors: [],
+              attribute: null,
+              cardTypes: [type]
+            })
           })
-        })
-      }, false)
+        }, false)
     })
   }
   // TODO:

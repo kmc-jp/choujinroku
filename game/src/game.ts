@@ -256,8 +256,9 @@ export class Game {
     }
     // 次の手番は休み...
     if (player.skipTurnCounter > 0) {
-      this.finishPlayerTurn(player);
-      player.choices = choices("今回の手番は休みだった...");
+      player.with("手番休み").choices = choices("今回の手番は休みだった...", () => {
+        this.finishPlayerTurn(player);
+      });
       return;
     }
     // 盤外にいる場合は特殊
@@ -455,9 +456,10 @@ export class Game {
     // 仲間ボーナス
     if (player.friend) this.drawACard(player);
   }
-  // 戦闘を仕掛けた WARN: 戦闘を仕掛けた結果戦闘を拒否されてもターンを消費してしまう
+  // 戦闘を仕掛けた (戦闘を仕掛けた結果戦闘を拒否されてもターンを消費してしまう)
   @phase setupBattle(player: Player, target: Player) {
-    player.choices = choices(`${target.name}に戦闘を仕掛けた！`, () => {
+    // WARN: 戦闘回避無効化はまだ
+    target.with("PC戦闘").choices = choices(`${player.name}に戦闘を仕掛けられた！`, () => {
       // 呼び寄せに注意
       this.distributeCards(player);
       this.distributeCards(target);
@@ -608,7 +610,9 @@ export class Game {
     player.isAbleToAction = false;
     player.pos = new Pos(-1, -1);
     if (player.life <= 0) {
-      this.endGame();
+      player.with("満身創痍").choices = choices(`${player.name}は満身創痍で敗北してしまった...`, () => {
+        this.endGame();
+      })
       return;
     }
     player.bomb = Math.max(2, player.bomb);

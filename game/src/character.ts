@@ -1,5 +1,6 @@
 import { Choice, choices } from "./choice";
-import { AttributeHook, Attribute, SpecificActionHook, invalidate, invalidate1D, WinLoseHook, invalidate2D, drawACard, waitToWin, gatherToWin, allWatchAndAllWinToWin } from "./hook"
+import { AttributeHook, Attribute, SpecificActionHook, invalidate, invalidate1D, VictoryHook, invalidate2D, drawACard } from "./hook"
+import * as Victory from "./victory";
 import { Game } from "./game";
 import { Player } from "./player";
 import { FieldAction } from "./fieldaction";
@@ -23,11 +24,13 @@ type CharacterBase = {
   spellCard: SpellCardName;
   role: RoleName;
   race?: RaceName;
-  attributeHooks?: AttributeHook[]; //
+  attributeHooks?: AttributeHook[]; // 耐性
   fieldActions?: FieldAction[]; //　特殊能力の使用
-  specificActions?: SpecificActionHook[]; // フックした時に他の選択肢より先に行える能力
-  whenWin?: WinLoseHook[];
-  whenLose?: WinLoseHook[];
+  // フックした時に他の選択肢より先に行える能力
+  // WARN: 使用しなかった場合は特別なフラグを建てて別の人にはばれないようにする必要がある
+  specificActions?: SpecificActionHook[];
+  whenWin?: VictoryHook[];
+  whenLose?: VictoryHook[];
   id?: number;
   // アイテム所持数の数え方が特殊なキャラ用
   howToCountItems?: ((this: Game, player: Player) => number) | null;
@@ -73,9 +76,9 @@ export function getAllCharacters(): Character[] {
         a.watched.has(b.id) && b.role === "妖怪" && c.cardTypes.includes("弾幕")),
     ],
     whenWin: [
-      allWatchAndAllWinToWin("妖怪", ["紫"]),
-      waitToWin("博麗神社", ["神社の御札"], 3),
-      gatherToWin("博麗神社", "銘酒", 3)
+      Victory.allWatchAndAllWinToWin("妖怪", ["紫"]),
+      Victory.waitToWin("博麗神社", ["神社の御札"], 3),
+      Victory.gatherToWin("博麗神社", "銘酒", 3)
     ]
   }, {
     name: "魔理沙",

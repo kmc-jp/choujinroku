@@ -51,6 +51,24 @@ export function invalidate(skillName: string, attrs: (Attribute | Attribute[])[]
     }
   }
 }
+
+//アイテムを消費して無効化
+export function useAndInvalidate(itemName: ItemName, attrs: (Attribute | Attribute[])[], when?: (p: Player, a: Attribute[]) => boolean): AttributeHook {
+  return {
+    skillName: itemName,
+    when: attrs,
+    choices(player: Player, attributes?: Attribute[]) {
+      if (when && !when(player, attributes ? attributes : [])) return [];
+      return choices(itemName + "を消費して無効化！", () => {
+        let items = player.items.filter(x => x.name === itemName);
+        if (items.length <= 0) return;
+        let item = items[0]
+        this.sendBackItem(player, item);
+      });
+    }
+  }
+}
+
 export function invalidate1D(skillName: string, attrs: (Attribute | Attribute[])[], success: (p: Player, dice: number) => boolean): AttributeHook {
   return {
     skillName: skillName,
@@ -61,6 +79,7 @@ export function invalidate1D(skillName: string, attrs: (Attribute | Attribute[])
     }
   }
 }
+
 export function invalidate2D(skillName: string, attrs: (Attribute | Attribute[])[], success: (p: Player, dice: TwoDice) => boolean): AttributeHook {
   return {
     skillName: skillName,
@@ -137,7 +156,8 @@ export type HookA<T> = {
   needBomb?: boolean;
 }
 export type ActionHook<T> = HookAbyB<T> | HookAtoB<T> | HookA<T> | HookBattle<T>
-export type WinLoseHook = ActionHook<boolean>
+// 勝利 / 敗北のフック
+export type VictoryHook = ActionHook<boolean>
 export type SpecificActionHook = ActionHook<Choice[]>
 
 // 条件を満たしたら手札1枚ドロー
@@ -151,54 +171,6 @@ export function drawACard(skillName: string, success: (a: Player, b: Player, c: 
       return [new Choice(skillName + ":手札1枚ドロー", () => {
         this.drawACard(a);
       })];
-    }
-  }
-}
-// xxでxxを持ってxxターン待機して勝利
-export function waitToWin(where: LandName, items: ItemName[], waitCount: number): WinLoseHook {
-  return {
-    type: "A",
-    when: ["待機"],
-    hook(this: Game, player: Player) {
-      let land = player.currentLand;
-      if (land === null) return false;
-      if (land.name !== where) return false;
-      for (let item of items) {
-        if (player.getWaitCount(item) < waitCount) return false;
-      }
-      return true;
-    }
-  }
-}
-// xxで誰かがxxを持ってx人以上集まって勝利
-export function gatherToWin(where: LandName, item: ItemName, memberCount: number): WinLoseHook {
-  return {
-    type: "A",
-    when: ["移動"],
-    allowAisNotMe: true,
-    hook(this: Game, _: Player, me: Player) {
-      let land = me.currentLand;
-      if (land === null) return false;
-      if (land.name !== where) return false;
-      let heres = this.getPlayersAt(me.pos);
-      if (heres.length < memberCount) return false;
-      return heres.some(x => x.items.some(i => i.name === item));
-    }
-  }
-}
-// 全員の正体を確認し、全ての ignoreCharas を除く Role のキャラクターに戦闘で勝つ
-export function allWatchAndAllWinToWin(requireWinRole: RoleName, ignoreCharas: CharaName[]): WinLoseHook {
-  return {
-    type: "AtoB",
-    when: ["正体確認", "戦闘勝利"],
-    hook(this: Game, player: Player) {
-      for (let other of this.getOthers(player)) {
-        if (!player.watched.has(other.id)) return false;
-        if (other.role !== requireWinRole) continue;
-        if (ignoreCharas.includes(other.characterName)) continue;
-        if (!player.won.has(other.id)) return false;
-      }
-      return true;
     }
   }
 }
