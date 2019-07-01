@@ -1,5 +1,6 @@
 import { Choice, choices } from "./choice";
-import { AttributeHook, Attribute, SpecificActionHook, invalidate, invalidate1D, VictoryHook, invalidate2D, drawACard } from "./hook"
+import { AttributeHook, Attribute, SpecificActionHook, invalidate, invalidate1D, VictoryHook, invalidate2D } from "./hook"
+import { drawACard } from "./specificaction"
 import * as Victory from "./victory";
 import { Game } from "./game";
 import { Player } from "./player";
@@ -28,6 +29,7 @@ type CharacterBase = {
   fieldActions?: FieldAction[]; //　特殊能力の使用
   // フックした時に他の選択肢より先に行える能力
   // WARN: 使用しなかった場合は特別なフラグを建てて別の人にはばれないようにする必要がある
+  // 例えば霊夢の夢想天生はちょっと無理かも(先に発動してその後二回目の反撃をしてしまう...)
   specificActions?: SpecificActionHook[];
   whenWin?: VictoryHook[];
   whenLose?: VictoryHook[];

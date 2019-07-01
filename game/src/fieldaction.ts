@@ -50,7 +50,7 @@ export function gosunkugiAction(this: Game, player: Player, item: Item): Choice[
     player.choices = this.getOthers(player).map(other =>
       new Choice(`${other.name}を呪う！`, () => {
         other.with("呪い", "残機減少").choices = choices(`${player.name}に呪われて残機が減った！ `, () => {
-          this.damaged(other);
+          this.damaged(other, player);
         })
       }))
   })

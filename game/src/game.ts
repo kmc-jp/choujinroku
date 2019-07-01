@@ -7,13 +7,13 @@ import { ItemCategoryDict, Item, getItemsData, ItemCategory, Friend, getFriendsD
 import * as _ from "underscore";
 import { Pos, PosType } from "./pos";
 import { SpellCard, getAllSpellCards } from "./spellcard";
-import { TwoDice, dice, twoDice, Attribute, NPCType } from "./hook";
+import { TwoDice, dice, twoDice, Attribute, NPCType, HookAtoBWhen, HookAWhen, SpecificActionHook, HookAbyBWhen, HookBattleWhen } from "./hook";
 
 // デコレータ
 function phase(target: Game, propertyKey: string, descriptor: PropertyDescriptor) {
   let original = descriptor.value;
   descriptor.value = function (this: Game, ...args: any[]) {
-    this.temporaryActionStack.push(() => original.bind(this)(...args));
+    this.phase(() => original.bind(this)(...args));
   }
 }
 
@@ -231,6 +231,10 @@ export class Game {
   // 基本的には player.choices に追加することになるが、
   // 一人だけの決定で終わるわけではないので だれの選択肢でも増やせるようになっている
   // (例:お見合いは次の全員の了承が必要)
+  // 意味は以下と同じ(this.phase と function phase の違いに注意)
+  phase(action: () => any) {
+    this.temporaryActionStack.push(action);
+  }
 
   // 初期配置選択肢: 1Pから開始位置を選んでもらう -----------------------------
   @phase decideFirstPlace(player: Player) {
@@ -245,6 +249,51 @@ export class Game {
       this.doFieldAction(this.players[0]);
     }));
   }
+  checkActionHookImpl(factor: Player, impl: (player: Player, specificActionHook: SpecificActionHook) => Choice[]) {
+    // TODO:２つの選択肢が可能な時に片方しか選べない
+    // WARN: 同じフックのタイミングがあるときは宣言した順にスタックに積まれて消費されていく
+    for (let player of this.players) {
+      player.getSpecificActions(factor).forEach(x => {
+        let choices = impl(player, x);
+        if (choices.length <= 0) return;
+        if (x.needBomb) {
+          if (player.bomb <= 0) return;
+          player.choices.push(new Choice(`ボムを消費して${x.skillName ? x.skillName : "特殊能力"}を発動！`, () => {
+            player.choices = choices;
+          }));
+        } else {
+          player.choices.push(...choices);
+        }
+      })
+      if (player.choices.length <= 0) continue;
+      player.choices.push(new Choice("何もしない"));
+    }
+  }
+  @phase checkActionHookAtoB(when: HookAtoBWhen, A: Player, B: Player) {
+    this.checkActionHookImpl(A, (player, x) => {
+      if (x.type !== "AtoB" || !x.when.includes(when)) return [];
+      return x.hook.bind(this)(A, B, player);
+    });
+  }
+  @phase checkActionHookA(when: HookAWhen, A: Player) {
+    this.checkActionHookImpl(A, (player, x) => {
+      if (x.type !== "A" || !x.when.includes(when)) return [];
+      return x.hook.bind(this)(A, player);
+    });
+  }
+  @phase checkActionHookAByB(when: HookAbyBWhen, A: Player, B?: Player) {
+    this.checkActionHookImpl(A, (player, x) => {
+      if (x.type !== "AbyB" || !x.when.includes(when)) return [];
+      return x.hook.bind(this)(A, B, player);
+    });
+  }
+  @phase checkActionHookBattle(when: HookBattleWhen, A: Player, B: Player, spellCard: SpellCard) {
+    this.checkActionHookImpl(A, (player, x) => {
+      if (x.type !== "Battle" || !x.when.includes(when)) return [];
+      return x.hook.bind(this)(A, B, spellCard, player);
+    });
+  }
+
   // 手番 ----------------------------------------------------------------
   // 手番行動を決定する
   @phase doFieldAction(player: Player) {
@@ -276,6 +325,7 @@ export class Game {
       player.actions.push("待機");
       player.addWaitCount();
       this.waitAndGetItem(player);
+      this.checkActionHookA("待機", player);
       this.finishPlayerTurn(player);
     })
     // 移動1 / 移動2
@@ -305,6 +355,7 @@ export class Game {
       for (let item of player.items) {
         player.choices.push(...this.parseFieldItemAction(player, item))
       }
+      // TODO: アイテムを渡す (+ checkActionHook)
     }
     // 戦闘
     if (!player.actions.includes("戦闘")) {
@@ -317,7 +368,7 @@ export class Game {
     }
     // B自 / 特殊能力の使用
     if (!player.actions.includes("特殊能力の使用")) {
-      player.choices.push(...this.parseFieldAction(player, player.fieldActions, "特殊能力の使用"))
+      player.choices.push(...this.parseFieldAction(player, player.characterFieldActions, "特殊能力の使用"))
     }
   }
   // 待機をして香霖堂/図書館/工房チェック
@@ -400,6 +451,7 @@ export class Game {
         // 1個得て2個減らすのだから 最大数チェックは大丈夫かと
         return;
       }
+      this.checkActionHookA("アイテム獲得", player);
       // とりあえず5つまでしか持てないことにする
       if (player.items.length < 6) return;
       // アイテムを捨てる(呪いのアイテムは捨てられない！)
@@ -437,6 +489,7 @@ export class Game {
   }
   // アイテムを奪う
   @phase stealItem(player: Player, target: Player, item: Item) {
+    this.checkActionHookAtoB("アイテム強奪", player, target);
     target.items = target.items.filter(x => x.id !== item.id);
     this.gainItem(player, item, false);
     player.choices = choices(`${item.name}を${target.name}から奪った！`)
@@ -464,6 +517,7 @@ export class Game {
       this.distributeCards(player);
       this.distributeCards(target);
       // TODO: 弾幕カードがなければもう一度引き直す処理をしていない
+      this.checkActionHookAtoB("戦闘開始", player, target)
       this.battle(player, target);
     });
   }
@@ -549,8 +603,9 @@ export class Game {
       player.choices.push(new Choice("反撃は諦める...", lose))
   }
 
-  // 戦闘終了後になにか処理があればそれをする
+  // 戦闘終了後
   @phase finishBattle(player: Player, target: Player | NPCType) {
+    this.checkActionHookAtoB("戦闘終了", player, target instanceof Player ? target : player)
     this.usedSpellCards.push(...player.spellCards);
     player.spellCards = [];
     if (target instanceof Player) {
@@ -563,23 +618,26 @@ export class Game {
   @phase win(player: Player, target: Player) {
     player.won.add(target.id);
     target.isAbleToAction = false;
-    player.choices = [
-      ...(player.watched.has(target.id) ? [] :
-        choices("戦闘勝利->正体確認", () => {
-          this.watch(player, target);
-          this.kick(player, target);
-        })),
-      // 必ずアイテムは奪えるとする(かっぱのリュックしかない時にNopにできてしまうので事前filterが居る)
-      ...(target.items.map(item =>
-        new Choice(`戦闘勝利 -> アイテム強奪(${item.name})`, () => {
-          this.stealItem(player, target, item);
-          this.kick(player, target);
+    this.checkActionHookAtoB("戦闘勝利", player, target)
+    this.phase(() => {
+      player.choices = [
+        ...(player.watched.has(target.id) ? [] :
+          choices("戦闘勝利->正体確認", () => {
+            this.watch(player, target);
+            this.kick(player, target);
+          })),
+        // 必ずアイテムは奪えるとする(かっぱのリュックしかない時にNopにできてしまうので事前filterが居る)
+        ...(target.items.map(item =>
+          new Choice(`戦闘勝利 -> アイテム強奪(${item.name})`, () => {
+            this.stealItem(player, target, item);
+            this.kick(player, target);
+          })
+        )),
+        new Choice("戦闘勝利->残機減少", () => {
+          this.damaged(target, player);
         })
-      )),
-      new Choice("戦闘勝利->残機減少", () => {
-        this.damaged(target, player);
-      })
-    ];
+      ];
+    })
   }
   // 蹴飛ばす
   @phase kick(player: Player, target: Player) {
@@ -601,6 +659,7 @@ export class Game {
   @phase watch(player: Player, target: Player) {
     player.choices = choices(`${target.name}の正体を確認した！`, () => {
       player.watched.add(target.id);
+      this.checkActionHookAtoB("正体確認", player, target)
     });
   }
   // 残機が減った
@@ -611,12 +670,14 @@ export class Game {
     player.pos = new Pos(-1, -1);
     if (player.life <= 0) {
       player.with("満身創痍").choices = choices(`${player.name}は満身創痍で敗北してしまった...`, () => {
+        this.checkActionHookAByB("満身創痍", player, from);
         this.endGame();
       })
-      return;
+    } else {
+      player.bomb = Math.max(2, player.bomb);
+      player.choices = choices(`${damage}ダメージを受けた`);
+      this.checkActionHookAByB("残機減少", player, from);
     }
-    player.bomb = Math.max(2, player.bomb);
-    player.choices = choices(`${damage}ダメージを受けた`);
   }
   // 土地を破壊した(誰がとかは無い)
   @phase destroyLand(pos: Pos, attrs: Attribute[]) {
@@ -626,6 +687,8 @@ export class Game {
       this.leftLands.push(map);
       this.leftLands = _.shuffle(this.leftLands);
       this.map[pos.x][pos.y] = null;
+      // NOTE: 誰が,とかはないので1Pが壊したことにする
+      this.checkActionHookA("地形破壊", this.players[0]);
     }
     heres.forEach(x => {
       x.with(...attrs, "地形破壊").choices =
@@ -642,6 +705,7 @@ export class Game {
     let land = this.leftLands[this.leftLands.length - 1];
     this.leftLands.pop();
     this.map[x][y] = land;
+    this.checkActionHookA("土地を開く", player)
     player.choices = choices(`開けた土地は${land.name}だった！`);
   }
   // 土地に入る(土地を新たに開くことはしない)

@@ -1,7 +1,7 @@
 import { Character } from "./character";
 export type PlayerActionTag = "移動1" | "待機" | "移動2" | "戦闘" | "アイテム" | "特殊能力の使用"
 import { Choice } from "./choice";
-import { Attribute, AttributeHook, WithAttribute } from "./hook";
+import { Attribute, AttributeHook, WithAttribute, SpecificActionHook } from "./hook";
 import { Item, ItemName, Friend } from "./item";
 import { toString } from "./util";
 import * as _ from "underscore";
@@ -9,6 +9,7 @@ import { Game } from "./game";
 import { Pos } from "./pos";
 import { SpellCard, parseSpellCard } from "./spellcard";
 import { EventWrapper } from "./land";
+import { FieldAction } from "./fieldaction";
 function setToArray<T>(set: Set<T>): T[] {
   let result: T[] = [];
   set.forEach(w => { result.push(w); });
@@ -127,22 +128,30 @@ export class Player {
   get race() { return this.character.race; }
   get role() { return this.character.role; }
   set pos(value: Pos) {
-    if (!value.equal(this.mPos)) {
-      this.waitCount = 0;
-      this.waitCountIndexedByItem = {};
-    }
+    if (value.equal(this.mPos)) return;
+    this.waitCount = 0;
+    this.waitCountIndexedByItem = {};
     this.mPos = value;
+    this.game.checkActionHookA("移動", this)
   }
-  get specificActions() {
-    // ボムチェック？
-    return this.character.specificActions;
+  // アイテム・仲間・キャラの行動フック
+  getSpecificActions(factor: Player): SpecificActionHook[] {
+    let result = this.character.specificActions;
+    this.items.forEach(x => { result.push(...x.specificActions) });
+    let friend = this.friend;
+    if (friend) result.push(...friend.specificActions)
+    result = result.filter(x => x.allowAisNotMe || factor.id === this.id)
+    return result;
   }
-  get fieldActions() {
+  // キャラの特殊能力
+  get characterFieldActions(): FieldAction[] {
     // ボムチェック？
     return this.character.fieldActions;
   }
   heal() {
-    if (this.isAbleToGetSomething) this.life = Math.min(5, this.life + 1);
+    if (!this.isAbleToGetSomething) return;
+    this.life = Math.min(5, this.life + 1);
+    this.game.checkActionHookA("残機上昇", this);
   }
   healBomb() {
     if (this.isAbleToGetSomething) this.bomb = Math.min(5, this.bomb + 1);

@@ -113,64 +113,50 @@ export class WithAttribute {
 
 
 // 行動に対する Hook
-// allowAisNotMe だと全員のその行動に対して hook される
-// A が B により タイプ: (B === undefined) なら人のせいではなくそうなった
-export type HookAbyB<T> = {
-  type: "AbyB";
-  when: ("残機減少" | "満身創痍")[]
-  hook: (this: Game, a: Player, b?: Player, me?: Player) => T;
+export type HookBase = {
   allowAisNotMe?: boolean;
   skillName?: string;
   needBomb?: boolean;
+}
+
+// allowAisNotMe だと全員のその行動に対して hook される
+// A が B により タイプ: (B === undefined) なら人のせいではなくそうなった
+export type HookAbyBWhen = "残機減少" | "満身創痍"
+export interface HookAbyB<T> extends HookBase {
+  type: "AbyB";
+  when: HookAbyBWhen[]
+  hook: (this: Game, a: Player, b?: Player, me?: Player) => T;
 }
 // A が B に タイプ :
 // WARN: ところで戦闘勝利の場合は勝利要因のスペカを覚えておくこと(LV6のスペカで勝利、などのため)
-export type HookAtoB<T> = {
+export type HookAtoBWhen = "正体確認" | "アイテム強奪" | "アイテム譲渡" | "説教"
+  | "戦闘開始" // AがBに/BがAに仕掛けた戦闘が始まる前 (手札補充など)
+  | "戦闘終了" // AがBに/BがAに仕掛けた戦闘が終了した時(毒をばらまくなど) // a.id === b.id のときはNPC戦闘
+  | "戦闘勝利"//  AがBに勝利したとき
+export interface HookAtoB<T> extends HookBase {
   type: "AtoB"
-  when: ("正体確認" | "アイテム強奪" | "アイテム譲渡" | "説教"
-    | "戦闘開始" // AがBに/BがAに仕掛けた戦闘が始まる前 (手札補充など)
-    | "初撃"    // 最初にAがBに攻撃する時 (特殊能力で攻撃 / 特殊能力で相手を弱体化)
-    | "戦闘終了" // AがBに/BがAに仕掛けた戦闘が終了した時(毒をばらまくなど)
-    | "戦闘勝利")[] // AがBに勝利したとき
+  when: HookAtoBWhen[]
   hook: (this: Game, a: Player, b: Player, me: Player) => T;
-  allowAisNotMe?: boolean;
-  skillName?: string;
-  needBomb?: boolean;
 }
+
 // A が B に C のスペカで タイプ
-export type HookBattle<T> = {
-  type: "Battle";
-  when: "Attack"  // A が B に C で攻撃する時
+export type HookBattleWhen =
+  "Attack"  // A が B に C で攻撃する時
   | "Attacked";   // A が B に C で攻撃された時
-  hook: (this: Game, a: Player, b: Player, c: SpellCard) => T;
-  skillName?: string;
-  needBomb?: boolean;
+export interface HookBattle<T> extends HookBase {
+  type: "Battle";
+  when: HookBattleWhen[]
+  hook: (this: Game, a: Player, b: Player, c: SpellCard, me: Player) => T;
 }
 // A が タイプ
-export type HookA<T> = {
+export type HookAWhen = "移動" | "待機" | "地形破壊" | "残機上昇" | "アイテム獲得" | "土地を開く";
+export interface HookA<T> extends HookBase {
   type: "A"
-  when: ("移動" | "待機" | "地形破壊" | "残機上昇" | "アイテム獲得" | "アイテム損失" | "土地を開く")[]
+  when: HookAWhen[]
   hook: (this: Game, a: Player, me: Player) => T;
-  allowAisNotMe?: boolean;
-  skillName?: string;
-  needBomb?: boolean;
 }
+export type ActionHookType = "AbyB" | "AtoB" | "Battle" | "A"
 export type ActionHook<T> = HookAbyB<T> | HookAtoB<T> | HookA<T> | HookBattle<T>
 // 勝利 / 敗北のフック
 export type VictoryHook = ActionHook<boolean>
 export type SpecificActionHook = ActionHook<Choice[]>
-
-// 条件を満たしたら手札1枚ドロー
-export function drawACard(skillName: string, success: (a: Player, b: Player, c: SpellCard) => boolean): SpecificActionHook {
-  return {
-    type: "Battle",
-    when: "Attack",
-    skillName: skillName,
-    hook(this: Game, a: Player, b: Player, c: SpellCard): Choice[] {
-      if (!success(a, b, c)) return [];
-      return [new Choice(skillName + ":手札1枚ドロー", () => {
-        this.drawACard(a);
-      })];
-    }
-  }
-}
