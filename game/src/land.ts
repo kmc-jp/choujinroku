@@ -44,10 +44,11 @@ export class EventWrapper {
     this.game = game
     this.player = player
   }
-  // TODO:
   // 手番は終了し、次の手番は休み
   skipTurn(context: string, isSkipNextTurn: boolean = true): Choice {
-    return new Choice(context + "手番は終了し、次の手番は休みだが未実装だった！ ")
+    this.player.isAbleToAction = false;
+    this.player.skipTurnCounter = 2;
+    return new Choice(context + "手番は終了し、次の手番は休み")
   }
   // NPC戦闘(後でAttributeを付ける)
   battleWithNPC(context: NPCType): Choice {
@@ -420,7 +421,7 @@ export class EventWrapper {
         game.players.filter(p => !p.pos.isOutOfLand()).forEach(p => {
           game.getTwoDiceChoices(p, "場に居るPCは全員、2D > 精神力で残機が1減る。", dice => {
             if (dice.a + dice.b <= p.mental) p.choices = choices("大ナマズを回避した！ ")
-            p.with("大ナマズ", ...attributes).choices = choices("大ナマズを食らった！", () => {
+            p.with("大ナマズ", "残機減少", ...attributes).choices = choices("大ナマズを食らった！", () => {
               game.damaged(p)
             })
           })
@@ -437,7 +438,7 @@ export class EventWrapper {
       let d = dice.a + dice.b
       let attrs = player.with(...attributes)
       if (d === 2) attrs.choices = [this.battleWithNPC("NPCランダムキャラ")]
-      else if (d === 3) attrs.with("毒茸").choices = game.getTwoDiceChoices(player, "毒茸を食べてしまう。2D > 精神力で残機が1減る", dice => {
+      else if (d === 3) attrs.with("毒茸", "残機減少").choices = game.getTwoDiceChoices(player, "毒茸を食べてしまう。2D > 精神力で残機が1減る", dice => {
         if (dice.a + dice.b <= player.mental) player.choices = choices("毒茸を食べたが大丈夫だった！")
         else player.choices = choices("毒茸を食べてしまって残機が減った...", () => game.damaged(player))
       })
@@ -464,7 +465,7 @@ export class EventWrapper {
       else if (d === 9) attrs.with("呪い").choices = choices("未実装の゙バカになる呪いを受ける。次の自分の手番終了時まで、レベル1 精神力9 になる。")
       else if (d === 10) attrs.choices = choices("金ダライが降ってきた！ ", () => {
         game.getPlayersAt(player.pos).forEach(x => {
-          x.with(...attributes).choices = game.getDiceChoices(x, "1D > レベルで残機が1減る！", d => {
+          x.with(...attributes, "残機減少").choices = game.getDiceChoices(x, "1D > レベルで残機が1減る！", d => {
             if (d <= x.level) x.choices = choices("金ダライを回避した！ ")
             else x.choices = choices("金ダライが当たった！", () => game.damaged(x))
           })
@@ -628,7 +629,7 @@ export function getLands(): Land[] {
         else if (dice === 3) attrs.choices = this.happenEvent(attrs.attrs)
         else if (dice === 4) attrs.choices = this.happenAccident(attrs.attrs)
         else if (dice === 5) attrs.choices = [this.skipTurn("蚤に咬まれてしまった")]
-        else if (dice === 6) attrs.choices = this.damagedOn2D("恙虫(ツツガムシ)に咬まれてしまった。")
+        else if (dice === 6) attrs.with("残機減少").choices = this.damagedOn2D("恙虫(ツツガムシ)に咬まれてしまった。")
       })
     }, {
       name: "夜雀の屋台",
@@ -640,7 +641,7 @@ export function getLands(): Land[] {
         else if (dice === 3) attrs.choices = [this.arbitrarilyWatch("店主と噂話をする。")]
         else if (dice === 4) attrs.choices = choices("何も起きなかった...")
         else if (dice === 5) attrs.with("飲み過ぎ").choices = [this.randomDropItem("飲み過ぎてしまった。")]
-        else if (dice === 6) attrs.with("食あたり").choices = this.damagedOn2D("食あたりを起こした。")
+        else if (dice === 6) attrs.with("食あたり", "残機減少").choices = this.damagedOn2D("食あたりを起こした。")
       })
     }, {
       name: "人間の里",
@@ -653,7 +654,7 @@ export function getLands(): Land[] {
         else if (dice === 3) attrs.choices = this.happenEvent(attrs.attrs)
         else if (dice === 4) attrs.choices = this.happenAccident(attrs.attrs)
         else if (dice === 5) attrs.with("飲み過ぎ").choices = [this.randomDropItem("飲み過ぎてしまった。")]
-        else if (dice === 6) attrs.with("食あたり").choices = this.damagedOn2D("食あたりを起こした。")
+        else if (dice === 6) attrs.with("食あたり", "残機減少").choices = this.damagedOn2D("食あたりを起こした。")
       })
     }, {
       name: "迷いの竹林",
@@ -825,7 +826,7 @@ export function getLands(): Land[] {
         // TODO:
         else if (dice === 4) attrs.with("幻覚").choices = choices("不安になってきた。次の移動でもと居た場所に引き返す。")
         else if (dice === 5) attrs.choices = [this.randomDropItem("妖怪に驚かされた。")]
-        else if (dice === 6) attrs.choices = choices("僵尸(幽霊)が襲ってきた。残機が3以上であれば、残機が1減る。", () => {
+        else if (dice === 6) attrs.with("残機減少").choices = choices("僵尸(幽霊)が襲ってきた。残機が3以上であれば、残機が1減る。", () => {
           if (this.player.life >= 3) this.game.damaged(this.player)
         })
       })

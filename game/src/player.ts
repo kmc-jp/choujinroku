@@ -23,7 +23,8 @@ Set.prototype.toString = function () {
 export class Player {
   name: string;
   private character: Character; // レベル+1などがありうるので外部から直接参照できないように
-  isAbleToAction: boolean; // 戦闘敗北などでターン続行不可能になった
+  isAbleToAction: boolean; // 戦闘敗北や手番終了などでターン続行不可能になった
+  skipTurnCounter: number = 0; // 次の手番は休みカウンタ
   actions: PlayerActionTag[] = [];
   private mPos: Pos = new Pos(-1, -1); // 現在地(盤外:{-1,-1})
   id: number;
@@ -203,14 +204,12 @@ export class Player {
   toString(): string {
     let land = this.currentLand
     let friend = this.friend;
-    return `${this.name}:
-  ${this.parceCharacter()}
-  x:${this.pos.x},y:${this.pos.y}(${land ? land.name : "盤外"})
-  ボム:${this.bomb} ,残機:${this.life} ,待機:${this.waitCount}
+    return `${this.name} : ${this.parceCharacter()}
+  ${land ? land.name : "盤外"}  ${"💔".repeat(this.life)} ${"💣".repeat(this.bomb)}
   勝利済み:${this.wonArray.map(x => this.game.players[x].name).join(",")}
   正体確認:${this.watchedArray.map(x => this.game.players[x].name).join(",")}
-  アイテム:{${this.items.map(x => x.name).join(",")}}
-  仲間:${friend ? friend.name : ""}
-  スペルカード:\n  ${this.spellCards.map(x => parseSpellCard(x)).join("\n  ")}`;
+  アイテム:${this.items.map(x => x.name).join(",")}
+  ${friend ? "仲間:" + friend.name : ""}  ${this.waitCount ? "待機:" + this.waitCount : ""}
+  ${this.spellCards.length <= 0 ? "" : "スペルカード:\n" + this.spellCards.map(x => parseSpellCard(x)).join("\n  ")}`;
   }
 }

@@ -1,7 +1,7 @@
 import { Player } from "./player";
 import { Game } from "./game";
 import { Choice } from "./choice";
-import { FieldAction } from "./fieldaction";
+import { FieldItemAction } from "./fieldaction";
 import { AttributeHook, invalidate, SpecificActionHook } from "./hook"
 import * as FA from "./fieldaction";
 
@@ -29,7 +29,7 @@ export type Friend = Required<ItemBase<FriendName, FriendCategory>>
 type ItemBase<T, U> = {
   name: T;
   isCursed?: boolean; // 呪いのアイテムは捨てられない
-  fieldActions?: FieldAction[]; // 手番を消費して行う行動
+  fieldActions?: FieldItemAction[]; // 手番を消費して行う行動
   attributeHooks?: AttributeHook[] // その属性を帯びた攻撃に対するHook
   specificAdditionalActions?: SpecificActionHook[]; // 追加で*先に*行える特殊能力
   specificActions?: SpecificActionHook[]; // フックした時に他の選択肢を上書きして行われる能力
@@ -42,12 +42,13 @@ export function getItemsData(): ItemCategoryDict {
     "宝物": [
       {
         name: "浄玻璃の鏡",
-        fieldActions: [FA.jouhariFieldAction]
+        fieldActions: [FA.jouhariAction]
       },
       { name: "天狗の腕章" },
-      { name: "ZUN帽" },
-      { name: "神社の御札" },
-      {
+      { name: "ZUN帽" }, {
+        name: "神社の御札",
+        attributeHooks: [invalidate("神社の御札", ["呪い"])]
+      }, {
         name: "聖の宝塔",
         attributeHooks: [invalidate("聖の宝塔", ["迷い"])]
       },
@@ -56,17 +57,20 @@ export function getItemsData(): ItemCategoryDict {
       { name: "宝剣" },
       { name: "蓬莱の薬" },
       { name: "妖怪の傘" },
-      { name: "銘酒" },
-      { name: "羽衣" },
+      { name: "銘酒" }, {
+        name: "羽衣",
+        attributeHooks: [invalidate("羽衣", [["地形破壊", "残機減少"], ["落とし穴", "残機減少"]])]
+      },
     ], "本": [
       { name: "呪法書" },
       { name: "エア巻物" },
       { name: "幻想郷の歩き方" },
       { name: "スポ根漫画" },
       { name: "同人誌" },
-      { name: "文々。新聞" },
-      { name: "鉄人レシピ" },
-      { name: "カリスマの秘訣" },
+      { name: "文々。新聞" }, {
+        name: "鉄人レシピ",
+        attributeHooks: [invalidate("鉄人レシピ", ["毒茸", "食あたり", "飲み過ぎ"])]
+      }, { name: "カリスマの秘訣" },
       { name: "スペカ事典" },
       { name: "武術指南書" },
       { name: "求聞史記" },
@@ -86,17 +90,17 @@ export function getItemsData(): ItemCategoryDict {
       { name: "手作りの人形" },
     ], "品物": [
       { name: "巨大化茸" },
-      { name: "1up茸" },
-      { name: "毒茸" },
-      { name: "毒茸" },
+      { name: "1up茸", fieldActions: [FA.oneUpMashRoomAction] },
+      { name: "毒茸", fieldActions: [FA.poisonMashRoomAction] },
+      { name: "毒茸", fieldActions: [FA.poisonMashRoomAction] },
       { name: "解毒剤" },
       { name: "流し雛" },
       { name: "藁人形" },
       { name: "藁人形" },
       { name: "藁人形" },
-      { name: "五寸釘" },
-      { name: "五寸釘" },
-      { name: "五寸釘" },
+      { name: "五寸釘", fieldActions: [FA.gosunkugiAction] },
+      { name: "五寸釘", fieldActions: [FA.gosunkugiAction] },
+      { name: "五寸釘", fieldActions: [FA.gosunkugiAction] },
       { name: "タミフル" },
       { name: "タミフル" },
       { name: "タミフル" },

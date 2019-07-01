@@ -1,7 +1,7 @@
 import { Character, getAllCharacters } from "./character";
 import { Player, PlayerActionTag } from "./player";
 import { Choice, choices } from "./choice";
-import { FieldAction } from "./fieldaction";
+import { FieldAction, FieldItemAction } from "./fieldaction";
 import { Land, getLands, LandName, EventWrapper, ItemGetJudgeableLand } from "./land";
 import { ItemCategoryDict, Item, getItemsData, ItemCategory, Friend, getFriendsData, FriendName } from "./item";
 import * as _ from "underscore";
@@ -131,11 +131,27 @@ export class Game {
     })
     return result;
   }
-  private parceFieldAction(player: Player, fieldActions: FieldAction[], tag: PlayerActionTag): Choice[] {
+  private parseFieldAction(player: Player, fieldActions: FieldAction[], tag: PlayerActionTag): Choice[] {
     let result: Choice[] = []
     for (let fieldAction of fieldActions) {
       let choices = fieldAction.bind(this)(player);
-      for (let choice of choices) choice.wrapBefore(() => player.actions.push(tag));
+      for (let choice of choices) choice.wrapBefore(() => {
+        player.actions.push(tag);
+        this.doFieldAction(player);
+      });
+      result.push(...choices);
+    }
+    return result;
+  }
+  // WARN: 共通化しておきたい？
+  private parseFieldItemAction(player: Player, item: Item): Choice[] {
+    let result: Choice[] = []
+    for (let fieldAction of item.fieldActions) {
+      let choices = fieldAction.bind(this)(player, item);
+      for (let choice of choices) choice.wrapBefore(() => {
+        player.actions.push("アイテム")
+        this.doFieldAction(player);
+      });
       result.push(...choices);
     }
     return result;
@@ -238,6 +254,12 @@ export class Game {
       this.finishPlayerTurn(player);
       return;
     }
+    // 次の手番は休み...
+    if (player.skipTurnCounter > 0) {
+      this.finishPlayerTurn(player);
+      player.choices = choices("今回の手番は休みだった...");
+      return;
+    }
     // 盤外にいる場合は特殊
     if (player.pos.isOutOfLand()) {
       // 既に行動済みな場合はそこで終了
@@ -280,7 +302,7 @@ export class Game {
       }
       // アイテムのフィールド効果を発動
       for (let item of player.items) {
-        player.choices.push(...this.parceFieldAction(player, item.fieldActions, "アイテム"))
+        player.choices.push(...this.parseFieldItemAction(player, item))
       }
     }
     // 戦闘
@@ -294,7 +316,7 @@ export class Game {
     }
     // B自 / 特殊能力の使用
     if (!player.actions.includes("特殊能力の使用")) {
-      player.choices.push(...this.parceFieldAction(player, player.fieldActions, "特殊能力の使用"))
+      player.choices.push(...this.parseFieldAction(player, player.fieldActions, "特殊能力の使用"))
     }
   }
   // 待機をして香霖堂/図書館/工房チェック
@@ -319,6 +341,7 @@ export class Game {
       p.actions = [];
       p.isAbleToAction = true;
     }
+    player.skipTurnCounter = Math.max(0, player.skipTurnCounter - 1)
     let sames = this.getPlayersAt(player.pos);
     if (player.pos.isOutOfLand() || sames.length <= 1) {
       this.doAfterFinishedPlayerTurn(player);
@@ -362,9 +385,20 @@ export class Game {
       player.choices = choices(`移動2なので${item.name}は得られなかった...`);
       return;
     }
-    // 星のかけらとか...
     player.choices = choices(`${item.name}を入手！`, () => {
       player.items.push(item);
+      // 星のかけら判定はフックしがいが無いのでここに書いちゃおう...
+      if (player.items.filter(x => x.name === "星のかけら").length >= 2) {
+        player.choices = this.getDiceChoices(player, "星のかけらが2個集まった！残機かボムが増える！", d => {
+          this.sendBackItem(player, item);
+          let another = player.items.filter(x => x.name === "星のかけら")[0];
+          this.sendBackItem(player, another);
+          if (d <= 2) player.choices = choices("残機が増えた！", () => player.heal());
+          else player.choices = choices("ボムが増えた！", () => player.healBomb());
+        }, false)
+        // 1個得て2個減らすのだから 最大数チェックは大丈夫かと
+        return;
+      }
       // とりあえず5つまでしか持てないことにする
       if (player.items.length < 6) return;
       // アイテムを捨てる(呪いのアイテムは捨てられない！)
@@ -418,6 +452,8 @@ export class Game {
       if (addOne.some(x => x === player.characterName))
         this.drawACard(player);
     }
+    // 仲間ボーナス
+    if (player.friend) this.drawACard(player);
   }
   // 戦闘を仕掛けた WARN: 戦闘を仕掛けた結果戦闘を拒否されてもターンを消費してしまう
   @phase setupBattle(player: Player, target: Player) {
@@ -442,10 +478,11 @@ export class Game {
     }
     // 敗北
     let lose = () => {
+      this.finishBattle(player, target);
       if (target instanceof Player) {
-        this.finishBattle(player, target);
         if (isRevenge) this.win(target, player);
       } else {//NPCに敗北
+        // WARN: 終了フラグを投げる順番がPC戦闘と異なる？
         if (player.items.length > 0) {
           player.choices = [new EventWrapper(this, player).randomDropItem(target + "に負けてしまった...")]
         } else {
@@ -458,7 +495,9 @@ export class Game {
     // NPCに勝利
     let winToNPC = () => {
       if (target instanceof Player) return;
+      // WARN: 終了フラグを投げる順番がPC戦闘と異なる？
       player.choices = choices(target + "に勝利した！ ", () => {
+        this.finishBattle(player, target);
         if (target !== "NPC幽霊") player.choices = [new EventWrapper(this, player).gainGoods(target + "に勝利したので")]
       })
     }
@@ -509,12 +548,14 @@ export class Game {
   }
 
   // 戦闘終了後になにか処理があればそれをする
-  @phase finishBattle(player: Player, target: Player) {
+  @phase finishBattle(player: Player, target: Player | NPCType) {
     this.usedSpellCards.push(...player.spellCards);
-    this.usedSpellCards.push(...target.spellCards);
     player.spellCards = [];
-    target.spellCards = [];
-    player.choices = choices(`${target.name}との戦闘が終わった`)
+    if (target instanceof Player) {
+      this.usedSpellCards.push(...target.spellCards);
+      target.spellCards = [];
+      player.choices = choices(`${target.name}との戦闘が終わった`)
+    } else player.choices = choices(`${target}との戦闘が終わった`)
   }
   // 戦闘勝利履歴を得た
   @phase win(player: Player, target: Player) {
