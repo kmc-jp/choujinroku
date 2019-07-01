@@ -347,9 +347,8 @@ export class Game {
     }
     // 次の手番は休み...
     if (player.skipTurnCounter > 0) {
-      player.with("手番休み").choices = choices("今回の手番は休みだった...", () => {
-        this.finishPlayerTurn(player);
-      });
+      player.with("手番休み").choices = choices("今回の手番は休みだった...");
+      this.finishPlayerTurn(player);
       return;
     }
     // 盤外にいる場合は特殊
