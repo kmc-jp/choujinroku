@@ -69,7 +69,6 @@ export function allWatchAndAllWinToWin(winRequire: (a: Player) => boolean): Vict
 }
 
 // 全員の正体を確認し、全ての ignoreCharas を除く Role のキャラクターに戦闘で勝つ
-// 呪法書の所持者に戦闘で勝ったパチュリーをフックしてアリスが勝利宣言するバグの修正
 export function winToWin(when: (me: Player, b: Player, c: SpellCard) => boolean): VictoryHook {
   return {
     type: "AwinB",

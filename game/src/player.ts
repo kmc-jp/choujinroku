@@ -226,8 +226,8 @@ export class Player {
   勝利済み:${this.wonArray.map(x => this.game.players[x].name).join(",")}
   正体確認:${this.watchedArray.map(x => this.game.players[x].name).join(",")}
   アイテム:${this.items.map(x => x.name).join(",")}
-  勝利条件:${this.whenWin.map(x => "@" + x.when + "?").join(",")}
-  敗北条件:${this.whenLose.map(x => "@" + x.when + "?").join(",")}
+  勝利条件:${this.character.whenWin.map(x => "@" + x.when + "?").join(",")}
+  敗北条件:${this.character.whenLose.map(x => "@" + x.when + "?").join(",")}
   ${friend ? "仲間:" + friend.name : ""}  ${this.waitCount ? "待機:" + this.waitCount : ""}
   ${this.spellCards.length <= 0 ? "" : "スペルカード:\n" + this.spellCards.map(x => parseSpellCard(x)).join("\n  ")}`;
   }
