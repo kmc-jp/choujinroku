@@ -1,6 +1,6 @@
 import { CharaName } from "./character";
 import { } from "./choice";
-import { Ailment } from "./hook";
+import { Ailment } from "./hooktype";
 import * as _ from "underscore";
 import { random } from "./util";
 export type SpellCardColor = "R" | "B" | "Y" | "G" | "P" | "W"

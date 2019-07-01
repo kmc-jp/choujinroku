@@ -4,6 +4,7 @@ import { Choice } from "./choice";
 import { toString } from "./util";
 import * as _ from "underscore"
 import { Pos } from "./pos";
+import { LandAttribute } from "./land";
 
 
 export class GameProxy {
@@ -46,14 +47,18 @@ export class GameProxy {
     if (playerId < 0 || playerId >= this.game.players.length) return "不正なプレイヤー番号です"
     return this.game.players[playerId].toString();
   }
-  getMap(): string[][] {
+  getMap(): { name: string, attrs: LandAttribute[], item: boolean }[][] {
     return _.range(6).map(x => _.range(6).map(y => {
       let map = this.game.map[x][y];
       // let heres = this.game.getPlayersAt(new Pos(x, y)).map(x => x.name).join(",")
       // if (heres !== "") heres = ` (${heres})`
-      let iMap = this.game.itemsOnMap[x][y] ? "! " : "";
-      if (!map) return iMap
-      return iMap + map.name;
+      let iMap = this.game.itemsOnMap[x][y] ? true : false;
+      if (!map) return {
+        name: "", attrs: [], item: iMap
+      }
+      else return {
+        name: map.name, attrs: map.landAttributes, item: iMap
+      }
     }))
   }
   getMapInfo(x: number, y: number): string {

@@ -7,7 +7,7 @@ import { ItemCategoryDict, Item, getItemsData, ItemCategory, Friend, getFriendsD
 import * as _ from "underscore";
 import { Pos, PosType } from "./pos";
 import { SpellCard, getAllSpellCards } from "./spellcard";
-import { TwoDice, dice, twoDice, Attribute, NPCType, HookAtoBWhen, HookAWhen, SpecificActionHook, HookAbyBWhen, HookBattleWhen } from "./hook";
+import { TwoDice, dice, twoDice, Attribute, NPCType, HookAtoBWhen, HookAWhen, SpecificActionHook, HookAbyBWhen, HookAWinB, HookAtoBWithItemWhen, ActionHook, HookALandWhen } from "./hooktype";
 
 // デコレータ
 function phase(target: Game, propertyKey: string, descriptor: PropertyDescriptor) {
@@ -249,12 +249,29 @@ export class Game {
       this.doFieldAction(this.players[0]);
     }));
   }
-  checkActionHookImpl(factor: Player, impl: (player: Player, specificActionHook: SpecificActionHook) => Choice[]) {
+  // WARN: any 型は使いたくないなあ
+  checkActionHookImpl(factor: Player, impl: (player: Player, specificActionHook: ActionHook<any>) => any) {
     // TODO:２つの選択肢が可能な時に片方しか選べない
     // WARN: 同じフックのタイミングがあるときは宣言した順にスタックに積まれて消費されていく
     for (let player of this.players) {
+      let lose = false;
+      player.whenLose.forEach(x => {
+        let lose = impl(player, x)
+        if (typeof (lose) !== "boolean") return;
+        if (!lose) return;
+        this.endGame();
+        lose = true;
+      })
+      if (lose) return;
+      player.whenWin.forEach(x => {
+        let win = impl(player, x)
+        if (typeof (win) !== "boolean") return;
+        if (!win) return;
+        player.choices.push(new Choice("勝利宣言！", () => { this.endGame() }))
+      })
       player.getSpecificActions(factor).forEach(x => {
         let choices = impl(player, x);
+        if (!(choices instanceof Array)) return;
         if (choices.length <= 0) return;
         if (x.needBomb) {
           if (player.bomb <= 0) return;
@@ -281,15 +298,40 @@ export class Game {
       return x.hook.bind(this)(A, player);
     });
   }
+  @phase checkActionHookALand(when: HookALandWhen, A: Player, land: Land) {
+    this.checkActionHookImpl(A, (player, x) => {
+      if (x.type !== "ALand" || !x.when.includes(when)) return [];
+      return x.hook.bind(this)(A, land);
+    });
+  }
   @phase checkActionHookAByB(when: HookAbyBWhen, A: Player, B?: Player) {
     this.checkActionHookImpl(A, (player, x) => {
       if (x.type !== "AbyB" || !x.when.includes(when)) return [];
       return x.hook.bind(this)(A, B, player);
     });
   }
-  @phase checkActionHookBattle(when: HookBattleWhen, A: Player, B: Player, spellCard: SpellCard) {
+  @phase checkActionHookAtoBWithItem(when: HookAtoBWithItemWhen, A: Player, B: Player, item: Item) {
     this.checkActionHookImpl(A, (player, x) => {
-      if (x.type !== "Battle" || !x.when.includes(when)) return [];
+      if (x.type !== "AtoBWithItem" || !x.when.includes(when)) return [];
+      return x.hook.bind(this)(A, B, item, player);
+    });
+  }
+
+  @phase checkActionHookAwinB(when: "AwinB", A: Player, B: Player, spellCard: SpellCard) {
+    this.checkActionHookImpl(A, (player, x) => {
+      if (x.type !== "AwinB" || !x.when.includes(when)) return [];
+      return x.hook.bind(this)(A, B, spellCard, player);
+    });
+  }
+  @phase checkActionHookAttack(when: "Attack", A: Player, B: Player, spellCard: SpellCard, isRevenge: boolean) {
+    this.checkActionHookImpl(A, (player, x) => {
+      if (x.type !== "Attack" || !x.when.includes(when)) return [];
+      return x.hook.bind(this)(A, B, spellCard, isRevenge, player);
+    });
+  }
+  @phase checkActionHookAttacked(when: "Attacked", A: Player, B: Player | NPCType, spellCard: SpellCard) {
+    this.checkActionHookImpl(A, (player, x) => {
+      if (x.type !== "Attacked" || !x.when.includes(when)) return [];
       return x.hook.bind(this)(A, B, spellCard, player);
     });
   }
@@ -489,7 +531,7 @@ export class Game {
   }
   // アイテムを奪う
   @phase stealItem(player: Player, target: Player, item: Item) {
-    this.checkActionHookAtoB("アイテム強奪", player, target);
+    this.checkActionHookAtoBWithItem("アイテム強奪", player, target, item);
     target.items = target.items.filter(x => x.id !== item.id);
     this.gainItem(player, item, false);
     player.choices = choices(`${item.name}を${target.name}から奪った！`)
@@ -521,28 +563,29 @@ export class Game {
       this.battle(player, target);
     });
   }
-  // 戦闘が始まった
-  @phase battle(player: Player, target: Player | NPCType, spellCard?: SpellCard) {
+  // 戦闘の実装内部
+  @phase battleImpl(player: Player, target: Player | NPCType, spellCard?: SpellCard) {
+    // let isNPC = !(target instanceof Player); // NPC戦闘もここでやっている
+    let isRevenge = spellCard ? true : false // 反撃もここでやっちゃおう
+    let tag = spellCard ? "反撃" : "攻撃";
+    // 出せるスペカ
     let cans = player.spellCards.filter(sc =>
       player.spellCards.reduce((x, y) => x + y.star, 0) - sc.star >= sc.level
     ).filter(sc => sc.cardTypes.includes("弾幕") || sc.cardTypes.includes("武術"))
-    let isNPC = target ? false : true; // NPC戦闘もここでやっちゃおう
-    let isRevenge = spellCard ? true : false // 反撃もここでやっちゃおう
-    let tag = isRevenge ? "反撃" : "攻撃";
-    if (spellCard) { // 攻撃された
+    if (spellCard) { // 攻撃された時は反撃
       cans = cans.filter(sc => sc.level > spellCard.level)
     }
     // 敗北
     let lose = () => {
       this.finishBattle(player, target);
       if (target instanceof Player) {
-        if (isRevenge) this.win(target, player);
+        if (spellCard) this.win(target, player, spellCard);
       } else {//NPCに敗北
         // WARN: 終了フラグを投げる順番がPC戦闘と異なる？
         if (player.items.length > 0) {
           player.choices = [new EventWrapper(this, player).randomDropItem(target + "に負けてしまった...")]
         } else {
-          player.choices = choices(target + "に敗北してアイテムが無いので残機を失った！", () => {
+          player.with("戦闘", "残機減少").choices = choices(target + "に敗北してアイテムが無いので残機を失った！", () => {
             this.damaged(player);
           })
         }
@@ -564,20 +607,26 @@ export class Game {
     }
     // スペカを出す！
     player.choices = cans.map(sc => {
-      let leftCost = sc.level;
+      // 攻撃 or 反撃成功
       let attack = () => {
-        this.discardACard(player, sc);
-        let attackLoop = () => {
-          player.choices = player.spellCards.map(x =>
-            new Choice(`${x.name}(${"☆".repeat(x.star)})をコストにする(残り:${leftCost})`, () => {
-              leftCost -= x.star;
-              this.discardACard(player, x);
-              if (leftCost > 0) attackLoop();
-              else if (target instanceof Player) this.battle(target, player, sc);
-              else winToNPC();
-            }))
-        }
-        attackLoop();
+        if (target instanceof Player) // 攻撃したフック
+          this.checkActionHookAttack("Attack", player, target, sc, isRevenge);
+        this.phase(() => {
+          let leftCost = sc.level;
+          this.discardACard(player, sc);
+          let costLoop = () => {
+            player.choices = player.spellCards.map(x =>
+              new Choice(`${x.name}(${"☆".repeat(x.star)})をコストにする(残り:${leftCost})`, () => {
+                leftCost -= x.star;
+                this.discardACard(player, x);
+                if (leftCost > 0) costLoop();
+                else if (target instanceof Player) {
+                  this.battle(target, player, sc);
+                } else winToNPC();
+              }))
+          }
+          costLoop();
+        })
       }
       let view = `${sc.name}(LV${sc.level})`
       if (sc.level <= player.level) // 普通に攻撃
@@ -602,6 +651,20 @@ export class Game {
     if (isRevenge) // 別に無理して試さなくてもいい
       player.choices.push(new Choice("反撃は諦める...", lose))
   }
+  // 戦闘
+  @phase battle(player: Player, target: Player | NPCType, spellCard?: SpellCard) {
+    // 戦闘をするより前に流し雛は発動する
+    // let hina: Player | null = null;
+    // if (player.items.some(x => x.name === "流し雛")) hina = player;
+    // if (target instanceof Player && target.items.some(x => x.name === "流し雛")) hina = target;
+    // if (hina) {
+    //   return;
+    // }
+    if (spellCard) { // 攻撃された時
+      this.checkActionHookAttacked("Attacked", player, target, spellCard);
+    }
+    this.battleImpl(player, target, spellCard);
+  }
 
   // 戦闘終了後
   @phase finishBattle(player: Player, target: Player | NPCType) {
@@ -615,10 +678,10 @@ export class Game {
     } else player.choices = choices(`${target}との戦闘が終わった`)
   }
   // 戦闘勝利履歴を得た
-  @phase win(player: Player, target: Player) {
+  @phase win(player: Player, target: Player, spellcard: SpellCard) {
     player.won.add(target.id);
     target.isAbleToAction = false;
-    this.checkActionHookAtoB("戦闘勝利", player, target)
+    this.checkActionHookAwinB("AwinB", player, target, spellcard)
     this.phase(() => {
       player.choices = [
         ...(player.watched.has(target.id) ? [] :
@@ -676,8 +739,8 @@ export class Game {
     } else {
       player.bomb = Math.max(2, player.bomb);
       player.choices = choices(`${damage}ダメージを受けた`);
-      this.checkActionHookAByB("残機減少", player, from);
     }
+    this.checkActionHookAByB("残機減少", player, from);
   }
   // 土地を破壊した(誰がとかは無い)
   @phase destroyLand(pos: Pos, attrs: Attribute[]) {
@@ -688,7 +751,7 @@ export class Game {
       this.leftLands = _.shuffle(this.leftLands);
       this.map[pos.x][pos.y] = null;
       // NOTE: 誰が,とかはないので1Pが壊したことにする
-      this.checkActionHookA("地形破壊", this.players[0]);
+      this.checkActionHookALand("地形破壊", this.players[0], map);
     }
     heres.forEach(x => {
       x.with(...attrs, "地形破壊").choices =
@@ -705,7 +768,7 @@ export class Game {
     let land = this.leftLands[this.leftLands.length - 1];
     this.leftLands.pop();
     this.map[x][y] = land;
-    this.checkActionHookA("土地を開く", player)
+    this.checkActionHookALand("土地を開く", player, land)
     player.choices = choices(`開けた土地は${land.name}だった！`);
   }
   // 土地に入る(土地を新たに開くことはしない)

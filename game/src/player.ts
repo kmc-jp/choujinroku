@@ -1,9 +1,8 @@
 import { Character } from "./character";
 export type PlayerActionTag = "移動1" | "待機" | "移動2" | "戦闘" | "アイテム" | "特殊能力の使用"
 import { Choice } from "./choice";
-import { Attribute, AttributeHook, WithAttribute, SpecificActionHook } from "./hook";
+import { Attribute, AttributeHook, WithAttribute, SpecificActionHook, ActionHook, VictoryHook } from "./hooktype";
 import { Item, ItemName, Friend } from "./item";
-import { toString } from "./util";
 import * as _ from "underscore";
 import { Game } from "./game";
 import { Pos } from "./pos";
@@ -208,6 +207,8 @@ export class Player {
   }
   get watchedArray(): number[] { return setToArray(this.watched); }
   get wonArray(): number[] { return setToArray(this.won); }
+  get whenWin(): VictoryHook[] { return this.character.whenWin; }
+  get whenLose(): VictoryHook[] { return this.character.whenLose; }
   parceCharacter(): string {
     let chara = this.character;
     return `${chara.name}:${chara.level},${chara.mental}(${chara.role})`;
@@ -220,6 +221,8 @@ export class Player {
   勝利済み:${this.wonArray.map(x => this.game.players[x].name).join(",")}
   正体確認:${this.watchedArray.map(x => this.game.players[x].name).join(",")}
   アイテム:${this.items.map(x => x.name).join(",")}
+  勝利条件:${this.whenWin.map(x => "@" + x.when + "?").join(",")}
+  敗北条件:${this.whenLose.map(x => "@" + x.when + "?").join(",")}
   ${friend ? "仲間:" + friend.name : ""}  ${this.waitCount ? "待機:" + this.waitCount : ""}
   ${this.spellCards.length <= 0 ? "" : "スペルカード:\n" + this.spellCards.map(x => parseSpellCard(x)).join("\n  ")}`;
   }

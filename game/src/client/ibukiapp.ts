@@ -5,6 +5,7 @@ import "bootstrap";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { random } from "../util";
 import { Pos } from "../pos";
+import { ColorScheme } from "ibukidom";
 // クソ適当でやばい
 // BootStrap と Bulma に依存してるのが意味不明
 // マジックナンバー多すぎ
@@ -51,11 +52,11 @@ class ChoujinrokuView {
       new I.Box(this.backGround, {
         height: height,
         width: width,
-        colorScheme: new I.ColorScheme("#eeeeeebb", "#234", "#bcd"),
         x: width * x * 1.1 + width * 0.8,
         y: height * y * 1.1 + height * 1.4,
         padding: 5,
         fontSize: 16,
+        scale: 0,
         border: { width: 1, style: "solid", radius: 3 },
         // isScrollable: true,
       }).tree(p => {
@@ -155,10 +156,10 @@ class ChoujinrokuView {
       {
         width: width * 0.8,
         height: height * 0.8,
-        colorScheme: new I.ColorScheme(playerColor(i), "#000", "#bcd"),
+        colorScheme: new I.ColorScheme(playerColor(i), "#000", "#444"),
         padding: 5,
         fontSize: 30,
-        border: { width: 1, style: "solid", radius: 3 },
+        border: { width: 4, style: "solid", radius: 3 },
       }
     ).tree(p => {
       new I.Text(p, `${i + 1}P`)
@@ -215,7 +216,23 @@ class ChoujinrokuView {
     this.updateChoices(gameProxy.getChoices());
     let map = gameProxy.getMap();
     _.range(6).map(x => _.range(6).map(y => {
-      this.mapTexts[x][y].set(map[x][y])
+      let m = map[x][y]
+      this.mapTexts[x][y].set(m.name);
+      if (!m.name) {
+        this.mapBox[x][y].to({ scale: 0 }, { duration: 0.5 });
+      } else {
+        this.mapBox[x][y].to({ scale: 1 }, { duration: 0.5 });
+      }
+      let color = new ColorScheme("#f8f8f8", "#234", "#bcd");
+      if (m.attrs.includes("紅マス")) color = new ColorScheme("#fdd", "#234", "#bcd");
+      if (m.attrs.includes("花マス")) color = new ColorScheme("#fee", "#234", "#bcd");
+      if (m.attrs.includes("水マス")) color = new ColorScheme("#ddf", "#234", "#bcd");
+      if (m.attrs.includes("森マス")) color = new ColorScheme("#dfd", "#234", "#bcd");
+      if (m.attrs.includes("地マス")) color = new ColorScheme("#ffd", "#234", "#bcd");
+      this.mapBox[x][y].colorScheme = color;
+      this.mapBox[x][y].to({
+        border: { width: m.item ? 5 : 1, style: "solid", radius: 3 },
+      }, { duration: 0.5 });
     }));
     this.updatePlayers(gameProxy.getPlayersPos());
     this.decidedTimeCount = 0;

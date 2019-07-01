@@ -1,13 +1,14 @@
 import { Game } from "./game"
 import { Player } from "./player"
 import { Choice, nop, choices } from "./choice"
-import { AttributeHook, Attribute, invalidate, WithAttribute, TwoDice, NPCType } from "./hook"
+import { AttributeHook, Attribute, WithAttribute, TwoDice, NPCType } from "./hooktype"
 import * as _ from "underscore"
 import { CharaName, charaCategories } from "./character"
 import { ItemName, ItemCategory, FairyFriendNames, FriendName } from "./item"
 import { randomPick, random } from "./util"
 import { Pos } from "./pos"
 import { SpellCardType } from "./spellcard";
+import { invalidate } from "./attributehook";
 
 export type LandName =
   "博麗神社" | "魔法の森" | "月夜の森" | "霧の湖" | "紅魔館入口" |
@@ -31,7 +32,7 @@ type LandBase = {
   name: LandName
   nextTo: LandName[]
   attributeHooks?: AttributeHook[]
-  landAttributes?: LandAttribute[]
+  landAttributes: LandAttribute[]
   ignores?: CharaName[] // 「上記効果無効」のキャラリスト
   powerUp?: PowerUp
   whenEnter?: (this: EventWrapper) => Choice[]
@@ -561,6 +562,7 @@ export function getLands(): Land[] {
     }, {
       name: "紅魔館入口",
       nextTo: ["霧の湖"],
+      landAttributes: ["紅マス"],
       powerUp: { mentalUp: ["美鈴"] },
       whenEnter: wrap1D("霧の湖", function (this: EventWrapper, dice: number, attrs: WithAttribute) {
         if (dice >= 5 && this.nameIsIn(charaCategories["紅魔館の住人"]))
@@ -573,10 +575,12 @@ export function getLands(): Land[] {
     }, {
       name: "図書館",
       nextTo: [],
+      landAttributes: ["紅マス"],
       powerUp: { addOneCard: ["パチュリー"] }
     }, {
       name: "紅魔館",
       nextTo: [],
+      landAttributes: ["紅マス"],
       powerUp: { addOneCard: charaCategories["紅魔館の住人"] },
       whenEnter: wrap1D("紅魔館", function (this: EventWrapper, dice: number, attrs: WithAttribute) {
         if (this.nameIsIn(["パチュリー"])) dice = 1
@@ -590,6 +594,7 @@ export function getLands(): Land[] {
       }),
     }, {
       name: "無何有の郷",
+      landAttributes: [],
       nextTo: ["月夜の森", "マヨヒガの森", "人間の里", "温泉"],
       powerUp: { addOneCard: ["レティ"] },
       attributeHooks: [invalidate("無何有の郷", ["能力低下"], p => ["レティ", "チルノ"].includes(p.characterName))],
@@ -604,10 +609,12 @@ export function getLands(): Land[] {
       })
     }, { // TODO:
       name: "マヨヒガの森",
+      landAttributes: ["森マス"],
       nextTo: ["無何有の郷", "山の麓"],
     }, {
       name: "白玉楼",
       nextTo: ["冥界"],
+      landAttributes: ["花マス"],
       powerUp: { addOneCard: ["幽々子", "妖夢"] },
       whenEnter: wrap2D("白玉楼", function (this: EventWrapper, dice: TwoDice, attrs: WithAttribute) {
         let d = dice.a + dice.b
@@ -620,6 +627,7 @@ export function getLands(): Land[] {
     }, {
       name: "川の畔の草原",
       nextTo: ["夜雀の屋台", "人間の里"],
+      landAttributes: ["花マス", "水マス"],
       powerUp: { levelUp: ["リグル"] },
       whenEnter: wrap1D("川の畔の草原", function (this: EventWrapper, dice: number, attrs: WithAttribute) {
         if ((dice >= 4 && this.nameIsIn(["リグル"])) ||
@@ -635,6 +643,7 @@ export function getLands(): Land[] {
     }, {
       name: "夜雀の屋台",
       nextTo: ["川の畔の草原", "人間の里"],
+      landAttributes: ["森マス"],
       powerUp: { levelUp: ["ミスティア"] },
       whenEnter: wrap1D("夜雀の屋台", function (this: EventWrapper, dice: number, attrs: WithAttribute) {
         if (dice <= 1) attrs.choices = [this.gainLife("美味しい！")]
@@ -648,6 +657,7 @@ export function getLands(): Land[] {
       name: "人間の里",
       nextTo: ["無何有の郷", "川の畔の草原", "夜雀の屋台", "迷いの竹林", "春の湊", "命蓮寺", "稗田家", "香霖堂"],
       powerUp: { addOneCard: ["慧音"] },
+      landAttributes: [],
       whenEnter: wrap1D("人間の里", function (this: EventWrapper, dice: number, attrs: WithAttribute) {
         if (this.nameIsIn(["慧音"])) dice = 1
         if (dice <= 1) attrs.choices = [this.gainFriend("稗田阿求")]
@@ -660,6 +670,7 @@ export function getLands(): Land[] {
     }, {
       name: "迷いの竹林",
       nextTo: ["魔法の森", "人間の里", "永遠亭"],
+      landAttributes: ["森マス"],
       ignores: ["てゐ", "妹紅", "慧音"],
       powerUp: { addOneCard: ["妹紅", "てゐ"] },
       attributeHooks: [invalidate("迷いの竹林", ["迷い"], p => ["輝夜", "永琳", "優曇華院"].includes(p.characterName))],
@@ -671,6 +682,7 @@ export function getLands(): Land[] {
     }, {
       name: "永遠亭",
       nextTo: ["迷いの竹林"],
+      landAttributes: ["森マス"],
       ignores: ["てゐ", "妹紅", "慧音", "輝夜", "永琳", "優曇華院"],
       powerUp: { addOneCard: ["輝夜", "永琳"], mentalUp: ["てゐ", "優曇華院"] },
       whenEnter: wrap1D("永遠亭", function (this: EventWrapper, dice: number, attrs: WithAttribute) {
@@ -684,9 +696,11 @@ export function getLands(): Land[] {
     }, { // TODO:
       name: "無名の丘",
       nextTo: ["太陽の畑", "山の麓"],
+      landAttributes: ["花マス"],
     }, {
       name: "太陽の畑",
       nextTo: ["無名の丘", "山の麓"],
+      landAttributes: ["花マス"],
       ignores: ["幽香", "メディスン"],
       powerUp: { addOneCard: ["幽香", "ミスティア"], mentalUp: ["プリズムリバー", "衣玖"] },
       whenEnter: wrap1D("太陽の畑", function (this: EventWrapper, dice: number, attrs: WithAttribute) {
@@ -702,9 +716,11 @@ export function getLands(): Land[] {
     }, { // TODO:
       name: "三途の河",
       nextTo: ["彼岸", "冥界"],
+      landAttributes: ["水マス"],
     }, {
       name: "彼岸",
       nextTo: ["三途の河", "冥界"],
+      landAttributes: ["花マス"],
       powerUp: { addOneCard: ["四季映姫", "小町"] },
       ignores: ["四季映姫", "小町"],
       whenEnter: wrap1D("彼岸", function (this: EventWrapper, dice: number, attrs: WithAttribute) {
@@ -719,6 +735,7 @@ export function getLands(): Land[] {
       })
     }, {
       name: "山の麓",
+      landAttributes: ["水マス", "花マス"],
       nextTo: ["月夜の森", "霧の湖", "マヨヒガの森", "無名の丘", "太陽の畑", "妖怪の山", "工房"],
       powerUp: { mentalUp: ["秋姉妹", "雛", "にとり"] },
       whenEnter: wrap1D("山の麓", function (this: EventWrapper, dice: number, attrs: WithAttribute) {
@@ -737,9 +754,11 @@ export function getLands(): Land[] {
     }, { // TODO:
       name: "妖怪の山",
       nextTo: ["山の麓", "守矢神社"],
+      landAttributes: ["森マス", "水マス"],
     }, {
       name: "守矢神社",
       nextTo: ["妖怪の山"],
+      landAttributes: ["水マス"],
       ignores: ["早苗", "神奈子", "諏訪子"],
       powerUp: { addOneCard: ["早苗", "神奈子", "諏訪子"] },
       whenEnter: wrap1D("守矢神社", function (this: EventWrapper, dice: number, attrs: WithAttribute) {
@@ -754,6 +773,7 @@ export function getLands(): Land[] {
     }, {
       name: "天界",
       nextTo: ["冥界"],
+      landAttributes: ["水マス", "花マス"],
       ignores: ["天子", "衣玖", "四季映姫"],
       powerUp: { addOneCard: ["天子", "衣玖"] },
       whenEnter: wrap1D("天界", function (this: EventWrapper, dice: number, attrs: WithAttribute) {
@@ -768,6 +788,7 @@ export function getLands(): Land[] {
       // TODO: ここでは戦闘を仕掛けられない
       // TODO: アイテムの呪いを解く
       name: "温泉",
+      landAttributes: ["地マス"],
       nextTo: ["博麗神社", "無何有の郷", "地上と地底を繋ぐ橋"],
       whenEnter: wrap2D("温泉", function (this: EventWrapper, dice: TwoDice, attrs: WithAttribute) {
         let d = dice.a + dice.b
@@ -780,9 +801,11 @@ export function getLands(): Land[] {
     }, { // TODO:NPCC 戦闘
       name: "地上と地底を繋ぐ橋",
       nextTo: ["地底の旧都", "温泉"],
+      landAttributes: [],
     }, {
       name: "地底の旧都",
       nextTo: ["地上と地底を繋ぐ橋", "地霊殿"],
+      landAttributes: [],
       powerUp: { addOneCard: ["ヤマメ", "勇儀"] },
       whenEnter: wrap1D("地底の旧都", function (this: EventWrapper, dice: number, attrs: WithAttribute) {
         if (dice >= 4 && this.nameIsIn(["ヤマメ", "勇儀", "パルスィ", "萃香", ...charaCategories["地霊殿の住人"]]))
@@ -797,15 +820,19 @@ export function getLands(): Land[] {
     }, { // TODO:
       name: "地霊殿",
       nextTo: ["地底の旧都"],
+      landAttributes: ["地マス"],
     }, { // TODO:
       name: "灼熱地獄",
       nextTo: [],
+      landAttributes: ["地マス"],
     }, { // TODO:
       name: "春の湊",
       nextTo: ["人間の里", "命蓮寺"],
+      landAttributes: ["水マス", "花マス"],
     }, {
       name: "命蓮寺",
       nextTo: ["人間の里", "墓地", "大祀廟"],
+      landAttributes: [],
       powerUp: { addOneCard: ["ナズーリン", "小傘", "一輪", "村紗", "星", "白蓮", "ぬえ", "マミゾウ", "響子"] },
       whenEnter: wrap1D("命蓮寺", function (this: EventWrapper, dice: number, attrs: WithAttribute) {
         if (dice >= 5 && this.nameIsIn(["ナズーリン", "小傘", "一輪", "村紗", "星", "白蓮", "ぬえ", "マミゾウ", "響子"]))
@@ -818,6 +845,7 @@ export function getLands(): Land[] {
     }, {
       name: "墓地",
       nextTo: ["命蓮寺", "大祀廟", "冥界"],
+      landAttributes: [],
       ignores: ["芳香", "青娥", "布都", "神子", "マミゾウ"],
       powerUp: { addOneCard: ["芳香", "小傘", "響子"] },
       whenEnter: wrap1D("地底の旧都", function (this: EventWrapper, dice: number, attrs: WithAttribute) {
@@ -834,9 +862,11 @@ export function getLands(): Land[] {
     }, { // TODO:
       name: "大祀廟",
       nextTo: ["命蓮寺", "墓地"],
+      landAttributes: [],
     }, {
       name: "稗田家",
       nextTo: ["人間の里"],
+      landAttributes: [],
       whenEnter: wrap2D("稗田家", function (this: EventWrapper, dice: TwoDice, attrs: WithAttribute) {
         let d = dice.a + dice.b
         let player = this.player
@@ -853,12 +883,15 @@ export function getLands(): Land[] {
       // TODO: 魔理沙/ 霊夢は戦闘を仕掛けられない
       name: "香霖堂",
       nextTo: ["魔法の森", "人間の里"],
+      landAttributes: [],
     }, { // TODO:
       name: "冥界",
       nextTo: ["白玉楼", "三途の河", "彼岸", "天界", "墓地"],
+      landAttributes: ["花マス"],
     }, {
       name: "工房",
       nextTo: ["山の麓"],
+      landAttributes: [],
     },
   ]
   console.assert(tmp.length === 36)
@@ -883,7 +916,7 @@ export function getLands(): Land[] {
     return {
       id: i,
       ignores: x.ignores || [],
-      landAttributes: x.landAttributes || [],
+      landAttributes: x.landAttributes,
       name: x.name || "霧の湖",
       nextTo: x.nextTo || [],
       whenEnter: x.whenEnter || nop,

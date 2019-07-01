@@ -1,9 +1,10 @@
-import { LandName } from "./land";
+import { LandName, Land } from "./land";
 import { Game } from "./game";
 import { Player } from "./player";
 import { ItemName } from "./item";
 import { RoleName, CharaName } from "./character";
-import { VictoryHook } from "./hook";
+import { VictoryHook, NPCType } from "./hooktype";
+import { SpellCard } from "./spellcard";
 
 // xxでxxを持ってxxターン待機して勝利
 export function waitToWin(where: LandName, items: ItemName[], waitCount: number): VictoryHook {
@@ -38,18 +39,62 @@ export function gatherToWin(where: LandName, item: ItemName, memberCount: number
   }
 }
 // 全員の正体を確認し、全ての ignoreCharas を除く Role のキャラクターに戦闘で勝つ
-export function allWatchAndAllWinToWin(requireWinRole: RoleName, ignoreCharas: CharaName[]): VictoryHook {
-  return {
+export function allWatchAndAllWinToWin(winRequire: (a: Player) => boolean): VictoryHook[] {
+  function impl(this: Game, player: Player) {
+    for (let other of this.getOthers(player)) {
+      if (!player.watched.has(other.id)) return false;
+      if (winRequire(other) && !player.won.has(other.id)) return false;
+    }
+    return true;
+  }
+  return [{
     type: "AtoB",
-    when: ["正体確認", "戦闘勝利"],
-    hook(this: Game, player: Player) {
-      for (let other of this.getOthers(player)) {
-        if (!player.watched.has(other.id)) return false;
-        if (other.role !== requireWinRole) continue;
-        if (ignoreCharas.includes(other.characterName)) continue;
-        if (!player.won.has(other.id)) return false;
-      }
-      return true;
+    when: ["正体確認"],
+    hook: impl
+  }, {
+    type: "AwinB",
+    when: ["AwinB"],
+    hook: impl
+  }]
+}
+
+// 全員の正体を確認し、全ての ignoreCharas を除く Role のキャラクターに戦闘で勝つ
+export function WinToWin(when: (me: Player, b: Player, c: SpellCard) => boolean): VictoryHook {
+  return {
+    type: "AwinB",
+    when: ["AwinB"],
+    hook(this: Game, a: Player, b: Player | NPCType, spellCard: SpellCard, me?: Player) {
+      if (!(b instanceof Player)) return false;
+      return when(a, b, spellCard);
     }
   }
+}
+
+
+export function loseToLose(when: (me: Player, target: Player) => boolean): VictoryHook {
+  return {
+    type: "AwinB", when: ["AwinB"], allowAisNotMe: true,
+    hook(this: Game, a: Player, b: Player | NPCType, spellCard: SpellCard, me?: Player): boolean {
+      if (!(b instanceof Player)) return false;
+      if (!me) return false;
+      if (b.id !== me.id) return false;
+      return when(me, a)
+    }
+  }
+};
+export function damagedToLose(when: (me: Player, target?: Player) => boolean): VictoryHook {
+  return {
+    type: "AbyB", when: ["残機減少"],
+    hook(this: Game, a: Player, b?: Player, me?: Player): boolean {
+      return when(a, b)
+    }
+  };
+}
+export function destroyedToLose(lands: LandName[]): VictoryHook {
+  return {
+    type: "ALand", when: ["地形破壊"], allowAisNotMe: true,
+    hook(this: Game, a: Player, land: Land): boolean {
+      return lands.some(x => x === land.name)
+    }
+  };
 }

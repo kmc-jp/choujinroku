@@ -1,8 +1,9 @@
 import { Player } from "./player";
 import { Game } from "./game";
-import { Choice } from "./choice";
+import { Choice, choices } from "./choice";
 import { FieldItemAction } from "./fieldaction";
-import { AttributeHook, invalidate, SpecificActionHook, useAndInvalidate } from "./hook"
+import { invalidate, invalidate1D, invalidate2D, useAndInvalidate } from "./attributehook";
+import { AttributeHook, SpecificActionHook, Attribute } from "./hooktype"
 import * as FA from "./fieldaction";
 
 export type ItemCategory = "本" | "品物" | "宝物" | "発明品"
@@ -48,7 +49,7 @@ export function getItemsData(): ItemCategoryDict {
       attributeHooks: [invalidate("天狗の腕章", ["天狗警備隊", ["戦闘回避", "特殊能力"], ["戦闘回避", "アイテム"]])]
     }, {
       name: "ZUN帽",
-      attributeHooks: [invalidate("ZUN帽", ["呪い"])]
+      attributeHooks: [invalidate("ZUN帽", ["能力低下"])]
     }, {
       name: "神社の御札",
       attributeHooks: [invalidate("神社の御札", ["呪い"])]
@@ -65,7 +66,9 @@ export function getItemsData(): ItemCategoryDict {
       name: "妖怪の傘"
     }, {
       name: "銘酒",
-      attributeHooks: [invalidate("銘酒", ["NPC戦闘"])]
+      attributeHooks: [
+        invalidate("銘酒", ["NPC戦闘"]),
+      ]
     }, {
       name: "羽衣",
       attributeHooks: [invalidate("羽衣", [["地形破壊", "残機減少"], ["落とし穴", "残機減少"]])]
@@ -95,7 +98,8 @@ export function getItemsData(): ItemCategoryDict {
       name: "超整理術"
     }],
     "発明品": [{
-      name: "リボン"
+      name: "リボン",
+      attributeHooks: [invalidate2D("リボン", ["能力低下", "幻覚"], (p, d) => d.a + d.b <= p.mental)]
     }, {
       name: "のびーるアーム"
     }, {
@@ -132,9 +136,9 @@ export function getItemsData(): ItemCategoryDict {
     },
     { name: "解毒剤" },
     { name: "流し雛" },
-    { name: "藁人形" },
-    { name: "藁人形" },
-    { name: "藁人形" },
+    { name: "藁人形" },// no impl
+    { name: "藁人形" },// no impl
+    { name: "藁人形" },// no impl
     { name: "五寸釘", fieldActions: [FA.gosunkugiAction] },
     { name: "五寸釘", fieldActions: [FA.gosunkugiAction] },
     { name: "五寸釘", fieldActions: [FA.gosunkugiAction] },

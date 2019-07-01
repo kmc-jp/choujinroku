@@ -1,12 +1,13 @@
 import { Choice, choices } from "./choice";
-import { AttributeHook, Attribute, SpecificActionHook, invalidate, invalidate1D, VictoryHook, invalidate2D } from "./hook"
+import { AttributeHook, Attribute, SpecificActionHook, VictoryHook, NPCType } from "./hooktype"
 import { drawACard } from "./specificaction"
 import * as Victory from "./victory";
+import { invalidate, invalidate1D, invalidate2D } from "./attributehook";
 import { Game } from "./game";
 import { Player } from "./player";
 import { FieldAction } from "./fieldaction";
 import { SpellCardName, SpellCard } from "./spellcard";
-import { Item } from "./item";
+import { Item, FairyFriendNames } from "./item";
 
 export type CharaName = "華扇" | "霊夢" | "魔理沙" | "ルーミア" | "チルノ" | "美鈴" | "パチュリー" | "咲夜" | "レミリア" | "フラン" | "レティ" | "橙" | "アリス" | "プリズムリバー" | "妖夢" | "幽々子" | "藍" | "紫" | "萃香" | "リグル" | "ミスティア" | "慧音" | "てゐ" | "優曇華院" | "永琳" | "輝夜" | "妹紅" | "メディスン" | "幽香" | "文" | "小町" | "四季映姫" | "秋姉妹" | "雛" | "にとり" | "早苗" | "神奈子" | "諏訪子" | "衣玖" | "天子" | "ヤマメ" | "パルスィ" | "勇儀" | "さとり" | "燐" | "空" | "こいし" | "ナズーリン" | "小傘" | "一輪" | "村紗" | "星" | "白蓮" | "ぬえ" | "はたて" | "響子" | "芳香" | "青娥" | "布都" | "神子" | "マミゾウ"
 export const charaCategories = {
@@ -75,12 +76,18 @@ export function getAllCharacters(): Character[] {
     ],
     specificActions: [
       drawACard("楽園の素敵な巫女", (a, b, c) =>
-        a.watched.has(b.id) && b.role === "妖怪" && c.cardTypes.includes("弾幕")),
+        b instanceof Player && // 相手がPCで
+        a.watched.has(b.id) && // 正体を確認していて
+        b.role === "妖怪" &&  // 妖怪で
+        c.cardTypes.includes("弾幕")), // 弾幕の時
     ],
     whenWin: [
-      Victory.allWatchAndAllWinToWin("妖怪", ["紫"]),
+      ...Victory.allWatchAndAllWinToWin(p => p.role === "妖怪" && p.characterName !== "紫"),
       Victory.waitToWin("博麗神社", ["神社の御札"], 3),
       Victory.gatherToWin("博麗神社", "銘酒", 3)
+    ], whenLose: [
+      Victory.loseToLose((me, a) => me.watched.has(a.id) && a.level <= 3 && a.role === "妖怪"),
+      Victory.damagedToLose(me => me.items.some(x => x.name === "神社の御札"))
     ]
   }, {
     name: "魔理沙",
@@ -94,8 +101,13 @@ export function getAllCharacters(): Character[] {
       invalidate("魔法を使う程度の能力", ["毒茸"]),
       invalidate2D("努力家", ["満身創痍"], (p, d) => d.a + d.b <= p.mental)
     ],
+    whenWin: [
+      ...Victory.allWatchAndAllWinToWin(p => p.role === "妖怪" && p.characterName !== "にとり"),
+      Victory.waitToWin("魔法の森", ["ミニ八卦炉", "ドロワーズ"], 1),
+    ], whenLose: [
+    ],
     howToCountItems() { return 0; }, // アイテムは無限に持てる
-    canDiscardItem() { return false; } // アイテムを捨てられない
+    canDiscardItem(player, item) { return false; } // アイテムを捨てられない
   }, {
     name: "ルーミア",
     fullname: "ルーミア",
@@ -103,6 +115,13 @@ export function getAllCharacters(): Character[] {
     spellCard: "ディマーケイション",
     level: 2,
     mental: 7,
+    attributeHooks: [
+      invalidate2D("バカルテット", ["満身創痍"], (p, d) => d.a + d.b <= p.mental)
+    ], whenLose: [
+      Victory.destroyedToLose(["月夜の森"]),
+    ], whenWin: [
+      Victory.waitToWin("月夜の森", ["リボン"], 2),
+    ]
   }, {
     name: "チルノ",
     fullname: "チルノ",
@@ -114,8 +133,13 @@ export function getAllCharacters(): Character[] {
       invalidate("さいきょーの妖精", [["残機減少", "地形破壊"]]),
       invalidate("さいきょーの妖精", ["妖精"]),
       invalidate("さいきょーの妖精", ["呪い", "能力低下"], (_, a) => !a.includes("地形効果")),
+    ],
+    whenWin: [
+      Victory.WinToWin((me, a, c) => c.level === 6 && a.friend ? FairyFriendNames.includes(a.friend.name) : false),
+      ...Victory.allWatchAndAllWinToWin(p => !charaCategories["バカルテット"].includes(p.characterName)),
+    ], whenLose: [
+      Victory.destroyedToLose(["霧の湖"]),
     ]
-    // まだ:色々
   }, {
     name: "美鈴",
     fullname: "紅美鈴",
@@ -123,6 +147,10 @@ export function getAllCharacters(): Character[] {
     spellCard: "飛花落葉",
     level: 3,
     mental: 6,
+    whenWin: [
+      Victory.WinToWin((me, a) => me.currentLand ? me.currentLand.landAttributes.includes("紅マス") : false),
+
+    ]
   }, {
     name: "パチュリー",
     fullname: "パチュリー・ノーレッジ",
