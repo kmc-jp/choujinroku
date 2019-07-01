@@ -453,15 +453,14 @@ export class Game {
         let dropRandomItem = d.a === d.b;
         // WARN: 出目にマイナス1できるが...
         // (2,3) なら 2,2 にするか悩むと思うので選択肢を作るべき？
-        if (player.characterName === "霊夢" || player.characterName === "レミリア") {
+        if (player.characterName === "美鈴" || player.characterName === "小町") {
           //   success = d.a + d.b - 1 <= player.level;
           //   skipNextTurn = false;
         }
         let tag = success ? "残機が回復した！" : "残機が回復しなかった...";
         player.choices = choices(tag, () => {
           if (success) player.heal();
-          if (dropRandomItem) player.choices = [new EventWrapper(this, player).
-            randomDropItem("ゾロ目だったのでアイテムを一つ落とす...")]
+          if (dropRandomItem) player.choices = [new EventWrapper(this, player).randomDropItem("ゾロ目だったのでアイテムを一つ落とす...")]
           this.finishPlayerTurn(player);
         })
       }))
