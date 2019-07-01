@@ -237,7 +237,7 @@ class ChoujinrokuView {
     this.updatePlayers(gameProxy.getPlayersPos());
     this.decidedTimeCount = 0;
   }
-  randomToggle = false;
+  randomToggle = 0;
   decidedTimeCount = 0;
   constructor(scene: I.Scene) {
     this.scene = scene;
@@ -254,14 +254,16 @@ class ChoujinrokuView {
     scene.update(() => {
       if (!gameProxy) return;
       this.decidedTimeCount++;
-      if (this.randomToggle || this.decidedTimeCount > 45 && this.toChoiceId.length === 1) {
+      if ((this.randomToggle === 1)
+        || (this.randomToggle === 2 && this.decidedTimeCount > 45)
+        || this.decidedTimeCount > 45 && this.toChoiceId.length === 1) {
         gameProxy.decideAll();
         this.update();
       }
     })
     scene.on("keypressall", key => {
       if (!key) return;
-      if (key[" "]) this.randomToggle = !this.randomToggle;
+      if (key[" "]) this.randomToggle = (this.randomToggle + 1) % 3;
       if (key["Enter"] && gameProxy) {
         gameProxy.decideAll();
         this.update();
