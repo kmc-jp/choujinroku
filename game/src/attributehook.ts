@@ -12,7 +12,11 @@ export function invalidate(skillName: string, attrs: (Attribute | Attribute[])[]
     when: attrs,
     choices(player: Player, attributes?: Attribute[]) {
       if (when && !when(player, attributes ? attributes : [])) return [];
-      return choices(skillName + "で無効化！");
+      if (!attrs.includes("手番休み")) return choices(skillName + "で無効化！");
+      return choices(skillName + "で無効化！", () => {
+        player.skipTurnCounter = 0;
+        player.game.doFieldAction(player);
+      });
     }
   }
 }
