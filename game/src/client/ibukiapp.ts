@@ -12,10 +12,8 @@ import { ColorScheme } from "ibukidom";
 // 細かく変更するの面倒臭すぎ
 // あとでやる
 // エンターキーで自動モードってなんやねん
-let charalength = _.range(GameProxy.getAvailableCharacters().length);
-let playerNumber = 2 + random(5);
-let ids: number[] = _.shuffle<number>(charalength).slice(0, playerNumber);
-let gameProxy = GameProxy.tryToStart(ids);
+let playerNumber = 5;
+let gameProxy = GameProxy.tryToStart(_.shuffle<number>(_.range(GameProxy.getAvailableCharacters().length)).slice(0, playerNumber));
 function playerColor(i: number): string { return `hsla(${Math.floor((i * 360) / playerNumber)},100%,82%,0.5)`; }
 // マップに全文表示
 // 人を色付きで表示
@@ -39,6 +37,7 @@ class ChoujinrokuView {
   height: number;
   width: number;
   choicesBox: I.Box;
+  inputMessage = I.toStore("");
   initBackGround(): I.Box {
     return new I.Box(this.scene, {
       colorScheme: "#fff",
@@ -91,8 +90,8 @@ class ChoujinrokuView {
   initNoticeBox(): I.Box {
     return new I.Box(this.backGround, {
       height: this.height * 0.06,
-      width: this.width * 0.65,
-      x: this.width * 0.35,
+      width: this.width * 0.4,
+      x: this.width * 0.21,
       y: this.height * 0.06,
       colorScheme: new I.ColorScheme("#eeeeeebb", "#234", "#bcd"),
       padding: 5,
@@ -152,8 +151,8 @@ class ChoujinrokuView {
   initPlayers() {
     let width = this.height * 0.1;
     let height = this.height * 0.11;
-    this.players = _.range(playerNumber).map((x, i) => new I.Box(this.backGround,
-      {
+    this.players = _.range(playerNumber).map((x, i) =>
+      new I.Box(this.backGround, {
         width: width * 0.8,
         height: height * 0.8,
         colorScheme: new I.ColorScheme(playerColor(i), "#000", "#444"),
@@ -161,18 +160,17 @@ class ChoujinrokuView {
         fontSize: 30,
         border: { width: 4, style: "solid", radius: 3 },
       }
-    ).tree(p => {
-      new I.Text(p, `${i + 1}P`)
-    }).repeatRelativeOnHover({ scale: 1.03 }).on("mouseover", () => {
-      if (gameProxy) this.infoMessage.set(gameProxy.showPlayer(i))
-    }))
+      ).tree(p => {
+        new I.Text(p, `${i + 1}P`)
+      }).repeatRelativeOnHover({ scale: 1.03 }).on("mouseover", () => {
+        if (gameProxy) this.infoMessage.set(gameProxy.showPlayer(i))
+      }))
     this.updatePlayers(_.range(playerNumber).map(x => new Pos(-1, -1)))
   }
   choices: I.Text[] = [];
   updateChoices(choiceMat: string[][]) {
     this.choicesBox.children.forEach(x => x.$dom.remove())
     this.choicesBox.children.splice(0);
-    // this.choices.forEach(x => )
     let choices: string[] = [];
     let toPlayerId: number[] = [];
     let toChoiceId: number[] = [];
@@ -237,6 +235,34 @@ class ChoujinrokuView {
     this.updatePlayers(gameProxy.getPlayersPos());
     this.decidedTimeCount = 0;
   }
+  initInputBox() {
+    return new I.Box(this.backGround, {
+      height: this.height * 0.06,
+      width: this.width * 0.2,
+      x: this.width * 0.55,
+      y: this.height * 0.06,
+      colorScheme: new I.ColorScheme("#eeeeeebb", "#234", "#bcd"),
+      padding: 5,
+      fontSize: 15,
+      fontFamily: "Menlo",
+      border: { width: 1, style: "solid", radius: 3 },
+      isScrollable: true
+    }).tree(p => {
+      this.inputMessage =
+        new I.Input(p, {
+          placeholder: "霊夢 咲夜 アリス",
+          value: "",
+        }).value;
+      this.inputMessage.regist(x => {
+        let tmp = GameProxy.tryToStartByNames(x)
+        if (!tmp) return;
+        gameProxy = tmp;
+        playerNumber = gameProxy.getPlayerNumber();
+        this.players.forEach(p => p.hidden())
+        this.initPlayers();
+      })
+    })
+  }
   randomToggle = 0;
   decidedTimeCount = 0;
   constructor(scene: I.Scene) {
@@ -251,6 +277,7 @@ class ChoujinrokuView {
     this.infoBox = this.initInfoBox();
     this.choicesBox = this.initChoicesBox();
     this.initPlayers();
+    this.initInputBox();
     scene.update(() => {
       if (!gameProxy) return;
       this.decidedTimeCount++;
@@ -270,7 +297,7 @@ class ChoujinrokuView {
       }
     })
     this.update();
-    this.noticeMessage.set("エンターキーで1手ランダム\nプレイヤーをマウスオーバーで詳細表示\nスペースキーでオートモード切り替え\n開いている地形カードをクリックで詳細表示\nプレイヤーは2~6人ランダムで、キャラもランダム".replace("\n", " "))
+    this.noticeMessage.set("エンターキーで1手ランダム\nプレイヤーをマウスオーバーで詳細表示\nスペースキーでオートモード切り替え\n開いている地形カードをクリックで詳細表示\nプレイヤーは2~6人ランダムで、キャラもランダム。右の入力欄にキャラ名をスペース区切りで入力するとそのキャラ達でプレイ".replace("\n", " "))
   }
 }
 new I.World().play(scene => {

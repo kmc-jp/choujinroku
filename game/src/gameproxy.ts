@@ -17,6 +17,17 @@ export class GameProxy {
     if (game === null) return null;
     return new GameProxy(game);
   }
+  static tryToStartByNames(names: string): GameProxy | null {
+    let namelist = names.split(" ");
+    let charas = getAllCharacters();
+    let ids: number[] = namelist.map(x => {
+      let tmps = charas.filter(c => c.name === x);
+      if (tmps.length <= 0) return -1;
+      return tmps[0].id
+    });
+    return this.tryToStart(ids);
+  }
+
   // Proxy
   decideAll(): string {
     // 全員がランダムに(1Pから順に)選択肢を選ぶ
