@@ -9,7 +9,7 @@
 
 # 環境構築
 ```sh
-cd dist
+cd game
 npm install
 npm run watch &
 cd dist && php -S localhost:8008 &
