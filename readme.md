@@ -9,10 +9,12 @@
 
 # 環境構築
 ```sh
-cd game
-npm install
-npm run watch &
-cd dist && php -S localhost:8008 &
+# bash の操作です
+cd game # 開発は game フォルダ
+npm install # 関連ライブラリを `node_module` にインストール
+npm run build # ビルド
+# npm run watch でインクリメンタルビルドしてもよいです
+cd dist && php -S localhost:8008 # ローカルサーバーを建てる
 # access http://localhost:8008
 ```
 
