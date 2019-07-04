@@ -278,6 +278,24 @@ export function getAllCharacters(): Character[] {
     ], whenLose: [
       Victory.destroyedToLose(["魔法の森"]),
     ]
+  },{
+      name: "プリズムリバー",
+      fullname: "プリズムリバー三姉妹",
+      role: "野次馬",
+      spellCard: "霊車コンチェルトグロッソ",
+      level: 4,
+      mental: 5,
+      whenWin:[
+	  Victory.waitToWin("太陽の畑",["カリスマの秘訣"],2),
+	  { type: "A",
+	    when: ["移動","残基上昇"],
+	    hook(me: Player){
+		return me.life >= 3 && me.items.some()
+	    }
+      ],
+      whenLose:[
+	  Victory.damagedToLose(me => me.currentLand ? me.currentLand.name === "太陽の畑" : false)
+      ]
   },
   ]
   // 紫は書いていないけどスキマ送り耐性を忘れないでね！
