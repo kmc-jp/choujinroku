@@ -15,7 +15,7 @@ export const charaCategories = {
   "紅魔館の住人": ((): CharaName[] => ["美鈴", "パチュリー", "咲夜", "レミリア", "フラン"])(),
   "地霊殿の住人": ((): CharaName[] => ["さとり", "燐", "空", "こいし"])()
 };
-export type RaceName = "人間" | "幽霊" | "種族不明"
+export type RaceName = "人間" | "幽霊" | "種族不明" | "半人半霊"
 export type RoleName = "主人公" | "妖怪" | "野次馬"
 // ボムが必要な場合は関数内で処理すること
 type CharacterBase = {
@@ -285,17 +285,37 @@ export function getAllCharacters(): Character[] {
       spellCard: "霊車コンチェルトグロッソ",
       level: 4,
       mental: 5,
+      race: "幽霊",
       whenWin:[
-	  Victory.waitToWin("太陽の畑",["カリスマの秘訣"],2),
-	  { type: "A",
-	    when: ["移動","残基上昇"],
-	    hook(me: Player){
-		return me.life >= 3 && me.items.some()
-	    }
+	      Victory.waitToWin("太陽の畑",["カリスマの秘訣"],2),
+	       { type: "A",
+	         when: ["移動","残機上昇"],
+	         hook(me: Player){
+		        return me.life >= 3 && me.items.filter(i => i.name === "タミフル").length >= 3
+         }
+        } 
       ],
       whenLose:[
-	  Victory.damagedToLose(me => me.currentLand ? me.currentLand.name === "太陽の畑" : false)
+	      Victory.damagedToLose(me => me.currentLand ? me.currentLand.name === "太陽の畑" : false)
       ]
+  },{
+    name: "妖夢",
+    fullname: "魂魄妖夢",
+    role: "主人公",
+    spellCard: "未来永劫斬",
+    level: 4,
+    mental: 7,
+    race: "半人半霊",
+    fieldActions:[
+      //〇〇は隣接扱いと成る　ここでいいの？？？
+    ],
+    whenWin:[
+      ...Victory.haveItemAndAllWinToWin("武術指南書",(player=> player.characterName != "幽々子" && player.characterName != "優曇華院")),
+      Victory.waitToWin("白玉楼",["蓬莱の薬","船幽霊の柄杓"],1)
+    ],
+    whenLose:[
+      Victory.destroyedToLose(["白玉楼"])
+    ]
   },
   ]
   // 紫は書いていないけどスキマ送り耐性を忘れないでね！
