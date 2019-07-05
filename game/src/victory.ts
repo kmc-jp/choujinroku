@@ -68,6 +68,26 @@ export function allWatchAndAllWinToWin(winRequire: (a: Player) => boolean): Vict
   }]
 }
 
+// 特定のアイテムを所持、かつ、全ての ignoreCharas を除く Role のキャラクターに戦闘で勝つ
+export function haveItemAndAllWinToWin(item: ItemName, winRequire: (a: Player) => boolean): VictoryHook[] {
+  function impl(player: Player) {
+    if(!player.items.some(i=>i.name === item)) return false;
+    for (let other of player.game.getOthers(player)) {
+      if (winRequire(other) && !player.won.has(other.id)) return false;
+    }
+    return true;
+  }
+  return [{
+    type: "A",
+    when: ["アイテム獲得"],
+    hook: impl
+  }, {
+    type: "AwinB",
+    when: ["AwinB"],
+    hook: impl
+  }]
+}
+
 // 全員の正体を確認し、全ての ignoreCharas を除く Role のキャラクターに戦闘で勝つ
 export function winToWin(when: (me: Player, b: Player, c: SpellCard) => boolean): VictoryHook {
   return {
