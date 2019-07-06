@@ -375,7 +375,7 @@ export function getAllCharacters(): Character[] {
     mental: 7,
     race: "半人半霊",
     nextToPosesGenerator: (player) => {
-      let yuyuko = player.game.getOthers(player).filter(other => other.characterName === "幽々子");
+      let yuyuko = player.game.getOthers(player).filter(other => player.watched.has(other.id) && other.characterName === "幽々子");
       return yuyuko.length > 0 ? [yuyuko[0].pos] : []
     },
     whenWin: [
@@ -425,7 +425,7 @@ export function getAllCharacters(): Character[] {
     mental: 5,
     race: "妖怪",
     nextToPosesGenerator: (player) => {
-      let yukariOrChen = player.game.getOthers(player).filter(other => other.characterName === "紫" || other.characterName === "橙");
+      let yukariOrChen = player.game.getOthers(player).filter(other => player.watched.has(other.id) && (other.characterName === "紫" || other.characterName === "橙"));
       return yukariOrChen.length > 0 ? yukariOrChen.map(player => player.pos) : []
     },
     attributeHooks: [
