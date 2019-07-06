@@ -180,6 +180,16 @@ export function getAllCharacters(): Character[] {
     level: 5,
     mental: 5,
     race: "魔法使い",
+    nextToPosesGenerator: (player) => {
+      let result : Pos[] = [];
+      player.game.map.forEach((ms,x)=>{
+        ms.forEach((m,y)=>{          
+          if(m && m.landAttributes.includes("紅マス"))
+            result.push(new Pos(x,y))          
+        })
+      })
+      return result;
+    },
     // 戦闘時、レベルは1さがると解釈
     levelChange(p: Player, level: number) {
       if (!p.isBattle) return level;
@@ -200,6 +210,16 @@ export function getAllCharacters(): Character[] {
     level: 4,
     mental: 7,
     race: "人間",
+    nextToPosesGenerator: (player) => {
+      let result : Pos[] = [];
+      player.game.map.forEach((ms,x)=>{
+        ms.forEach((m,y)=>{          
+          if(m && m.landAttributes.includes("紅マス"))
+            result.push(new Pos(x,y))          
+        })
+      })
+      return result;
+    },
     attributeHooks: [
       invalidate("時間を操る程度の能力", ["手番休み"]),
       invalidate("完璧で瀟洒なメイド", ["能力低下", "幻覚", "呪い"],
@@ -221,6 +241,16 @@ export function getAllCharacters(): Character[] {
     level: 5,
     mental: 6,
     race: "吸血鬼",
+    nextToPosesGenerator: (player) => {
+      let result : Pos[] = [];
+      player.game.map.forEach((ms,x)=>{
+        ms.forEach((m,y)=>{          
+          if(m && m.landAttributes.includes("紅マス"))
+            result.push(new Pos(x,y))          
+        })
+      })
+      return result;
+    },
     attributeHooks: [
       invalidate1D("紅い悪魔", ["残機減少"], (p, d) => d <= p.level),
     ], whenWin: [
@@ -247,6 +277,16 @@ export function getAllCharacters(): Character[] {
     level: 5,
     mental: 5,
     race: "吸血鬼",
+    nextToPosesGenerator: (player) => {
+      let result : Pos[] = [];
+      player.game.map.forEach((ms,x)=>{
+        ms.forEach((m,y)=>{          
+          if(m && m.landAttributes.includes("紅マス"))
+            result.push(new Pos(x,y))          
+        })
+      })
+      return result;
+    },
     attributeHooks: [
       invalidate1D("悪魔の妹", ["残機減少"], (p, d) => d <= p.level),
     ], whenWin: [
