@@ -726,8 +726,31 @@ export class Game {
         return new Choice(`${view}を残り${left}回の精神力チェックで頑張ってだす！`, () => { tryLoop(left) })
       }
     })
-    if (isRevenge) // 別に無理して試さなくてもいい
+    if (isRevenge) {// 別に無理して試さなくてもいい
+      player.choices.push(...player.spellCards.filter(sc => sc.cardTypes.includes("回避")).map(sc =>
+        new Choice(`${sc.name}で回避！`, () => {
+          console.log(sc.diceCheck);
+          if (!sc.diceCheck) return; // WARN:
+          if (sc.diceCheck.type === "1D") {
+            player.choices = this.getDiceChoices(player, `${sc.name}で回避！`, d => {
+              if (sc.diceCheck && sc.diceCheck.type === "1D" && sc.diceCheck.success(player, d)) {
+                player.choices = choices(`回避した！`, () => this.finishBattle(player, target))
+              } else {
+                player.choices = choices(`回避失敗した...！`, lose)
+              }
+            })
+          } else if (sc.diceCheck.type === "2D") {
+            player.choices = this.getTwoDiceChoices(player, `${sc.name}で回避！`, d => {
+              if (sc.diceCheck && sc.diceCheck.type === "2D" && sc.diceCheck.success(player, d)) {
+                player.choices = choices(`回避した！`, () => this.finishBattle(player, target))
+              } else {
+                player.choices = choices(`回避失敗した...！`, lose)
+              }
+            })
+          }
+        })))
       player.choices.push(new Choice("反撃は諦める...", lose))
+    }
   }
   // 戦闘
   @phase battle(player: Player, target: Player | NPCType, spellCard?: SpellCard) {

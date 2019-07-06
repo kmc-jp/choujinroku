@@ -169,9 +169,9 @@ export function getAllSpellCards(): SpellCard[] {
     { name: "うふ,うふ,うふふふふ…。", level: 0, star: 5, colors: [], cardTypes: ["特殊"] },
   ]
   return tmp.map((x, i) => ({
+    diceCheck: null,
     ...x,
     id: i,
-    diceCheck: null,
     attribute: x.attribute || null,
   }));
 }
