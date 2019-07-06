@@ -42,20 +42,20 @@ type CharacterBase = Hooks & {
 export type Character = Required<CharacterBase>;
 
 
+
 export function getAllCharacters(): Character[] {
-  // 書き方サンプル
-  let 大食い: AttributeHook = {
-    overwrite: true,
-    when: ["毒茸", "食あたり", "飲み過ぎ"],
-    choices(player: Player) {
-      return player.game.getTwoDiceChoices(player, "大食い", dice => {
-        let success = dice.a + dice.b <= player.level
-        if (!success) return choices("大食いをした！ ")
-        player.heal();
-        return choices("大食いをして残機が1増えた！ ")
+  let GetNextTo = (when: (player: Player, l: Land) => boolean) => {
+    return (player: Player) => {
+      let result: Pos[] = [];
+      player.game.map.forEach((ms, x) => {
+        ms.forEach((m, y) => {
+          if (m && when(player, m)) result.push(new Pos(x, y))
+        })
       })
+      return result;
     }
-  };
+  }
+
   // 敗北条件は知らん！
   let tmp: CharacterBase[] = [{
     name: "霊夢",
@@ -152,16 +152,7 @@ export function getAllCharacters(): Character[] {
     level: 3,
     mental: 6,
     race: "妖怪",
-    nextToPosesGenerator: (player) => {
-      let result : Pos[] = [];
-      player.game.map.forEach((ms,x)=>{
-        ms.forEach((m,y)=>{          
-          if(m && m.landAttributes.includes("紅マス"))
-            result.push(new Pos(x,y))          
-        })
-      })
-      return result;
-    },
+    nextToPosesGenerator: GetNextTo((p, m) => m.landAttributes.includes("紅マス")),
     whenWin: [
       Victory.winToWin((me, a) => a.role === "主人公" && a.characterName !== "咲夜" &&
         (me.currentLand ? me.currentLand.landAttributes.includes("紅マス") : false)),
@@ -180,16 +171,7 @@ export function getAllCharacters(): Character[] {
     level: 5,
     mental: 5,
     race: "魔法使い",
-    nextToPosesGenerator: (player) => {
-      let result : Pos[] = [];
-      player.game.map.forEach((ms,x)=>{
-        ms.forEach((m,y)=>{          
-          if(m && m.landAttributes.includes("紅マス"))
-            result.push(new Pos(x,y))          
-        })
-      })
-      return result;
-    },
+    nextToPosesGenerator: GetNextTo((p, m) => m.landAttributes.includes("紅マス")),
     // 戦闘時、レベルは1さがると解釈
     levelChange(p: Player, level: number) {
       if (!p.isBattle) return level;
@@ -210,16 +192,7 @@ export function getAllCharacters(): Character[] {
     level: 4,
     mental: 7,
     race: "人間",
-    nextToPosesGenerator: (player) => {
-      let result : Pos[] = [];
-      player.game.map.forEach((ms,x)=>{
-        ms.forEach((m,y)=>{          
-          if(m && m.landAttributes.includes("紅マス"))
-            result.push(new Pos(x,y))          
-        })
-      })
-      return result;
-    },
+    nextToPosesGenerator: GetNextTo((p, m) => m.landAttributes.includes("紅マス")),
     attributeHooks: [
       invalidate("時間を操る程度の能力", ["手番休み"]),
       invalidate("完璧で瀟洒なメイド", ["能力低下", "幻覚", "呪い"],
@@ -241,16 +214,7 @@ export function getAllCharacters(): Character[] {
     level: 5,
     mental: 6,
     race: "吸血鬼",
-    nextToPosesGenerator: (player) => {
-      let result : Pos[] = [];
-      player.game.map.forEach((ms,x)=>{
-        ms.forEach((m,y)=>{          
-          if(m && m.landAttributes.includes("紅マス"))
-            result.push(new Pos(x,y))          
-        })
-      })
-      return result;
-    },
+    nextToPosesGenerator: GetNextTo((p, m) => m.landAttributes.includes("紅マス")),
     attributeHooks: [
       invalidate1D("紅い悪魔", ["残機減少"], (p, d) => d <= p.level),
     ], whenWin: [
@@ -277,16 +241,7 @@ export function getAllCharacters(): Character[] {
     level: 5,
     mental: 5,
     race: "吸血鬼",
-    nextToPosesGenerator: (player) => {
-      let result : Pos[] = [];
-      player.game.map.forEach((ms,x)=>{
-        ms.forEach((m,y)=>{          
-          if(m && m.landAttributes.includes("紅マス"))
-            result.push(new Pos(x,y))          
-        })
-      })
-      return result;
-    },
+    nextToPosesGenerator: GetNextTo((p, m) => m.landAttributes.includes("紅マス")),
     attributeHooks: [
       invalidate1D("悪魔の妹", ["残機減少"], (p, d) => d <= p.level),
     ], whenWin: [
