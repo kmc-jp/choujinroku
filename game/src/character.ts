@@ -1,5 +1,5 @@
 import { Choice, choices } from "./choice";
-import { AttributeHook, Attribute, SpecificActionHook, VictoryHook, NPCType } from "./hooktype"
+import { AttributeHook, Attribute, SpecificActionHook, VictoryHook, NPCType, Hooks } from "./hooktype"
 import { drawACard } from "./specificaction"
 import * as Victory from "./victory";
 import { invalidate, invalidate1D, invalidate2D } from "./attributehook";
@@ -22,7 +22,7 @@ export type RaceName = "人間" | "妖怪" | "幽霊" | "仙人" | "聖人" | "�
 
 export type RoleName = "主人公" | "妖怪" | "野次馬"
 // ボムが必要な場合は関数内で処理すること
-type CharacterBase = {
+type CharacterBase = Hooks & {
   name: CharaName;
   fullname: string;
   level: number; // レベル
@@ -30,17 +30,9 @@ type CharacterBase = {
   spellCard: SpellCardName;
   role: RoleName;
   race?: RaceName;
-  attributeHooks?: AttributeHook[]; // 耐性
-  fieldActions?: FieldAction[]; //　特殊能力の使用
-  // フックした時に他の選択肢より先に行える能力
-  // WARN: 使用しなかった場合は特別なフラグを建てて別の人にはばれないようにする必要がある
-  // 例えば霊夢の夢想天生はちょっと無理かも(先に発動してその後二回目の反撃をしてしまう...)
-  specificActions?: SpecificActionHook[];
   whenWin?: VictoryHook[];
   whenLose?: VictoryHook[];
   id?: number;
-  // 隣
-  nextToPosesGenerator?: ((player: Player) => Pos[]);
   // アイテム所持数の数え方が特殊なキャラ用
   howToCountItems?: ((player: Player) => number) | null;
   // アイテムを捨てられないキャラ用
@@ -52,7 +44,7 @@ export type Character = Required<CharacterBase>;
 export function getAllCharacters(): Character[] {
   // 書き方サンプル
   let 大食い: AttributeHook = {
-    force: true,
+    overwrite: true,
     when: ["毒茸", "食あたり", "飲み過ぎ"],
     choices(player: Player) {
       return player.game.getTwoDiceChoices(player, "大食い", dice => {
@@ -172,6 +164,13 @@ export function getAllCharacters(): Character[] {
     spellCard: "賢者の石",
     level: 5,
     mental: 5,
+    // 戦闘時、レベルは1さがると解釈
+    levelChange(p: Player, level: number) {
+      if (!p.isBattle) return level;
+      if (p.friend && p.friend.name === "小悪魔") return level;
+      if (p.items.some(item => item.name === "蓬莱の薬" || item.name === "タミフル" || item.name === "リポD")) return level;
+      return level - 1;
+    },
     whenWin: [
       Victory.winToWin((me, a) => a.items.some(x => x.name === "呪法書")),
     ], whenLose: [
@@ -414,7 +413,10 @@ export function getAllCharacters(): Character[] {
     ], whenLose: [
       Victory.destroyedToLose(["大祀廟"]),
       Victory.damagedToLose(me => me.items.some(x => x.name === "宝剣")),
-    ]
+    ], attributeHooks: [
+      invalidate("たわむれはおわりじゃ！", ["能力低下", "幻覚"], p => p.life === 1),
+    ],
+    mentalChange: (p: Player, n: number) => p.life === 1 ? n + 1 : n;
   }, {
     name: "マミゾウ",
     fullname: "二ツ岩 マミゾウ",
@@ -451,7 +453,9 @@ export function getAllCharacters(): Character[] {
     fieldActions: x.fieldActions || [],
     whenWin: x.whenWin || [],
     whenLose: x.whenLose || [],
-    nextToPosesGenerator: x.nextToPosesGenerator || (() => []),
+    nextToPosesGenerator: x.nextToPosesGenerator || (p => []),
+    levelChange: x.levelChange || (p => p.level),
+    mentalChange: x.mentalChange || (p => p.mental),
     specificActions: x.specificActions || [],
     howToCountItems: x.howToCountItems || null,
     canDiscardItem: x.canDiscardItem || null

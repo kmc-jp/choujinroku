@@ -40,6 +40,7 @@ export class Player {
   game: Game;
   spellCards: SpellCard[] = [];
   eventWrapper: EventWrapper;
+  isBattle = false; // 戦闘中かどうか
   constructor(game: Game, character: Character, name: string, id: number) {
     this.game = game;
     this.character = character;
@@ -52,23 +53,34 @@ export class Player {
     this.choices = [];
     this.eventWrapper = new EventWrapper(game, this);
   }
-  get nextToPosesGenerator() { return this.character.nextToPosesGenerator; }
+  get nextToPosesGenerators() {
+    let result = [this.character.nextToPosesGenerator]
+    if (this.friend) result.push(this.friend.nextToPosesGenerator)
+    result.push(...this.items.map(x => x.nextToPosesGenerator))
+    return result;
+  }
   get characterName() { return this.character.name; }
   get level() {
     let result = this.character.level
     let land = this.currentLand;
     if (!land) return result;
     let up = land.powerUp.levelUp;
-    if (!up || up.every(x => x !== this.characterName)) return result;
-    return result + 1;
+    if (up && up.some(x => x === this.characterName)) result += 1;
+    result = this.character.levelChange(this, result);
+    if (this.friend) result = this.friend.levelChange(this, result);
+    this.items.forEach(x => { result = x.levelChange(this, result); })
+    return Math.min(5, Math.max(1, result));
   }
   get mental() {
     let result = this.character.mental;
     let land = this.currentLand;
     if (!land) return result;
     let up = land.powerUp.mentalUp;
-    if (!up || up.every(x => x !== this.characterName)) return result;
-    return result + 1;
+    if (up && up.some(x => x === this.characterName)) result += 1;
+    result = this.character.mentalChange(this, result);
+    if (this.friend) result = this.friend.mentalChange(this, result);
+    this.items.forEach(x => { result = x.mentalChange(this, result); })
+    return Math.min(12, Math.max(1, result));
   }
   swapPosition(target: Player) {
     // WARN: 移動Hookが発動する？
@@ -181,11 +193,11 @@ export class Player {
     return this.game.map[this.pos.x][this.pos.y];
   }
   checkAttributeHooks(choices: Choice[], attrs: Attribute[]): Choice[] {
-    // TODO: ダイスロールに成功したら、が未実装
     // キャラとアイテムのHookを確認
     attrs = _.uniq(attrs);
     let result: Choice[] = [];
-    let forced: Choice[] = [];
+    let overwrited: Choice[] = [];
+    let withDice: Choice[] = [];
     let applyHook = (hook: AttributeHook) => {
       for (let when of hook.when) {
         if (typeof (when) === "string") {
@@ -194,14 +206,14 @@ export class Player {
           for (let w of when) if (!attrs.includes(w)) return;
         }
         let choices = hook.choices.bind(this.game)(this, attrs);
-        if (hook.force) forced.push(...choices);
+        if (hook.needDice) withDice.push(...choices);
+        else if (hook.overwrite) overwrited.push(...choices);
         else result.push(...choices);
       }
     }
     let applyHooks = (hooks: AttributeHook[]) => {
       for (let hook of hooks) applyHook(hook);
     }
-    for (let choice of choices) result.push(choice);
     // アイテム / キャラ / 地形 / 仲間のフックを確認
     for (let item of this.items) applyHooks(item.attributeHooks);
     applyHooks(this.character.attributeHooks)
@@ -209,7 +221,16 @@ export class Player {
     if (map !== null) applyHooks(map.attributeHooks);
     let friend = this.friend;
     if (friend != null) applyHooks(friend.attributeHooks)
-    if (forced.length > 0) return forced;
+    if (withDice.length > 0) {
+      // その選択肢を選んで失敗した場合、 overwrite / result を選ぶことになる。
+      // TODO: ダイスロールに成功したら、が未実装
+    }
+    if (overwrited.length === 0) {
+      // 元の選択肢を上書きするかも
+      for (let choice of choices) result.push(choice);
+    } else {
+      result.push(...overwrited);
+    }
     return result;
   }
   get watchedArray(): number[] { return setToArray(this.watched); }
