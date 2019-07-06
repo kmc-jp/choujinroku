@@ -16,7 +16,7 @@ export function waitToWinWith(when: (p: Player) => boolean): VictoryHook {
 }
 
 // xxでxxを持ってxxターン待機して勝利
-export function waitToWin(where: LandName, items: ItemName[], waitCount: number): VictoryHook {
+export function waitToWin(where: LandName, items: ItemName[], waitCount: number, when?: (p: Player) => boolean): VictoryHook {
   return {
     type: "A",
     when: ["待機"],
@@ -27,6 +27,7 @@ export function waitToWin(where: LandName, items: ItemName[], waitCount: number)
       for (let item of items) {
         if (player.getWaitCount(item) < waitCount) return false;
       }
+      if (when && !when(player)) return false;
       return true;
     }
   }

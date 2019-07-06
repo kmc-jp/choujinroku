@@ -290,17 +290,11 @@ export function getAllCharacters(): Character[] {
     whenWin: [
       Victory.winToWin((me, a) =>
         me.currentLand ? me.currentLand.name === "命蓮寺" : false),
-      Victory.waitToWinWith(p => {
-        let land = p.currentLand;
-        if (!land) return false;
-        if (land.name !== "命蓮寺") return false;
-        if (p.waitCount < 1) return false;
-        for (let other of p.game.getOthers(p)) {
-          // 全員の正体を確認していないならfalse
-          if (!p.watched.has(other.id)) return false;
-        }
-        return true;
-      }),
+      Victory.waitToWin("命蓮寺", [], 1, p =>
+        p.game.getOthers(p).every(other => p.watched.has(other.id))
+      ),
+      Victory.waitToWin("命蓮寺", [], 1, p => p.life === 5)
+
     ], whenLose: [
       Victory.destroyedToLose(["命蓮寺"]),
     ]
@@ -315,14 +309,7 @@ export function getAllCharacters(): Character[] {
     // attributeHooksとspecificActionsは未追加
     whenWin: [
       Victory.waitToWin("墓地", ["神社の御札"], 1),
-      Victory.waitToWinWith(p => {
-        let land = p.currentLand;
-        if (!land) return false;
-        if (land.name !== "墓地") return false;
-        if (p.waitCount < 1) return false;
-        if (p.life !== 5) return false;
-        return true;
-      }),
+      Victory.waitToWin("墓地", [], 1, p => p.life === 5)
     ], whenLose: [
       Victory.destroyedToLose(["墓地"]),
       Victory.loseToLose((me, a) => a.items.some(x => x.name === "浄玻璃の鏡" || x.name === "聖の宝塔")),
@@ -338,17 +325,10 @@ export function getAllCharacters(): Character[] {
     // attributeHooksとspecificActionsは未追加
     whenWin: [
       Victory.waitToWin("大祀廟", ["羽衣"], 2),
-      Victory.waitToWinWith(p => {
-        let land = p.currentLand;
-        if (!land) return false;
-        if (land.name !== "大祀廟") return false;
-        if (p.waitCount < 1) return false;
-        for (let other of p.game.getOthers(p)) {
-          // 主人公のうち1人にでも勝ったらtrue
-          if (other.role === "主人公" && p.won.has(other.id)) return true;
-        }
-        return false;
-      }),
+      // 主人公のうち1人にでも勝ったら
+      Victory.waitToWin("大祀廟", [], 1, p =>
+        p.game.getOthers(p).some(other => other.role === "主人公" && p.won.has(other.id))
+      ),
       Victory.killToWin((me, a) => a.role === "主人公"),
     ], whenLose: [
       Victory.destroyedToLose(["大祀廟"]),
@@ -365,17 +345,10 @@ export function getAllCharacters(): Character[] {
     // attributeHooksとspecificActionsは未追加
     whenWin: [
       Victory.waitToWin("大祀廟", ["舟", "死神の舟"], 2),
-      Victory.waitToWinWith(p => {
-        let land = p.currentLand;
-        if (!land) return false;
-        if (land.name !== "大祀廟") return false;
-        if (p.waitCount < 1) return false;
-        for (let other of p.game.getOthers(p)) {
-          // 主人公のうち1人にでも勝ったらtrue
-          if (other.role === "主人公" && p.won.has(other.id)) return true;
-        }
-        return false;
-      }),
+      // 主人公のうち1人にでも勝ったら
+      Victory.waitToWin("大祀廟", [], 1, p =>
+        p.game.getOthers(p).some(other => other.role === "主人公" && p.won.has(other.id))
+      ),
       Victory.killToWin((me, a) => a.role === "主人公"),
     ], whenLose: [
       Victory.destroyedToLose(["大祀廟"]),
