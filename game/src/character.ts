@@ -313,9 +313,9 @@ export function getAllCharacters(): Character[] {
     level: 4,
     mental: 7,
     race: "半人半霊",
-    fieldActions: [
-      //〇〇は隣接扱いと成る　ここでいいの？？？
-    ],
+    nextToPosesGenerator: (player) =>{ 
+      let yuyuko = player.game.getOthers(player).filter(other => other.characterName === "幽々子");
+      return yuyuko.length > 0 ? [yuyuko[0].pos] : []},
     whenWin: [
       ...Victory.haveItemAndAllWinToWin("武術指南書", (player => player.characterName != "幽々子" && player.characterName != "優曇華院")),
       Victory.waitToWin("白玉楼", ["蓬莱の薬", "船幽霊の柄杓"], 1)
@@ -323,7 +323,7 @@ export function getAllCharacters(): Character[] {
     whenLose: [
       Victory.destroyedToLose(["白玉楼"])
     ]
-  }, {
+  }, { //同じマスの他社の残機が1減るを残機を1にすることができる、残機減少前フックがないので未実装
     name: "幽々子",
     fullname: "西行寺幽々子",
     role: "野次馬",
@@ -331,12 +331,70 @@ export function getAllCharacters(): Character[] {
     level: 5,
     mental: 6,
     race: "幽霊",
+    attributeHooks: [
+      //解毒剤が使える
+      {
+        force: true,
+        when: ["毒茸", "食あたり", "飲み過ぎ"],
+        choices(player: Player) {
+          return player.game.getTwoDiceChoices(player, "大食い", dice => {
+            let success = dice.a + dice.b <= player.level
+            if (!success) return choices("大食いをした！ ")
+            player.heal();
+            return choices("大食いをして残機が1増えた！ ")
+          })
+        }
+      },
+      invalidate("華胥の亡霊",["呪い","能力低下"]),
+    ],
     whenWin: [
       Victory.enterToWin("白玉楼",["蓬莱の薬"],["幽々子","妖夢"]),
       Victory.waitToWin("夜雀の屋台", ["鉄人レシピ", "銘酒"], 1)
     ],
     whenLose: [
       Victory.destroyedToLose(["白玉楼","夜雀の屋台"])
+    ]
+  },{
+    name: "藍",
+    fullname: "八雲藍",
+    spellCard: "飛翔役小角",
+    role: "妖怪",
+    level: 5,
+    mental: 5,
+    race: "妖怪",
+    nextToPosesGenerator: (player) =>{ 
+      let yuyuko = player.game.getOthers(player).filter(other => other.characterName === "紫" || other.characterName === "橙");
+      return yuyuko.length > 0 ? [yuyuko[0].pos] : []},
+    attributeHooks: [
+      invalidate2D("式神を使う程度の能力",["幻覚","迷い"],(p, d) => d.a + d.b <= p.level),
+      //特殊な時に地形効果無効
+    ],
+    whenWin: [
+      //4隅が開いた状態でマヨヒガに入る
+      Victory.waitToWin("マヨヒガの森",[],1,(player => {
+        let mapLen = player.game.map.length - 1;
+        let corner4 = [player.game.map[0][0],player.game.map[0][mapLen],player.game.map[mapLen][0],player.game.map[mapLen][mapLen]];
+        return corner4.filter(corner => corner).length === 4;
+      })),
+      {
+        type: "ALand",
+        when: ["土地を開く"],
+        allowAisNotMe: true,
+        hook(player: Player, land: Land){
+          if(player.characterName !== "紫" && player.characterName !== "藍") return false;
+          return player.game.map.filter(lands => lands.filter(land => land).length < 6).length === 0
+        }
+      }
+    ],
+    whenLose: [
+      {
+        type: "ALand", when: ["地形破壊"], allowAisNotMe: true,
+        hook(player: Player, land: Land): boolean {
+          let mapLen = player.game.map.length - 1;
+          let corner4 = [player.game.map[0][0],player.game.map[0][mapLen],player.game.map[mapLen][0],player.game.map[mapLen][mapLen]];
+          return corner4.some(destoriedLand => destoriedLand === land)
+        }
+      }
     ]
   },{
     name: "響子",
