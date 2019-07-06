@@ -528,8 +528,11 @@ export class Game {
   // 「手番終了後」の処理 / 手番交代
   @phase doAfterFinishedPlayerTurn(player: Player) {
     // 「手番終了後」の能力を処理
-    this.doFieldAction(this.getNextPlayer(player));
+    let next = this.getNextPlayer(player)
+    this.checkActionHookA("手番開始", next)
+    this.doFieldAction(next);
   }
+
   // アイテム -------------------------------------------------------------
   // アイテムを得る
   @phase gainItem(player: Player, item: Item, checkMove2: boolean = true) {
