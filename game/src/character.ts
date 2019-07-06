@@ -468,7 +468,7 @@ export function getAllCharacters(): Character[] {
     fullname: "物部 布都 & 蘇我 屠自古",
     spellCard: "大物忌正餐",  // ガコウジサイクロンもあるよ
     role: "野次馬",
-    level: 5,
+    level: 4,
     mental: 5,
     race: "人間", // 幽霊でもある
     // attributeHooksとspecificActionsは未追加
@@ -539,8 +539,8 @@ export function getAllCharacters(): Character[] {
     whenWin: x.whenWin || [],
     whenLose: x.whenLose || [],
     nextToPosesGenerator: x.nextToPosesGenerator || (p => []),
-    levelChange: x.levelChange || (p => p.level),
-    mentalChange: x.mentalChange || (p => p.mental),
+    levelChange: x.levelChange || ((p, l) => l),
+    mentalChange: x.mentalChange || ((p, m) => m),
     specificActions: x.specificActions || [],
     howToCountItems: x.howToCountItems || null,
     canDiscardItem: x.canDiscardItem || null
