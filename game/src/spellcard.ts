@@ -1,8 +1,9 @@
 import { CharaName } from "./character";
 import { } from "./choice";
-import { Ailment } from "./hooktype";
+import { Ailment, Dice1D, Dice2D, TwoDice } from "./hooktype";
 import * as _ from "underscore";
 import { random } from "./util";
+import { Player } from "./player";
 export type SpellCardColor = "R" | "B" | "Y" | "G" | "P" | "W"
 export type SpellCardType = "弾幕" | "武術" | "回避" | "防御" | "反撃" | "戦闘補助" | "特殊"
 export type SpellCardName =
@@ -41,6 +42,7 @@ type SpellCardBase = {
   colors: SpellCardColor[];
   attribute?: Ailment | null;
   cardTypes: SpellCardType[]; // チャージドクライとかある
+  diceCheck?: Dice1D | Dice2D | null;
 }
 export function parseSpellCard(card: SpellCard): string {
   let star = "☆".repeat(card.star);
@@ -51,14 +53,13 @@ export function parseSpellCard(card: SpellCard): string {
 }
 export type SpellCard = Required<SpellCardBase>
 export function getAllSpellCards(): SpellCard[] {
-  let defaultSpellCard: SpellCardBase = {
-    name: "ディマーケイション",
-    level: 2,
-    star: 1,
-    colors: ["B", "G"],
-    attribute: "能力低下",
-    cardTypes: ["弾幕"]
-  };
+  let kiaiyokeDice: Dice2D = { type: "2D", success: (p: Player, d: TwoDice) => d.a + d.b <= p.mental }
+  let patternDice: Dice1D = { type: "1D", success: (p: Player, d: number) => d <= p.level }
+  let kirikaeshiDice: Dice1D = { type: "1D", success: (p: Player, d: number) => d >= 3 }
+  let chonyokeDice: Dice1D = { type: "1D", success: (p: Player, d: number) => d <= 4 }
+  // WARN: 必ず回避とか知らんが
+  let usoyokeDice: Dice1D = { type: "1D", success: (p: Player, d: number) => p.life === 1 || d % 2 === 1 }
+
   let tmp: SpellCardBase[] = [
     { name: "ディマーケイション", level: 2, star: 1, colors: ["B", "G"], cardTypes: ["弾幕"] },
     { name: "アイシクルフォール", level: 2, star: 2, colors: ["B", "Y"], cardTypes: ["弾幕"] },
@@ -126,23 +127,23 @@ export function getAllSpellCards(): SpellCard[] {
     { name: "サブタレイニアンローズ", level: 6, star: 1, colors: ["R", "B", "Y"], cardTypes: ["弾幕"] },
     { name: "聖白蓮", level: 6, star: 2, colors: ["P", "B", "W"], cardTypes: ["武術"] },
     { name: "源三位頼政の弓", level: 6, star: 1, colors: ["P", "W"], cardTypes: ["弾幕"] },
-    { name: "気合避け", level: 0, star: 1, colors: [], cardTypes: ["回避"] },
-    { name: "気合避け", level: 0, star: 2, colors: [], cardTypes: ["回避"] },
-    { name: "気合避け", level: 0, star: 3, colors: [], cardTypes: ["回避"] },
-    { name: "気合避け", level: 0, star: 4, colors: [], cardTypes: ["回避"] },
-    { name: "パターン避け", level: 0, star: 1, colors: [], cardTypes: ["回避"] },
-    { name: "パターン避け", level: 0, star: 2, colors: [], cardTypes: ["回避"] },
-    { name: "パターン避け", level: 0, star: 3, colors: [], cardTypes: ["回避"] },
-    { name: "パターン避け", level: 0, star: 4, colors: [], cardTypes: ["回避"] },
-    { name: "切り返し", level: 0, star: 1, colors: [], cardTypes: ["回避"] },
-    { name: "切り返し", level: 0, star: 2, colors: [], cardTypes: ["回避"] },
-    { name: "切り返し", level: 0, star: 3, colors: [], cardTypes: ["回避"] },
-    { name: "切り返し", level: 0, star: 4, colors: [], cardTypes: ["回避"] },
-    { name: "チョン避け", level: 0, star: 1, colors: [], cardTypes: ["回避"] },
-    { name: "チョン避け", level: 0, star: 2, colors: [], cardTypes: ["回避"] },
-    { name: "チョン避け", level: 0, star: 3, colors: [], cardTypes: ["回避"] },
-    { name: "チョン避け", level: 0, star: 4, colors: [], cardTypes: ["回避"] },
-    { name: "嘘避け", level: 0, star: 5, colors: [], cardTypes: ["回避"] },
+    { name: "気合避け", level: 0, star: 1, colors: [], cardTypes: ["回避"], diceCheck: kiaiyokeDice },
+    { name: "気合避け", level: 0, star: 2, colors: [], cardTypes: ["回避"], diceCheck: kiaiyokeDice },
+    { name: "気合避け", level: 0, star: 3, colors: [], cardTypes: ["回避"], diceCheck: kiaiyokeDice },
+    { name: "気合避け", level: 0, star: 4, colors: [], cardTypes: ["回避"], diceCheck: kiaiyokeDice },
+    { name: "パターン避け", level: 0, star: 1, colors: [], cardTypes: ["回避"], diceCheck: patternDice },
+    { name: "パターン避け", level: 0, star: 2, colors: [], cardTypes: ["回避"], diceCheck: patternDice },
+    { name: "パターン避け", level: 0, star: 3, colors: [], cardTypes: ["回避"], diceCheck: patternDice },
+    { name: "パターン避け", level: 0, star: 4, colors: [], cardTypes: ["回避"], diceCheck: patternDice },
+    { name: "切り返し", level: 0, star: 1, colors: [], cardTypes: ["回避"], diceCheck: kirikaeshiDice },
+    { name: "切り返し", level: 0, star: 2, colors: [], cardTypes: ["回避"], diceCheck: kirikaeshiDice },
+    { name: "切り返し", level: 0, star: 3, colors: [], cardTypes: ["回避"], diceCheck: kirikaeshiDice },
+    { name: "切り返し", level: 0, star: 4, colors: [], cardTypes: ["回避"], diceCheck: kirikaeshiDice },
+    { name: "チョン避け", level: 0, star: 1, colors: [], cardTypes: ["回避"], diceCheck: chonyokeDice },
+    { name: "チョン避け", level: 0, star: 2, colors: [], cardTypes: ["回避"], diceCheck: chonyokeDice },
+    { name: "チョン避け", level: 0, star: 3, colors: [], cardTypes: ["回避"], diceCheck: chonyokeDice },
+    { name: "チョン避け", level: 0, star: 4, colors: [], cardTypes: ["回避"], diceCheck: chonyokeDice },
+    { name: "嘘避け", level: 0, star: 5, colors: [], cardTypes: ["回避"], diceCheck: usoyokeDice },
     { name: "永夜返し", level: 0, star: 2, colors: [], cardTypes: ["反撃"] },
     { name: "永夜返し", level: 0, star: 3, colors: [], cardTypes: ["反撃"] },
     { name: "永夜返し", level: 0, star: 4, colors: [], cardTypes: ["反撃"] },
@@ -170,6 +171,7 @@ export function getAllSpellCards(): SpellCard[] {
   return tmp.map((x, i) => ({
     ...x,
     id: i,
-    attribute: defaultSpellCard.attribute || null,
+    diceCheck: null,
+    attribute: x.attribute || null,
   }));
 }
