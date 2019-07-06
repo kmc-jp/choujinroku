@@ -10,7 +10,7 @@ import { SpellCard } from "./spellcard";
 export function waitToWinWith(when: (p: Player) => boolean): VictoryHook {
   return {
     type: "A",
-    when: ["待機"],
+    when: ["手番開始"],
     hook(player: Player) { return when(player) }
   }
 }
@@ -19,7 +19,7 @@ export function waitToWinWith(when: (p: Player) => boolean): VictoryHook {
 export function waitToWin(where: LandName, items: ItemName[], waitCount: number, when?: (p: Player) => boolean): VictoryHook {
   return {
     type: "A",
-    when: ["待機"],
+    when: ["手番開始"],
     hook(player: Player) {
       let land = player.currentLand;
       if (land === null) return false;
@@ -32,6 +32,42 @@ export function waitToWin(where: LandName, items: ItemName[], waitCount: number,
     }
   }
 }
+
+//xxがxxを持ってxxに入る 幽々子のせいでキャラ名を指定している 
+export function enterToWin(where: LandName, items: ItemName[], charas: CharaName[]): VictoryHook{
+    return {
+      type: "A",
+      when: ["移動"],
+      allowAisNotMe: true,
+      hook(player: Player, me: Player){
+        let land = player.currentLand;
+        if (land === null) return false;
+        if (land.name !== where) return false;
+        if(!charas.some(chara=> chara === player.characterName)) return false;
+        for(let item of items){
+          if(!player.items.some(i => i.name === item)) return false;
+        }
+        return true;
+      }
+    }
+}
+
+//条件を満たした状態でxxに入る
+export function enterToWinWith(when: (p: Player)=>boolean, where?: LandName): VictoryHook{
+  return {
+    type: "A",
+    when: ["移動"],
+    hook(player: Player, me: Player){
+      if(where){
+        let land = player.currentLand;
+        if (land === null) return false;
+        if (land.name !== where) return false;
+      }
+      return when(me);
+    }
+  }
+}
+
 
 // xxで誰かがxxを持ってx人以上集まって勝利
 export function gatherToWin(where: LandName, item: ItemName, memberCount: number): VictoryHook {
