@@ -306,6 +306,7 @@ export function getAllCharacters(): Character[] {
       ),
     ], whenLose: [
       Victory.destroyedToLose(["命蓮寺"]),
+      // TODO : 場にいるのが自分だけなら敗北
     ]
   }, {
     name: "芳香",
