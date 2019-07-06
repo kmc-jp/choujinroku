@@ -52,7 +52,7 @@ export class Player {
     this.choices = [];
     this.eventWrapper = new EventWrapper(game, this);
   }
-
+  get nextToPosesGenerator() { return this.character.nextToPosesGenerator; }
   get characterName() { return this.character.name; }
   get level() {
     let result = this.character.level
