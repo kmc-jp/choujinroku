@@ -280,27 +280,28 @@ export function getAllCharacters(): Character[] {
     ], whenLose: [
       Victory.destroyedToLose(["魔法の森"]),
     ]
-  },{
-      name: "プリズムリバー",
-      fullname: "プリズムリバー三姉妹",
-      role: "野次馬",
-      spellCard: "霊車コンチェルトグロッソ",
-      level: 4,
-      mental: 5,
-      race: "幽霊",
-      whenWin:[
-	      Victory.waitToWin("太陽の畑",["カリスマの秘訣"],2),
-	       { type: "A",
-	         when: ["移動","残機上昇"],
-	         hook(me: Player){
-		        return me.life >= 3 && me.items.filter(i => i.name === "タミフル").length >= 3
-         }
-        } 
-      ],
-      whenLose:[
-	      Victory.damagedToLose(me => me.currentLand ? me.currentLand.name === "太陽の畑" : false)
-      ]
-  },{
+  }, {
+    name: "プリズムリバー",
+    fullname: "プリズムリバー三姉妹",
+    role: "野次馬",
+    spellCard: "霊車コンチェルトグロッソ",
+    level: 4,
+    mental: 5,
+    race: "幽霊",
+    whenWin: [
+      Victory.waitToWin("太陽の畑", ["カリスマの秘訣"], 2),
+      {
+        type: "A",
+        when: ["移動", "残機上昇"],
+        hook(me: Player) {
+          return me.life >= 3 && me.items.filter(i => i.name === "タミフル").length >= 3
+        }
+      }
+    ],
+    whenLose: [
+      Victory.damagedToLose(me => me.currentLand ? me.currentLand.name === "太陽の畑" : false)
+    ]
+  }, {
     name: "妖夢",
     fullname: "魂魄妖夢",
     role: "主人公",
@@ -308,15 +309,16 @@ export function getAllCharacters(): Character[] {
     level: 4,
     mental: 7,
     race: "半人半霊",
-    fieldActions:[
+    fieldActions: [
       //〇〇は隣接扱いと成る　ここでいいの？？？
     ],
-    whenWin:[
-      ...Victory.haveItemAndAllWinToWin("武術指南書",(player=> player.characterName != "幽々子" && player.characterName != "優曇華院")),
-      Victory.waitToWin("白玉楼",["蓬莱の薬","船幽霊の柄杓"],1)
+    whenWin: [
+      ...Victory.haveItemAndAllWinToWin("武術指南書", (player => player.characterName != "幽々子" && player.characterName != "優曇華院")),
+      Victory.waitToWin("白玉楼", ["蓬莱の薬", "船幽霊の柄杓"], 1)
     ],
-    whenLose:[
+    whenLose: [
       Victory.destroyedToLose(["白玉楼"])
+    ]
   }, {
     name: "響子",
     fullname: "幽谷 響子",

@@ -112,7 +112,7 @@ export interface HookAWinB<T> extends HookBase {
 
 
 // A が タイプ
-export type HookAWhen = "移動" | "待機" | "残機上昇" | "アイテム獲得";
+export type HookAWhen = "移動" | "待機" | "残機上昇" | "アイテム獲得" | "手番開始";
 export interface HookA<T> extends HookBase {
   type: "A"
   when: HookAWhen[]
