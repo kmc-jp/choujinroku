@@ -4,6 +4,8 @@ import { Choice, choices } from "./choice";
 import { LandName, Land } from "./land";
 import { SpellCard } from "./spellcard";
 import { Item } from "./item";
+import { Pos } from "./pos";
+import { FieldAction } from "./fieldaction";
 
 export function dice(): number { return 1 + Math.floor(Math.random() * 6); }
 export function twoDice(): TwoDice { return { a: dice(), b: dice() } }
@@ -11,10 +13,26 @@ export type TwoDice = { a: number, b: number };
 export type Dice1D = { type: "1D", success: (player: Player, dice: number) => boolean }
 export type Dice2D = { type: "2D", success: (player: Player, dice: TwoDice) => boolean }
 
+// その値をプレイヤーが参照した時にフックされる
+export type Hooks = {
+  // フックした時に他の選択肢より先に行える能力
+  specificActions?: SpecificActionHook[];
+  // 耐性
+  attributeHooks?: AttributeHook[];
+  //　特殊能力の使用
+  fieldActions?: FieldAction[];
+  // 隣が(確定で)追加される
+  nextToPosesGenerator?: ((player: Player) => Pos[]);
+  // レベルが変化する(player.levelを参照すると無限ループになる)
+  levelChange?: (player: Player, level: number) => number;
+  // 精神力が変化する(player.mentalを参照すると無限ループになる)
+  mentalChange?: (player: Player, mental: number) => number;
+}
+
 // その属性をもつアクションが自分に対して行われた時に行われるHook
 export type AttributeHook = {
-  // この選択肢を選ぶのを強制する
-  force?: boolean;
+  // もとの選択肢は上書きする
+  overwrite?: boolean;
   // ボムが必要
   needBomb?: boolean;
   // ダイスの判定で成功したら使える
@@ -70,7 +88,7 @@ export type HookBase = {
 
 // allowAisNotMe だと全員のその行動に対して hook される
 // A が B により タイプ: (B === undefined) なら人のせいではなくそうなった
-export type HookAbyBWhen = "残機減少" | "満身創痍"
+export type HookAbyBWhen = "残機減少" | "満身創痍" | "残機減少しそう"
 export interface HookAbyB<T> extends HookBase {
   type: "AbyB";
   when: HookAbyBWhen[]
@@ -112,7 +130,7 @@ export interface HookAWinB<T> extends HookBase {
 
 
 // A が タイプ
-export type HookAWhen = "移動" | "待機" | "残機上昇" | "アイテム獲得";
+export type HookAWhen = "移動" | "待機" | "残機上昇" | "アイテム獲得" | "手番開始";
 export interface HookA<T> extends HookBase {
   type: "A"
   when: HookAWhen[]

@@ -1,5 +1,5 @@
 import { Choice, choices } from "./choice";
-import { AttributeHook, Attribute, SpecificActionHook, VictoryHook, NPCType } from "./hooktype"
+import { AttributeHook, Attribute, SpecificActionHook, VictoryHook, NPCType, Hooks } from "./hooktype"
 import { drawACard } from "./specificaction"
 import * as Victory from "./victory";
 import { invalidate, invalidate1D, invalidate2D } from "./attributehook";
@@ -8,6 +8,8 @@ import { Player } from "./player";
 import { FieldAction } from "./fieldaction";
 import { SpellCardName, SpellCard } from "./spellcard";
 import { Item, FairyFriendNames } from "./item";
+import { Land } from "./land";
+import { Pos } from "./pos";
 
 export type CharaName = "華扇" | "霊夢" | "魔理沙" | "ルーミア" | "チルノ" | "美鈴" | "パチュリー" | "咲夜" | "レミリア" | "フラン" | "レティ" | "橙" | "アリス" | "プリズムリバー" | "妖夢" | "幽々子" | "藍" | "紫" | "萃香" | "リグル" | "ミスティア" | "慧音" | "てゐ" | "優曇華院" | "永琳" | "輝夜" | "妹紅" | "メディスン" | "幽香" | "文" | "小町" | "四季映姫" | "秋姉妹" | "雛" | "にとり" | "早苗" | "神奈子" | "諏訪子" | "衣玖" | "天子" | "ヤマメ" | "パルスィ" | "勇儀" | "さとり" | "燐" | "空" | "こいし" | "ナズーリン" | "小傘" | "一輪" | "村紗" | "星" | "白蓮" | "ぬえ" | "はたて" | "響子" | "芳香" | "青娥" | "布都" | "神子" | "マミゾウ"
 export const charaCategories = {
@@ -15,10 +17,12 @@ export const charaCategories = {
   "紅魔館の住人": ((): CharaName[] => ["美鈴", "パチュリー", "咲夜", "レミリア", "フラン"])(),
   "地霊殿の住人": ((): CharaName[] => ["さとり", "燐", "空", "こいし"])()
 };
-export type RaceName = "人間" | "妖怪" | "妖精" | "魔法使い" | "吸血鬼" | "幽霊" | "仙人" | "聖人" | "種族不明"
+
+export type RaceName = "人間" | "妖怪" | "妖精" | "魔法使い" | "吸血鬼" | "幽霊" | "仙人" | "聖人" | "種族不明" | "半人半霊"
+
 export type RoleName = "主人公" | "妖怪" | "野次馬"
 // ボムが必要な場合は関数内で処理すること
-type CharacterBase = {
+type CharacterBase = Hooks & {
   name: CharaName;
   fullname: string;
   level: number; // レベル
@@ -26,12 +30,6 @@ type CharacterBase = {
   spellCard: SpellCardName;
   role: RoleName;
   race?: RaceName;
-  attributeHooks?: AttributeHook[]; // 耐性
-  fieldActions?: FieldAction[]; //　特殊能力の使用
-  // フックした時に他の選択肢より先に行える能力
-  // WARN: 使用しなかった場合は特別なフラグを建てて別の人にはばれないようにする必要がある
-  // 例えば霊夢の夢想天生はちょっと無理かも(先に発動してその後二回目の反撃をしてしまう...)
-  specificActions?: SpecificActionHook[];
   whenWin?: VictoryHook[];
   whenLose?: VictoryHook[];
   id?: number;
@@ -46,7 +44,7 @@ export type Character = Required<CharacterBase>;
 export function getAllCharacters(): Character[] {
   // 書き方サンプル
   let 大食い: AttributeHook = {
-    force: true,
+    overwrite: true,
     when: ["毒茸", "食あたり", "飲み過ぎ"],
     choices(player: Player) {
       return player.game.getTwoDiceChoices(player, "大食い", dice => {
@@ -171,6 +169,13 @@ export function getAllCharacters(): Character[] {
     level: 5,
     mental: 5,
     race: "魔法使い",
+    // 戦闘時、レベルは1さがると解釈
+    levelChange(p: Player, level: number) {
+      if (!p.isBattle) return level;
+      if (p.friend && p.friend.name === "小悪魔") return level;
+      if (p.items.some(item => item.name === "蓬莱の薬" || item.name === "タミフル" || item.name === "リポD")) return level;
+      return level - 1;
+    },
     whenWin: [
       Victory.winToWin((me, a) => a.items.some(x => x.name === "呪法書")),
     ], whenLose: [
@@ -290,6 +295,45 @@ export function getAllCharacters(): Character[] {
       Victory.destroyedToLose(["魔法の森"]),
     ]
   }, {
+    name: "プリズムリバー",
+    fullname: "プリズムリバー三姉妹",
+    role: "野次馬",
+    spellCard: "霊車コンチェルトグロッソ",
+    level: 4,
+    mental: 5,
+    race: "幽霊",
+    whenWin: [
+      Victory.waitToWin("太陽の畑", ["カリスマの秘訣"], 2),
+      {
+        type: "A",
+        when: ["移動", "残機上昇"],
+        hook(me: Player) {
+          return me.life >= 3 && me.items.filter(i => i.name === "タミフル").length >= 3
+        }
+      }
+    ],
+    whenLose: [
+      Victory.damagedToLose(me => me.currentLand ? me.currentLand.name === "太陽の畑" : false)
+    ]
+  }, {
+    name: "妖夢",
+    fullname: "魂魄妖夢",
+    role: "主人公",
+    spellCard: "未来永劫斬",
+    level: 4,
+    mental: 7,
+    race: "半人半霊",
+    fieldActions: [
+      //〇〇は隣接扱いと成る　ここでいいの？？？
+    ],
+    whenWin: [
+      ...Victory.haveItemAndAllWinToWin("武術指南書", (player => player.characterName != "幽々子" && player.characterName != "優曇華院")),
+      Victory.waitToWin("白玉楼", ["蓬莱の薬", "船幽霊の柄杓"], 1)
+    ],
+    whenLose: [
+      Victory.destroyedToLose(["白玉楼"])
+    ]
+  }, {
     name: "響子",
     fullname: "幽谷 響子",
     spellCard: "チャージドクライ",
@@ -379,7 +423,10 @@ export function getAllCharacters(): Character[] {
     ], whenLose: [
       Victory.destroyedToLose(["大祀廟"]),
       Victory.damagedToLose(me => me.items.some(x => x.name === "宝剣")),
-    ]
+    ], attributeHooks: [
+      invalidate("たわむれはおわりじゃ！", ["能力低下", "幻覚"], p => p.life === 1),
+    ],
+    mentalChange: (p: Player, n: number) => p.life === 1 ? n + 1 : n;
   }, {
     name: "マミゾウ",
     fullname: "二ツ岩 マミゾウ",
@@ -416,6 +463,9 @@ export function getAllCharacters(): Character[] {
     fieldActions: x.fieldActions || [],
     whenWin: x.whenWin || [],
     whenLose: x.whenLose || [],
+    nextToPosesGenerator: x.nextToPosesGenerator || (p => []),
+    levelChange: x.levelChange || (p => p.level),
+    mentalChange: x.mentalChange || (p => p.mental),
     specificActions: x.specificActions || [],
     howToCountItems: x.howToCountItems || null,
     canDiscardItem: x.canDiscardItem || null
