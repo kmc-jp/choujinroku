@@ -1,9 +1,9 @@
 import { Player } from "./player";
 import { Game } from "./game";
 import { Choice, choices } from "./choice";
-import { FieldItemAction } from "./fieldaction";
+import { FieldAction } from "./fieldaction";
 import { invalidate, invalidate1D, invalidate2D, useAndInvalidate } from "./attributehook";
-import { AttributeHook, SpecificActionHook, Attribute } from "./hooktype"
+import { AttributeHook, SpecificActionHook, Attribute, Hooks } from "./hooktype"
 import * as FA from "./fieldaction";
 
 export type ItemCategory = "本" | "品物" | "宝物" | "発明品"
@@ -27,14 +27,9 @@ export type ItemCategoryDict = ItemCategoryGenericDict<Item>
 export type Item = Required<ItemBase<ItemName, ItemCategory>>
 type FriendCategory = "仲間"
 export type Friend = Required<ItemBase<FriendName, FriendCategory>>
-type ItemBase<T, U> = {
+type ItemBase<T, U> = Hooks & {
   name: T;
   isCursed?: boolean; // 呪いのアイテムは捨てられない
-  fieldActions?: FieldItemAction[]; // 手番を消費して行う行動
-  attributeHooks?: AttributeHook[] // その属性を帯びた攻撃に対するHook
-  // 追加で先に行える特殊能力
-  // 使用しない、ということも可能
-  specificActions?: SpecificActionHook[];
   id?: number; // 自動で埋まる
   category?: U;// 自動で埋まる
 }
@@ -179,6 +174,9 @@ export function getItemsData(): ItemCategoryDict {
         fieldActions: item.fieldActions || [],
         attributeHooks: item.attributeHooks || [],
         specificActions: item.specificActions || [],
+        nextToPosesGenerator: item.nextToPosesGenerator || (p => []),
+        levelChange: item.levelChange || (p => p.level),
+        mentalChange: item.mentalChange || (p => p.mental),
       })
     }
   }
@@ -209,6 +207,9 @@ export function getFriendsData(): Friend[] {
       fieldActions: item.fieldActions || [],
       attributeHooks: item.attributeHooks || [],
       specificActions: item.specificActions || [],
+      nextToPosesGenerator: item.nextToPosesGenerator || (p => []),
+      levelChange: item.levelChange || (p => p.level),
+      mentalChange: item.mentalChange || (p => p.mental),
     }
   })
   return result;

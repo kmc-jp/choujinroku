@@ -1,7 +1,7 @@
 import { Character, getAllCharacters } from "./character";
 import { Player, PlayerActionTag } from "./player";
 import { Choice, choices } from "./choice";
-import { FieldAction, FieldItemAction } from "./fieldaction";
+import { FieldAction } from "./fieldaction";
 import { Land, getLands, LandName, EventWrapper, ItemGetJudgeableLand } from "./land";
 import { ItemCategoryDict, Item, getItemsData, ItemCategory, Friend, getFriendsData, FriendName } from "./item";
 import * as _ from "underscore";
@@ -94,7 +94,8 @@ export class Game {
     }
   }
   private getMoveChoices(player: Player, poses: Pos[], tag: "移動1" | "移動2"): Choice[] {
-    let tmp: any = poses.concat(player.nextToPosesGenerator(player)).map(x => [x.x * 100 + x.y, x]);
+    poses = poses.filter(x => !x.equal(player.pos));
+    let tmp: any = poses.map(x => [x.x * 100 + x.y, x]);
     tmp = Array.from(new Map(tmp).values());
     poses = tmp;
     return poses.map(p => {
@@ -147,7 +148,7 @@ export class Game {
   private parseFieldItemAction(player: Player, item: Item): Choice[] {
     let result: Choice[] = []
     for (let fieldAction of item.fieldActions) {
-      let choices = fieldAction.bind(this)(player, item);
+      let choices = fieldAction.bind(this)(player);
       for (let choice of choices) choice.wrapBefore(() => {
         player.actions.push("アイテム")
         this.doFieldAction(player);
@@ -251,7 +252,7 @@ export class Game {
   }
   // WARN: any 型は使いたくないなあ
   checkActionHookImpl(factor: Player, impl: (player: Player, specificActionHook: ActionHook<any>) => any) {
-    // TODO:２つの選択肢が可能な時に片方しか選べない
+    // TODO:
     // WARN: 同じフックのタイミングがあるときは宣言した順にスタックに積まれて消費されていく
     for (let player of this.players) {
       let lose = false;
@@ -269,20 +270,24 @@ export class Game {
         if (!win) return;
         player.choices.push(new Choice("勝利宣言！", () => { this.endGame() }))
       })
-      player.getSpecificActions(factor).forEach(x => {
-        let choices = impl(player, x);
-        if (!(choices instanceof Array)) return;
-        if (choices.length <= 0) return;
-        if (x.needBomb) {
-          if (player.bomb <= 0) return;
-          player.choices.push(new Choice(`ボムを消費して${x.skillName ? x.skillName : "特殊能力"}を発動！`, () => {
+      // WARN: ２つの選択肢が可能な時に片方しか選べない
+      let nextActions: Choice[] = [];
+      for (let action of player.getSpecificActions(factor)) {
+        let choices = impl(player, action);
+        if (!(choices instanceof Array)) continue;
+        if (choices.length <= 0) continue;
+        if (action.needBomb) {
+          if (player.bomb <= 0) continue;
+          nextActions.push(new Choice(`ボムを消費して${action.skillName ? action.skillName : "特殊能力"}を発動！`, () => {
             player.choices = choices;
           }));
         } else {
-          player.choices.push(...choices);
+          nextActions.push(...choices);
         }
-      })
-      if (player.choices.length <= 0) continue;
+      }
+      if (nextActions.length <= 0) continue;
+
+      player.choices.push(...nextActions);
       player.choices.push(new Choice("何もしない"));
     }
   }
@@ -378,6 +383,9 @@ export class Game {
       let nextTo = player.pos.getNextTo();
       let map = player.currentLand;
       if (map) nextTo.push(...this.getNextToPos(map))
+      // 盤外に要る時は隣は発動しない
+      for (let ps of player.nextToPosesGenerators.map(x => x(player)))
+        nextTo.push(...ps);
       player.choices.push(...this.getMoveChoices(player, nextTo, moveTag))
     }
     // アイテム
@@ -612,6 +620,7 @@ export class Game {
     }
     // 仲間ボーナス
     if (player.friend) this.drawACard(player);
+    player.isBattle = true;
   }
   // 戦闘を仕掛けた (戦闘を仕掛けた結果戦闘を拒否されてもターンを消費してしまう)
   @phase setupBattle(player: Player, target: Player) {
@@ -671,7 +680,8 @@ export class Game {
     player.choices = cans.map(sc => {
       // 攻撃 or 反撃成功
       let attack = () => {
-        if (target instanceof Player) // 攻撃したフック
+        // 攻撃するフック。先に
+        if (target instanceof Player)
           this.checkActionHookAttack("Attack", player, target, sc, isRevenge);
         this.phase(() => {
           let leftCost = sc.level;
@@ -733,6 +743,7 @@ export class Game {
     this.checkActionHookAtoB("戦闘終了", player, target instanceof Player ? target : player)
     this.usedSpellCards.push(...player.spellCards);
     player.spellCards = [];
+    player.isBattle = false;
     if (target instanceof Player) {
       this.usedSpellCards.push(...target.spellCards);
       target.spellCards = [];
@@ -790,19 +801,25 @@ export class Game {
   // 残機が減った
   // 残機減少無効は失敗している
   @phase damaged(player: Player, from?: Player, damage: number = 1) {
-    player.life -= damage;
-    player.isAbleToAction = false;
-    player.pos = new Pos(-1, -1);
-    if (player.life <= 0) {
-      player.with("満身創痍").choices = choices(`${player.name}は満身創痍で敗北してしまった...`, () => {
-        this.checkActionHookAByB("満身創痍", player, from);
-        this.endGame();
-      })
-    } else {
-      player.bomb = Math.max(2, player.bomb);
-      player.choices = choices(`${damage}ダメージを受けた`);
-    }
-    this.checkActionHookAByB("残機減少", player, from);
+    let preLife = player.life;
+    this.checkActionHookAByB("残機減少しそう", player, from);
+    this.phase(() => {
+      player.life -= damage;
+      player.isAbleToAction = false;
+      player.pos = new Pos(-1, -1);
+      if (player.life <= 0) {
+        player.with("満身創痍").choices = choices(`${player.name}は満身創痍で敗北してしまった...`, () => {
+          this.checkActionHookAByB("満身創痍", player, from);
+          this.endGame();
+        })
+      } else {
+        player.bomb = Math.max(2, player.bomb);
+        player.choices = choices(`${damage}ダメージを受けた`);
+      }
+    });
+    this.phase(() => {
+      if (preLife !== player.life) this.checkActionHookAByB("残機減少", player, from);
+    })
   }
   // 土地を破壊した(誰がとかは無い)
   @phase destroyLand(pos: Pos, attrs: Attribute[]) {
