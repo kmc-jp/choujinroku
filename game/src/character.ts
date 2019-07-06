@@ -10,6 +10,7 @@ import { SpellCardName, SpellCard } from "./spellcard";
 import { Item, FairyFriendNames } from "./item";
 import { Land } from "./land";
 import { Pos } from "./pos";
+import * as _ from "underscore"
 
 export type CharaName = "華扇" | "霊夢" | "魔理沙" | "ルーミア" | "チルノ" | "美鈴" | "パチュリー" | "咲夜" | "レミリア" | "フラン" | "レティ" | "橙" | "アリス" | "プリズムリバー" | "妖夢" | "幽々子" | "藍" | "紫" | "萃香" | "リグル" | "ミスティア" | "慧音" | "てゐ" | "優曇華院" | "永琳" | "輝夜" | "妹紅" | "メディスン" | "幽香" | "文" | "小町" | "四季映姫" | "秋姉妹" | "雛" | "にとり" | "早苗" | "神奈子" | "諏訪子" | "衣玖" | "天子" | "ヤマメ" | "パルスィ" | "勇儀" | "さとり" | "燐" | "空" | "こいし" | "ナズーリン" | "小傘" | "一輪" | "村紗" | "星" | "白蓮" | "ぬえ" | "はたて" | "響子" | "芳香" | "青娥" | "布都" | "神子" | "マミゾウ"
 export const charaCategories = {
@@ -151,6 +152,16 @@ export function getAllCharacters(): Character[] {
     level: 3,
     mental: 6,
     race: "妖怪",
+    nextToPosesGenerator: (player) => {
+      let result : Pos[] = [];
+      player.game.map.forEach((ms,x)=>{
+        ms.forEach((m,y)=>{          
+          if(m && m.landAttributes.includes("紅マス"))
+            result.push(new Pos(x,y))          
+        })
+      })
+      return result;
+    },
     whenWin: [
       Victory.winToWin((me, a) => a.role === "主人公" && a.characterName !== "咲夜" &&
         (me.currentLand ? me.currentLand.landAttributes.includes("紅マス") : false)),
@@ -374,8 +385,8 @@ export function getAllCharacters(): Character[] {
     mental: 5,
     race: "妖怪",
     nextToPosesGenerator: (player) => {
-      let yuyuko = player.game.getOthers(player).filter(other => other.characterName === "紫" || other.characterName === "橙");
-      return yuyuko.length > 0 ? [yuyuko[0].pos] : []
+      let yukariOrChen = player.game.getOthers(player).filter(other => other.characterName === "紫" || other.characterName === "橙");
+      return yukariOrChen.length > 0 ? yukariOrChen.map(player => player.pos) : []
     },
     attributeHooks: [
       invalidate2D("式神を使う程度の能力", ["幻覚", "迷い"], (p, d) => d.a + d.b <= p.level),
