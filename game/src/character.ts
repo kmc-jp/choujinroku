@@ -15,7 +15,7 @@ export const charaCategories = {
   "紅魔館の住人": ((): CharaName[] => ["美鈴", "パチュリー", "咲夜", "レミリア", "フラン"])(),
   "地霊殿の住人": ((): CharaName[] => ["さとり", "燐", "空", "こいし"])()
 };
-export type RaceName = "人間" | "妖怪" | "幽霊" | "僵尸" | "仙人" | "聖人" | "種族不明"
+export type RaceName = "人間" | "妖怪" | "幽霊" | "仙人" | "聖人" | "種族不明"
 export type RoleName = "主人公" | "妖怪" | "野次馬"
 // ボムが必要な場合は関数内で処理すること
 type CharacterBase = {
@@ -305,7 +305,7 @@ export function getAllCharacters(): Character[] {
     role: "野次馬",
     level: 2,
     mental: 7,
-    race: "僵尸",
+    race: "幽霊",
     // attributeHooksとspecificActionsは未追加
     whenWin: [
       Victory.waitToWin("墓地", ["神社の御札"], 1),
