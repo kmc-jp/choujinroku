@@ -154,8 +154,8 @@ export function getAllCharacters(): Character[] {
     mental: 6,
     race: "妖怪",
     whenWin: [
-      Victory.winToWin((me, a) =>
-        me.currentLand ? me.currentLand.landAttributes.includes("紅マス") : false),
+      Victory.winToWin((me, a) => a.role === "主人公" && a.characterName !== "咲夜" &&
+        (me.currentLand ? me.currentLand.landAttributes.includes("紅マス") : false)),
       Victory.waitToWin("紅魔館入口", ["武術指南書"], 1),
     ], whenLose: [
       Victory.destroyedToLose(["紅魔館", "紅魔館入口"]),
@@ -299,8 +299,8 @@ export function getAllCharacters(): Character[] {
     race: "妖怪",
     // attributeHooksとspecificActionsは未追加
     whenWin: [
-      Victory.winToWin((me, a) =>
-        me.currentLand ? me.currentLand.name === "命蓮寺" : false),
+      Victory.winToWin((me, a) => me.currentLand ? me.currentLand.name === "命蓮寺" : false),
+      Victory.winToWin((me, a, c) => a.race === "人間" && c.level === 6 && c.cardTypes.includes("弾幕")),
       Victory.waitToWin("命蓮寺", [], 1, p =>
         p.game.getOthers(p).every(other => p.watched.has(other.id))
       ),
