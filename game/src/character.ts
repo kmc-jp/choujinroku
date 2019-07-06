@@ -323,9 +323,10 @@ export function getAllCharacters(): Character[] {
     level: 4,
     mental: 7,
     race: "半人半霊",
-    nextToPosesGenerator: (player) =>{ 
+    nextToPosesGenerator: (player) => {
       let yuyuko = player.game.getOthers(player).filter(other => other.characterName === "幽々子");
-      return yuyuko.length > 0 ? [yuyuko[0].pos] : []},
+      return yuyuko.length > 0 ? [yuyuko[0].pos] : []
+    },
     whenWin: [
       ...Victory.haveItemAndAllWinToWin("武術指南書", (player => player.characterName != "幽々子" && player.characterName != "優曇華院")),
       Victory.waitToWin("白玉楼", ["蓬莱の薬", "船幽霊の柄杓"], 1)
@@ -344,7 +345,7 @@ export function getAllCharacters(): Character[] {
     attributeHooks: [
       //解毒剤が使える
       {
-        force: true,
+        overwrite: true,
         when: ["毒茸", "食あたり", "飲み過ぎ"],
         choices(player: Player) {
           return player.game.getTwoDiceChoices(player, "大食い", dice => {
@@ -355,16 +356,16 @@ export function getAllCharacters(): Character[] {
           })
         }
       },
-      invalidate("華胥の亡霊",["呪い","能力低下"]),
+      invalidate("華胥の亡霊", ["呪い", "能力低下"]),
     ],
     whenWin: [
-      Victory.enterToWin("白玉楼",["蓬莱の薬"],["幽々子","妖夢"]),
+      Victory.enterToWin("白玉楼", ["蓬莱の薬"], ["幽々子", "妖夢"]),
       Victory.waitToWin("夜雀の屋台", ["鉄人レシピ", "銘酒"], 1)
     ],
     whenLose: [
-      Victory.destroyedToLose(["白玉楼","夜雀の屋台"])
+      Victory.destroyedToLose(["白玉楼", "夜雀の屋台"])
     ]
-  },{
+  }, {
     name: "藍",
     fullname: "八雲藍",
     spellCard: "飛翔役小角",
@@ -372,26 +373,27 @@ export function getAllCharacters(): Character[] {
     level: 5,
     mental: 5,
     race: "妖怪",
-    nextToPosesGenerator: (player) =>{ 
+    nextToPosesGenerator: (player) => {
       let yuyuko = player.game.getOthers(player).filter(other => other.characterName === "紫" || other.characterName === "橙");
-      return yuyuko.length > 0 ? [yuyuko[0].pos] : []},
+      return yuyuko.length > 0 ? [yuyuko[0].pos] : []
+    },
     attributeHooks: [
-      invalidate2D("式神を使う程度の能力",["幻覚","迷い"],(p, d) => d.a + d.b <= p.level),
+      invalidate2D("式神を使う程度の能力", ["幻覚", "迷い"], (p, d) => d.a + d.b <= p.level),
       //特殊な時に地形効果無効
     ],
     whenWin: [
       //4隅が開いた状態でマヨヒガに入る
-      Victory.waitToWin("マヨヒガの森",[],1,(player => {
+      Victory.waitToWin("マヨヒガの森", [], 1, (player => {
         let mapLen = player.game.map.length - 1;
-        let corner4 = [player.game.map[0][0],player.game.map[0][mapLen],player.game.map[mapLen][0],player.game.map[mapLen][mapLen]];
+        let corner4 = [player.game.map[0][0], player.game.map[0][mapLen], player.game.map[mapLen][0], player.game.map[mapLen][mapLen]];
         return corner4.filter(corner => corner).length === 4;
       })),
       {
         type: "ALand",
         when: ["土地を開く"],
         allowAisNotMe: true,
-        hook(player: Player, land: Land){
-          if(player.characterName !== "紫" && player.characterName !== "藍") return false;
+        hook(player: Player, land: Land) {
+          if (player.characterName !== "紫" && player.characterName !== "藍") return false;
           return player.game.map.filter(lands => lands.filter(land => land).length < 6).length === 0
         }
       }
@@ -401,12 +403,12 @@ export function getAllCharacters(): Character[] {
         type: "ALand", when: ["地形破壊"], allowAisNotMe: true,
         hook(player: Player, land: Land): boolean {
           let mapLen = player.game.map.length - 1;
-          let corner4 = [player.game.map[0][0],player.game.map[0][mapLen],player.game.map[mapLen][0],player.game.map[mapLen][mapLen]];
+          let corner4 = [player.game.map[0][0], player.game.map[0][mapLen], player.game.map[mapLen][0], player.game.map[mapLen][mapLen]];
           return corner4.some(destoriedLand => destoriedLand === land)
         }
       }
     ]
-  },{
+  }, {
     name: "響子",
     fullname: "幽谷 響子",
     spellCard: "チャージドクライ",
@@ -499,7 +501,7 @@ export function getAllCharacters(): Character[] {
     ], attributeHooks: [
       invalidate("たわむれはおわりじゃ！", ["能力低下", "幻覚"], p => p.life === 1),
     ],
-    mentalChange: (p: Player, n: number) => p.life === 1 ? n + 1 : n;
+    mentalChange: (p: Player, n: number) => p.life === 1 ? n + 1 : n
   }, {
     name: "マミゾウ",
     fullname: "二ツ岩 マミゾウ",
