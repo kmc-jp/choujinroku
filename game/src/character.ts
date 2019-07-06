@@ -320,6 +320,21 @@ export function getAllCharacters(): Character[] {
       Victory.destroyedToLose(["白玉楼"])
     ]
   }, {
+    name: "幽々子",
+    fullname: "西行寺幽々子",
+    role: "野次馬",
+    spellCard: "反魂蝶",
+    level: 5,
+    mental: 6,
+    race: "幽霊",
+    whenWin: [
+      Victory.enterToWin("白玉楼",["蓬莱の薬"],["幽々子","妖夢"]),
+      Victory.waitToWin("夜雀の屋台", ["鉄人レシピ", "銘酒"], 1)
+    ],
+    whenLose: [
+      Victory.destroyedToLose(["白玉楼","夜雀の屋台"])
+    ]
+  },{
     name: "響子",
     fullname: "幽谷 響子",
     spellCard: "チャージドクライ",

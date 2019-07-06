@@ -33,6 +33,26 @@ export function waitToWin(where: LandName, items: ItemName[], waitCount: number,
   }
 }
 
+//xxがxxを持ってxxに入る
+export function enterToWin(where: LandName, items: ItemName[], charas: CharaName[]): VictoryHook{
+    return {
+      type: "A",
+      when: ["移動"],
+      allowAisNotMe: true,
+      hook(player: Player, me: Player){
+        let land = player.currentLand;
+        if (land === null) return false;
+        if (land.name !== where) return false;
+        if(!charas.some(chara=> chara === player.characterName)) return false;
+        for(let item of items){
+          if(!player.items.some(i => i.name === item)) return false;
+        }
+        return true;
+      }
+    }
+}
+
+
 // xxで誰かがxxを持ってx人以上集まって勝利
 export function gatherToWin(where: LandName, item: ItemName, memberCount: number): VictoryHook {
   return {
