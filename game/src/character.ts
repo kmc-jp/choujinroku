@@ -416,7 +416,7 @@ export function getAllCharacters(): Character[] {
     ], attributeHooks: [
       invalidate("たわむれはおわりじゃ！", ["能力低下", "幻覚"], p => p.life === 1),
     ],
-    mentalChange: (p: Player, n: number) => p.life === 1 ? n + 1 : n;
+    mentalChange: (p: Player, n: number) => p.life === 1 ? n + 1 : n
   }, {
     name: "マミゾウ",
     fullname: "二ツ岩 マミゾウ",
@@ -454,8 +454,8 @@ export function getAllCharacters(): Character[] {
     whenWin: x.whenWin || [],
     whenLose: x.whenLose || [],
     nextToPosesGenerator: x.nextToPosesGenerator || (p => []),
-    levelChange: x.levelChange || (p => p.level),
-    mentalChange: x.mentalChange || (p => p.mental),
+    levelChange: x.levelChange || ((p, l) => l),
+    mentalChange: x.mentalChange || ((p, m) => m),
     specificActions: x.specificActions || [],
     howToCountItems: x.howToCountItems || null,
     canDiscardItem: x.canDiscardItem || null

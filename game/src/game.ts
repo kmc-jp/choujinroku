@@ -644,7 +644,7 @@ export class Game {
       player.spellCards.reduce((x, y) => x + y.star, 0) - sc.star >= sc.level
     ).filter(sc => sc.cardTypes.includes("弾幕") || sc.cardTypes.includes("武術"))
     if (spellCard) { // 攻撃された時は反撃
-      cans = cans.filter(sc => sc.level > spellCard.level)
+      cans = cans.filter(sc => sc.level >= spellCard.level)
     }
     // 敗北
     let lose = () => {
@@ -663,11 +663,12 @@ export class Game {
       }
     }
     // NPCに勝利
-    let winToNPC = () => {
+    let finishBattleWithNPC = (win: boolean) => {
       if (target instanceof Player) return;
       // WARN: 終了フラグを投げる順番がPC戦闘と異なる？
-      player.choices = choices(target + "に勝利した！ ", () => {
+      player.choices = choices(target + `${win ? "に勝利した！" : "と引き分けた！"}`, () => {
         this.finishBattle(player, target);
+        if (!win) return;
         if (target !== "NPC幽霊") player.choices = [new EventWrapper(this, player).gainGoods(target + "に勝利したので")]
       })
     }
@@ -680,9 +681,8 @@ export class Game {
     player.choices = cans.map(sc => {
       // 攻撃 or 反撃成功
       let attack = () => {
+        // 防御にしてもよい。
         // 攻撃するフック。先に
-        if (target instanceof Player)
-          this.checkActionHookAttack("Attack", player, target, sc, isRevenge);
         this.phase(() => {
           let leftCost = sc.level;
           this.discardACard(player, sc);
@@ -693,8 +693,14 @@ export class Game {
                 this.discardACard(player, x);
                 if (leftCost > 0) costLoop();
                 else if (target instanceof Player) {
-                  this.battle(target, player, sc);
-                } else winToNPC();
+                  if (spellCard && spellCard.level === sc.level) { // 防御
+                    player.choices = choices("引き分けた！", () => this.finishBattle(player, target));
+                    target.choices = choices("引き分けた！");
+                  } else { // 反撃
+                    this.checkActionHookAttack("Attack", player, target, sc, isRevenge);
+                    this.battle(target, player, sc);
+                  }
+                } else if (spellCard) finishBattleWithNPC(spellCard.level < sc.level);
               }))
           }
           costLoop();
@@ -702,7 +708,7 @@ export class Game {
       }
       let view = `${sc.name}(LV${sc.level})`
       if (sc.level <= player.level) // 普通に攻撃
-        return new Choice(`${view}で${tag}！`, attack)
+        return new Choice(`${view}を出す！`, attack)
       else { // 精神力チェック
         let tryLoop = (left: number) => {
           player.choices = this.getTwoDiceChoices(player, `${view}`, dice => {
@@ -710,7 +716,7 @@ export class Game {
             if (d > player.mental) { // 失敗
               player.choices = choices(`精神力が足りなかった...${isRevenge ? "攻撃を食らった..." : ""}`, lose)
             } else if (left <= 1) { // 成功
-              player.choices = choices(`${view}で${tag}！`, attack)
+              player.choices = choices(`${view}を出す！`, attack)
             } else { // まだまだやる
               player.choices = choices(`${view}を残り${left - 1}回の精神力チェックで頑張ってだす！`, () => { tryLoop(left - 1) })
             }

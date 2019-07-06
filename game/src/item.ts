@@ -175,8 +175,8 @@ export function getItemsData(): ItemCategoryDict {
         attributeHooks: item.attributeHooks || [],
         specificActions: item.specificActions || [],
         nextToPosesGenerator: item.nextToPosesGenerator || (p => []),
-        levelChange: item.levelChange || (p => p.level),
-        mentalChange: item.mentalChange || (p => p.mental),
+        levelChange: item.levelChange || ((p, l) => l),
+        mentalChange: item.mentalChange || ((p, m) => m),
       })
     }
   }
@@ -208,8 +208,8 @@ export function getFriendsData(): Friend[] {
       attributeHooks: item.attributeHooks || [],
       specificActions: item.specificActions || [],
       nextToPosesGenerator: item.nextToPosesGenerator || (p => []),
-      levelChange: item.levelChange || (p => p.level),
-      mentalChange: item.mentalChange || (p => p.mental),
+      levelChange: item.levelChange || ((p, l) => l),
+      mentalChange: item.mentalChange || ((p, m) => m),
     }
   })
   return result;
