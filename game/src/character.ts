@@ -10,6 +10,7 @@ import { SpellCardName, SpellCard } from "./spellcard";
 import { Item, FairyFriendNames } from "./item";
 import { Land } from "./land";
 import { Pos } from "./pos";
+import * as _ from "underscore"
 
 export type CharaName = "華扇" | "霊夢" | "魔理沙" | "ルーミア" | "チルノ" | "美鈴" | "パチュリー" | "咲夜" | "レミリア" | "フラン" | "レティ" | "橙" | "アリス" | "プリズムリバー" | "妖夢" | "幽々子" | "藍" | "紫" | "萃香" | "リグル" | "ミスティア" | "慧音" | "てゐ" | "優曇華院" | "永琳" | "輝夜" | "妹紅" | "メディスン" | "幽香" | "文" | "小町" | "四季映姫" | "秋姉妹" | "雛" | "にとり" | "早苗" | "神奈子" | "諏訪子" | "衣玖" | "天子" | "ヤマメ" | "パルスィ" | "勇儀" | "さとり" | "燐" | "空" | "こいし" | "ナズーリン" | "小傘" | "一輪" | "村紗" | "星" | "白蓮" | "ぬえ" | "はたて" | "響子" | "芳香" | "青娥" | "布都" | "神子" | "マミゾウ"
 export const charaCategories = {
@@ -41,20 +42,20 @@ type CharacterBase = Hooks & {
 export type Character = Required<CharacterBase>;
 
 
+
 export function getAllCharacters(): Character[] {
-  // 書き方サンプル
-  let 大食い: AttributeHook = {
-    overwrite: true,
-    when: ["毒茸", "食あたり", "飲み過ぎ"],
-    choices(player: Player) {
-      return player.game.getTwoDiceChoices(player, "大食い", dice => {
-        let success = dice.a + dice.b <= player.level
-        if (!success) return choices("大食いをした！ ")
-        player.heal();
-        return choices("大食いをして残機が1増えた！ ")
+  let GetNextTo = (when: (player: Player, l: Land) => boolean) => {
+    return (player: Player) => {
+      let result: Pos[] = [];
+      player.game.map.forEach((ms, x) => {
+        ms.forEach((m, y) => {
+          if (m && when(player, m)) result.push(new Pos(x, y))
+        })
       })
+      return result;
     }
-  };
+  }
+
   // 敗北条件は知らん！
   let tmp: CharacterBase[] = [{
     name: "霊夢",
@@ -151,6 +152,7 @@ export function getAllCharacters(): Character[] {
     level: 3,
     mental: 6,
     race: "妖怪",
+    nextToPosesGenerator: GetNextTo((p, m) => m.landAttributes.includes("紅マス")),
     whenWin: [
       Victory.winToWin((me, a) => a.role === "主人公" && a.characterName !== "咲夜" &&
         (me.currentLand ? me.currentLand.landAttributes.includes("紅マス") : false)),
@@ -169,6 +171,7 @@ export function getAllCharacters(): Character[] {
     level: 5,
     mental: 5,
     race: "魔法使い",
+    nextToPosesGenerator: GetNextTo((p, m) => m.landAttributes.includes("紅マス")),
     // 戦闘時、レベルは1さがると解釈
     levelChange(p: Player, level: number) {
       if (!p.isBattle) return level;
@@ -189,6 +192,7 @@ export function getAllCharacters(): Character[] {
     level: 4,
     mental: 7,
     race: "人間",
+    nextToPosesGenerator: GetNextTo((p, m) => m.landAttributes.includes("紅マス")),
     attributeHooks: [
       invalidate("時間を操る程度の能力", ["手番休み"]),
       invalidate("完璧で瀟洒なメイド", ["能力低下", "幻覚", "呪い"],
@@ -210,6 +214,7 @@ export function getAllCharacters(): Character[] {
     level: 5,
     mental: 6,
     race: "吸血鬼",
+    nextToPosesGenerator: GetNextTo((p, m) => m.landAttributes.includes("紅マス")),
     attributeHooks: [
       invalidate1D("紅い悪魔", ["残機減少"], (p, d) => d <= p.level),
     ], whenWin: [
@@ -236,6 +241,7 @@ export function getAllCharacters(): Character[] {
     level: 5,
     mental: 5,
     race: "吸血鬼",
+    nextToPosesGenerator: GetNextTo((p, m) => m.landAttributes.includes("紅マス")),
     attributeHooks: [
       invalidate1D("悪魔の妹", ["残機減少"], (p, d) => d <= p.level),
     ], whenWin: [
@@ -324,7 +330,7 @@ export function getAllCharacters(): Character[] {
     mental: 7,
     race: "半人半霊",
     nextToPosesGenerator: (player) => {
-      let yuyuko = player.game.getOthers(player).filter(other => other.characterName === "幽々子");
+      let yuyuko = player.game.getOthers(player).filter(other => player.watched.has(other.id) && other.characterName === "幽々子");
       return yuyuko.length > 0 ? [yuyuko[0].pos] : []
     },
     whenWin: [
@@ -374,8 +380,8 @@ export function getAllCharacters(): Character[] {
     mental: 5,
     race: "妖怪",
     nextToPosesGenerator: (player) => {
-      let yuyuko = player.game.getOthers(player).filter(other => other.characterName === "紫" || other.characterName === "橙");
-      return yuyuko.length > 0 ? [yuyuko[0].pos] : []
+      let yukariOrChen = player.game.getOthers(player).filter(other => player.watched.has(other.id) && (other.characterName === "紫" || other.characterName === "橙"));
+      return yukariOrChen.length > 0 ? yukariOrChen.map(player => player.pos) : []
     },
     attributeHooks: [
       invalidate2D("式神を使う程度の能力", ["幻覚", "迷い"], (p, d) => d.a + d.b <= p.level),
