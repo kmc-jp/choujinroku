@@ -80,7 +80,8 @@ export class EventWrapper {
               star: 0,
               colors: [],
               attribute: null,
-              cardTypes: [type]
+              cardTypes: [type],
+              diceCheck: null,
             })
           })
         }, false)
