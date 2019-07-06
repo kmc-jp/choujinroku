@@ -12,7 +12,7 @@ import { ColorScheme } from "ibukidom";
 // 細かく変更するの面倒臭すぎ
 // あとでやる
 // エンターキーで自動モードってなんやねん
-let playerNumber = 5;
+let playerNumber = 6;
 let gameProxy = GameProxy.tryToStart(_.shuffle<number>(_.range(GameProxy.getAvailableCharacters().length)).slice(0, playerNumber));
 function playerColor(i: number): string { return `hsla(${Math.floor((i * 360) / playerNumber)},100%,82%,0.5)`; }
 // マップに全文表示
