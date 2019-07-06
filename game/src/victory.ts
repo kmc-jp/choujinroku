@@ -15,7 +15,6 @@ export function waitToWinWith(when: (p: Player) => boolean): VictoryHook {
   }
 }
 
-
 // xxでxxを持ってxxターン待機して勝利
 export function waitToWin(where: LandName, items: ItemName[], waitCount: number): VictoryHook {
   return {
@@ -32,6 +31,7 @@ export function waitToWin(where: LandName, items: ItemName[], waitCount: number)
     }
   }
 }
+
 // xxで誰かがxxを持ってx人以上集まって勝利
 export function gatherToWin(where: LandName, item: ItemName, memberCount: number): VictoryHook {
   return {
@@ -48,6 +48,7 @@ export function gatherToWin(where: LandName, item: ItemName, memberCount: number
     }
   }
 }
+
 // 全員の正体を確認し、全ての ignoreCharas を除く Role のキャラクターに戦闘で勝つ
 export function allWatchAndAllWinToWin(winRequire: (a: Player) => boolean): VictoryHook[] {
   function impl(player: Player) {
@@ -79,6 +80,7 @@ export function winToWin(when: (me: Player, b: Player, c: SpellCard) => boolean)
     }
   }
 }
+
 // 満身創痍にする
 export function killToWin(when: (me: Player, target: Player) => boolean): VictoryHook {
   return {
@@ -105,6 +107,7 @@ export function loseToLose(when: (me: Player, target: Player) => boolean): Victo
     }
   }
 };
+
 export function damagedToLose(when: (me: Player, target?: Player) => boolean): VictoryHook {
   return {
     type: "AbyB", when: ["残機減少"],
@@ -113,6 +116,7 @@ export function damagedToLose(when: (me: Player, target?: Player) => boolean): V
     }
   };
 }
+
 export function destroyedToLose(lands: LandName[]): VictoryHook {
   return {
     type: "ALand", when: ["地形破壊"], allowAisNotMe: true,
@@ -121,6 +125,9 @@ export function destroyedToLose(lands: LandName[]): VictoryHook {
     }
   };
 }
+
+export const destroyedToWin = destroyedToLose
+
 export function watchedToLose(when: (me: Player, from: Player) => boolean): VictoryHook {
   return {
     type: "AtoB",

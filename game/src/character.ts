@@ -15,7 +15,7 @@ export const charaCategories = {
   "紅魔館の住人": ((): CharaName[] => ["美鈴", "パチュリー", "咲夜", "レミリア", "フラン"])(),
   "地霊殿の住人": ((): CharaName[] => ["さとり", "燐", "空", "こいし"])()
 };
-export type RaceName = "人間" | "幽霊" | "種族不明"
+export type RaceName = "人間" | "妖怪" | "幽霊" | "僵尸" | "仙人" | "聖人" | "種族不明"
 export type RoleName = "主人公" | "妖怪" | "野次馬"
 // ボムが必要な場合は関数内で処理すること
 type CharacterBase = {
@@ -208,7 +208,7 @@ export function getAllCharacters(): Character[] {
         if (!land.landAttributes.includes("紅マス")) return false;
         if (p.waitCount < 1) return false;
         for (let other of p.game.getOthers(p)) {
-          if (!charaCategories["地霊殿の住人"].includes(other.characterName) && !p.won.has(other.id)) return false;
+          if (!charaCategories["紅魔館の住人"].includes(other.characterName) && !p.won.has(other.id)) return false;
         }
         return true;
       })
@@ -277,6 +277,143 @@ export function getAllCharacters(): Character[] {
       Victory.winToWin((me, a) => a.items.some(x => x.name === "呪法書")),
     ], whenLose: [
       Victory.destroyedToLose(["魔法の森"]),
+    ]
+  }, {
+    name: "響子",
+    fullname: "幽谷 響子",
+    spellCard: "チャージドクライ",
+    role: "妖怪",
+    level: 3,
+    mental: 6,
+    race: "妖怪",
+    // attributeHooksとspecificActionsは未追加
+    whenWin: [
+      Victory.winToWin((me, a) =>
+        me.currentLand ? me.currentLand.name === "命蓮寺" : false),
+      Victory.waitToWinWith(p => {
+        let land = p.currentLand;
+        if (!land) return false;
+        if (land.name !== "命蓮寺") return false;
+        if (p.waitCount < 1) return false;
+        for (let other of p.game.getOthers(p)) {
+          // 全員の正体を確認していないならfalse
+          if (!p.watched.has(other.id)) return false;
+        }
+        return true;
+      }),
+    ], whenLose: [
+      Victory.destroyedToLose(["命蓮寺"]),
+    ]
+  }, {
+    name: "芳香",
+    fullname: "宮古 芳香",
+    spellCard: "ヒールバイデザイア",
+    role: "野次馬",
+    level: 2,
+    mental: 7,
+    race: "僵尸",
+    // attributeHooksとspecificActionsは未追加
+    whenWin: [
+      Victory.waitToWin("墓地", ["神社の御札"], 1),
+      Victory.waitToWinWith(p => {
+        let land = p.currentLand;
+        if (!land) return false;
+        if (land.name !== "墓地") return false;
+        if (p.waitCount < 1) return false;
+        if (p.life !== 5) return false;
+        return true;
+      }),
+    ], whenLose: [
+      Victory.destroyedToLose(["墓地"]),
+      Victory.loseToLose((me, a) => a.items.some(x => x.name === "浄玻璃の鏡" || x.name === "聖の宝塔")),
+    ]
+  }, {
+    name: "青娥",
+    fullname: "霍 青娥",
+    spellCard: "タオ胎動",
+    role: "野次馬",
+    level: 4,
+    mental: 5,
+    race: "仙人",
+    // attributeHooksとspecificActionsは未追加
+    whenWin: [
+      Victory.waitToWin("大祀廟", ["羽衣"], 2),
+      Victory.waitToWinWith(p => {
+        let land = p.currentLand;
+        if (!land) return false;
+        if (land.name !== "大祀廟") return false;
+        if (p.waitCount < 1) return false;
+        for (let other of p.game.getOthers(p)) {
+          // 主人公のうち1人にでも勝ったらtrue
+          if (other.role === "主人公" && p.won.has(other.id)) return true;
+        }
+        return false;
+      }),
+      Victory.killToWin((me, a) => a.role === "主人公"),
+    ], whenLose: [
+      Victory.destroyedToLose(["大祀廟"]),
+      Victory.damagedToLose(me => me.items.some(x => x.name === "羽衣")),
+    ]
+  }, {
+    name: "布都",
+    fullname: "物部 布都 & 蘇我 屠自古",
+    spellCard: "大物忌正餐",  // ガコウジサイクロンもあるよ
+    role: "野次馬",
+    level: 5,
+    mental: 5,
+    race: "人間", // 幽霊でもある
+    // attributeHooksとspecificActionsは未追加
+    whenWin: [
+      Victory.waitToWin("大祀廟", ["舟", "死神の舟"], 2),
+      Victory.waitToWinWith(p => {
+        let land = p.currentLand;
+        if (!land) return false;
+        if (land.name !== "大祀廟") return false;
+        if (p.waitCount < 1) return false;
+        for (let other of p.game.getOthers(p)) {
+          // 主人公のうち1人にでも勝ったらtrue
+          if (other.role === "主人公" && p.won.has(other.id)) return true;
+        }
+        return false;
+      }),
+      Victory.killToWin((me, a) => a.role === "主人公"),
+    ], whenLose: [
+      Victory.destroyedToLose(["大祀廟"]),
+      Victory.damagedToLose(me => me.items.some(x => x.name === "舟" || x.name === "死神の舟")),
+    ]
+  }, {
+    name: "神子",
+    fullname: "豊聡耳 神子",
+    spellCard: "星降る神霊廟",
+    role: "野次馬",
+    level: 5,
+    mental: 5,
+    race: "聖人",
+    // attributeHooksとspecificActionsは未追加
+    whenWin: [
+      Victory.waitToWin("大祀廟", ["宝剣"], 2),
+      Victory.destroyedToWin(["命蓮寺"]),
+    ], whenLose: [
+      Victory.destroyedToLose(["大祀廟"]),
+      Victory.damagedToLose(me => me.items.some(x => x.name === "宝剣")),
+    ]
+  }, {
+    name: "マミゾウ",
+    fullname: "二ツ岩 マミゾウ",
+    spellCard: "ワイルドカーペット",
+    role: "妖怪",
+    level: 5,
+    mental: 6,
+    race: "妖怪",
+    // attributeHooksとspecificActionsは未追加
+    whenWin: [
+      Victory.winToWin((me, a) => a.characterName === "神子"),
+      Victory.winToWin((me, a) => a.role === "主人公" &&
+        a.wonArray.some(x => me.game.players[x].role === "妖怪")),
+      Victory.gatherToWin("命蓮寺", "銘酒", 3),
+    ], whenLose: [
+      Victory.destroyedToLose(["命蓮寺"]),
+      Victory.damagedToLose(me => me.items.some(x => x.name === "銘酒")),
     ]
   },
   ]
