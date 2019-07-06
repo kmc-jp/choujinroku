@@ -304,8 +304,6 @@ export function getAllCharacters(): Character[] {
       Victory.waitToWin("命蓮寺", [], 1, p =>
         p.game.getOthers(p).every(other => p.watched.has(other.id))
       ),
-      Victory.waitToWin("命蓮寺", [], 1, p => p.life === 5)
-
     ], whenLose: [
       Victory.destroyedToLose(["命蓮寺"]),
     ]
@@ -320,7 +318,7 @@ export function getAllCharacters(): Character[] {
     // attributeHooksとspecificActionsは未追加
     whenWin: [
       Victory.waitToWin("墓地", ["神社の御札"], 1),
-      Victory.waitToWin("墓地", [], 1, p => p.life === 5)
+      Victory.waitToWin("墓地", [], 1, p => p.life === 5),
     ], whenLose: [
       Victory.destroyedToLose(["墓地"]),
       Victory.loseToLose((me, a) => a.items.some(x => x.name === "浄玻璃の鏡" || x.name === "聖の宝塔")),
