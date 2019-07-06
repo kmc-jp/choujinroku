@@ -94,7 +94,7 @@ export class Game {
     }
   }
   private getMoveChoices(player: Player, poses: Pos[], tag: "移動1" | "移動2"): Choice[] {
-    let tmp: any = poses.map(x => [x.x * 100 + x.y, x]);
+    let tmp: any = poses.concat(player.nextToPosesGenerator(player)).map(x => [x.x * 100 + x.y, x]);
     tmp = Array.from(new Map(tmp).values());
     poses = tmp;
     return poses.map(p => {

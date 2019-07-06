@@ -8,6 +8,8 @@ import { Player } from "./player";
 import { FieldAction } from "./fieldaction";
 import { SpellCardName, SpellCard } from "./spellcard";
 import { Item, FairyFriendNames } from "./item";
+import { Land } from "./land";
+import { Pos } from "./pos";
 
 export type CharaName = "華扇" | "霊夢" | "魔理沙" | "ルーミア" | "チルノ" | "美鈴" | "パチュリー" | "咲夜" | "レミリア" | "フラン" | "レティ" | "橙" | "アリス" | "プリズムリバー" | "妖夢" | "幽々子" | "藍" | "紫" | "萃香" | "リグル" | "ミスティア" | "慧音" | "てゐ" | "優曇華院" | "永琳" | "輝夜" | "妹紅" | "メディスン" | "幽香" | "文" | "小町" | "四季映姫" | "秋姉妹" | "雛" | "にとり" | "早苗" | "神奈子" | "諏訪子" | "衣玖" | "天子" | "ヤマメ" | "パルスィ" | "勇儀" | "さとり" | "燐" | "空" | "こいし" | "ナズーリン" | "小傘" | "一輪" | "村紗" | "星" | "白蓮" | "ぬえ" | "はたて" | "響子" | "芳香" | "青娥" | "布都" | "神子" | "マミゾウ"
 export const charaCategories = {
@@ -37,6 +39,8 @@ type CharacterBase = {
   whenWin?: VictoryHook[];
   whenLose?: VictoryHook[];
   id?: number;
+  // 隣
+  nextToPosesGenerator?: ((player: Player) => Pos[]);
   // アイテム所持数の数え方が特殊なキャラ用
   howToCountItems?: ((player: Player) => number) | null;
   // アイテムを捨てられないキャラ用
@@ -462,6 +466,7 @@ export function getAllCharacters(): Character[] {
     fieldActions: x.fieldActions || [],
     whenWin: x.whenWin || [],
     whenLose: x.whenLose || [],
+    nextToPosesGenerator: x.nextToPosesGenerator || (() => []),
     specificActions: x.specificActions || [],
     howToCountItems: x.howToCountItems || null,
     canDiscardItem: x.canDiscardItem || null
