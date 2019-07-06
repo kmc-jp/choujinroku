@@ -94,7 +94,8 @@ export class Game {
     }
   }
   private getMoveChoices(player: Player, poses: Pos[], tag: "移動1" | "移動2"): Choice[] {
-    let tmp: any = poses.concat(player.nextToPosesGenerator(player)).map(x => [x.x * 100 + x.y, x]);
+    poses = poses.filter(x => !x.equal(player.pos));
+    let tmp: any = poses.map(x => [x.x * 100 + x.y, x]);
     tmp = Array.from(new Map(tmp).values());
     poses = tmp;
     return poses.map(p => {
@@ -378,6 +379,8 @@ export class Game {
       let nextTo = player.pos.getNextTo();
       let map = player.currentLand;
       if (map) nextTo.push(...this.getNextToPos(map))
+      // 盤外に要る時は隣は発動しない
+      nextTo.push(...player.nextToPosesGenerator(player));
       player.choices.push(...this.getMoveChoices(player, nextTo, moveTag))
     }
     // アイテム
