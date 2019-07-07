@@ -10,7 +10,6 @@ export function invalidate(skillName: string, attrs: (Attribute | Attribute[])[]
   return {
     skillName: skillName,
     when: attrs,
-    overwrite: true,
     choices(player: Player, attributes?: Attribute[]) {
       if (when && !when(player, attributes ? attributes : [])) return [];
       if (!attrs.includes("手番休み")) return choices(skillName + "で無効化！");
@@ -66,6 +65,7 @@ export function changeEffect(skillName: string, attrs: (Attribute | Attribute[])
   return {
     skillName: skillName,
     when: attrs,
+    overwrite: true,
     choices(player: Player, attributes?: Attribute[]) {
       return effect(player,attributes);
     }
