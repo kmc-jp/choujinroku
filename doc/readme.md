@@ -8,16 +8,8 @@
 ## [FAQ](./doc/faq.md)
 ### [細々としたFAQ](./doc/faq2.md)
 
-echo -n "choujinroku" | shasum
-4190384711549a3e1d6d8c9de5cdc0b6a96ed31c
-http://sagisawa.0am.jp/choujinroku
-choujinroku
-48ydP9ZcLuCC8c2R
-
 
 https://www65.atwiki.jp/choujinroku/pages/12.html
-
-
 
 https://img.atwikiimg.com/www65.atwiki.jp/choujinroku/attach/19/2/match.png
 https://img.atwikiimg.com/www65.atwiki.jp/choujinroku/attach/19/1/rensa.png
