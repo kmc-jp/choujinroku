@@ -70,6 +70,7 @@ export function enterToWinWith(when: (p: Player)=>boolean, where?: LandName): Vi
 
 
 // xxで誰かがxxを持ってx人以上集まって勝利
+// TODO: 移動以外でもフックする必要がある
 export function gatherToWin(where: LandName, item: ItemName, memberCount: number): VictoryHook {
   return {
     type: "A",
@@ -82,6 +83,23 @@ export function gatherToWin(where: LandName, item: ItemName, memberCount: number
       let heres = me.game.getPlayersAt(me.pos);
       if (heres.length < memberCount) return false;
       return heres.some(x => x.items.some(i => i.name === item));
+    }
+  }
+}
+
+// 場にいる全員が集まったら勝利 
+// TODO: 移動以外でもフックする必要がある
+export function allGatherToWin(): VictoryHook{
+  return {
+    type: "A",
+    when: ["移動"],
+    allowAisNotMe: true,
+    hook(player: Player, me: Player) {
+      let land = me.currentLand;
+      if (land === null) return false;
+      let heres = me.game.getPlayersAt(me.pos);
+      let filedInsiders = me.game.players.filter(player => player.currentLand != null)
+      return heres.length === filedInsiders.length;
     }
   }
 }
