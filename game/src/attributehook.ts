@@ -2,7 +2,7 @@ import { ItemName } from "./item";
 import { RoleName, CharaName } from "./character";
 import { Attribute, AttributeHook, TwoDice } from "./hooktype";
 import { Player } from "./player";
-import { choices } from "./choice";
+import { choices, Choice } from "./choice";
 
 
 // AttributeHook の略記法で条件に合った時に効果を無効化する選択肢を提示する
@@ -56,6 +56,18 @@ export function invalidate2D(skillName: string, attrs: (Attribute | Attribute[])
     needDice: { type: "2D", success(p: Player, dice: TwoDice) { return success(p, dice); } },
     choices(player: Player, attributes?: Attribute[]) {
       return choices(skillName + "で無効化成功！");
+    }
+  }
+}
+
+//効果を書き換え
+export function changeEffect(skillName: string, attrs: (Attribute | Attribute[])[], effect: (p: Player, attributes?: Attribute[]) => Choice[]) : AttributeHook{
+  return {
+    skillName: skillName,
+    when: attrs,
+    overwrite: true,
+    choices(player: Player, attributes?: Attribute[]) {
+      return effect(player,attributes);
     }
   }
 }

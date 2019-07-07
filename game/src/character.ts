@@ -2,7 +2,7 @@ import { Choice, choices } from "./choice";
 import { AttributeHook, Attribute, SpecificActionHook, VictoryHook, NPCType, Hooks } from "./hooktype"
 import { drawACard } from "./specificaction"
 import * as Victory from "./victory";
-import { invalidate, invalidate1D, invalidate2D } from "./attributehook";
+import { invalidate, invalidate1D, invalidate2D, changeEffect } from "./attributehook";
 import { Game } from "./game";
 import { Player } from "./player";
 import { FieldAction } from "./fieldaction";
@@ -19,7 +19,7 @@ export const charaCategories = {
   "地霊殿の住人": ((): CharaName[] => ["さとり", "燐", "空", "こいし"])()
 };
 
-export type RaceName = "人間" | "妖怪" | "妖精" | "魔法使い" | "吸血鬼" | "幽霊" | "仙人" | "聖人" | "種族不明" | "半人半霊"
+export type RaceName = "人間" | "妖怪" | "妖精" | "魔法使い" | "吸血鬼" | "幽霊" | "仙人" | "聖人" | "種族不明" | "半人半霊" | "鬼"
 
 export type RoleName = "主人公" | "妖怪" | "野次馬"
 // ボムが必要な場合は関数内で処理すること
@@ -411,6 +411,86 @@ export function getAllCharacters(): Character[] {
           let mapLen = player.game.map.length - 1;
           let corner4 = [player.game.map[0][0], player.game.map[0][mapLen], player.game.map[mapLen][0], player.game.map[mapLen][mapLen]];
           return corner4.some(destoriedLand => destoriedLand === land)
+        }
+      },
+      {
+        type: "ALand",
+        when: ["土地を開く"],
+        allowAisNotMe: true,
+        hook(player: Player, land: Land) {
+          if (player.characterName === "紫" || player.characterName === "藍") return false;
+          return player.game.map.filter(lands => lands.filter(land => land).length < 6).length === 0
+        }
+      }
+    ]
+  }, {
+    name: "紫",
+    fullname: "八雲紫",
+    spellCard: "永夜四重結界",
+    role: "妖怪",
+    level: 5,
+    mental: 7,
+    race: "妖怪",
+    attributeHooks: [
+      //名前ないので適当につけた
+      invalidate("スキマ送り耐性",["スキマ送り"])
+    ],
+    specificActions: [
+      //1D分移動させるためには移動ごとに能力にフックさせないといけない...？
+    ],
+    whenWin:[
+      Victory.waitToWin("博麗神社",["妖怪の傘"],3),
+      //最後の一枚をxxが開く、関数にしたほうがいい？
+      {
+        type: "ALand",
+        when: ["土地を開く"],
+        allowAisNotMe: true,
+        hook(player: Player, land: Land) {
+          if (player.characterName !== "紫" && player.characterName !== "藍") return false;
+          return player.game.map.filter(lands => lands.filter(land => land).length < 6).length === 0
+        }
+      },
+    ],
+    whenLose: [
+      Victory.damagedToLose(me => me.items.some(item => item.name === "妖怪の傘")),
+      {
+        type: "ALand",
+        when: ["土地を開く"],
+        allowAisNotMe: true,
+        hook(player: Player, land: Land) {
+          if (player.characterName === "紫" || player.characterName === "藍") return false;
+          return player.game.map.filter(lands => lands.filter(land => land).length < 6).length === 0
+        }
+      }
+    ]
+  }, {
+    name: "萃香",
+    fullname: "伊吹萃香",
+    spellCard: "戸隠山投げ",
+    role: "野次馬",
+    level: 4,
+    mental: 7,
+    race: "鬼",
+    attributeHooks: [
+      invalidate("山の四天王",["能力低下"],me => me.items.some(item => item.name === "銘酒")),
+      changeEffect("山の四天王",["飲み過ぎ"],(player) => {player.heal(); return choices("酒を飲んで残機が1増えた！")})
+    ],
+    whenWin: [
+      Victory.waitToWin("博麗神社",["銘酒"],2),
+      //現在は1人になった時にも勝つ（敗北が勝利に優先する、が未実装？）
+      Victory.allGatherToWin()
+    ],
+    whenLose: [
+      Victory.damagedToLose(me => me.items.some(item => item.name === "銘酒")),
+      {
+        type: "A",
+        when: ["移動"],
+        allowAisNotMe: true,
+        hook(player: Player, me: Player) {
+          let land = me.currentLand;
+          if (land === null) return false;
+          let filedInsiders = me.game.players.filter(player => player.currentLand != null)
+          return filedInsiders.length === 1;
         }
       }
     ]
